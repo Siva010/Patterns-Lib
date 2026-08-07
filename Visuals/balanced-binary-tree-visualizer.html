@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>110. Balanced Binary Tree — recursion visualizer</title>
+<!--
+  ============================================================================
+  STEP 1 — CLASSIFICATION
+  ============================================================================
+  Substrate is (c) STRUCTURE TRAVERSAL: the recursion walks an existing binary
+  tree, one call per node (plus one per null pointer).
+
+  Dominant family is (a) VALUE-COMBINING: every call returns a number — a
+  subtree height, or the sentinel -1 meaning "unbalanced somewhere below" —
+  and the parent combines it as `1 + max(left, right)`. That combining step is
+  where the whole algorithm lives, so panel (a) is primary: each stack frame
+  shows its pending expression with holes, and a child's RETURN visibly fills
+  a hole in its parent.
+
+  Panel (c) is included as secondary: the real binary tree is drawn beside the
+  recursion tree with visited / active / pruned nodes marked. Note that the two
+  trees are NOT the same picture — the recursion tree carries an extra leaf for
+  every null pointer, and those null calls are exactly the base cases.
+
+  Event types produced: START, CALL, BASE, EVAL, CHECK, PRUNE, RETURN, DONE.
+  ============================================================================
+-->
+<style>
+  :root{
+    --bg:#0b1120;
+    --panel:#111c33;
+    --panel-2:#0e172a;
+    --line:#22314f;
+    --line-soft:#1a2540;
+    --ink:#dde5f7;
+    --muted:#7e8db2;
+    --dim:#54628a;
+    --active:#ffb84d;
+    --height:#4fd6a9;
+    --sentinel:#ff6f7d;
+    --path:#7aa2ff;
+    --prune:#a17ad6;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:1380px;margin:0 auto;padding:18px 14px 48px}
+
+  /* ---------- header ---------- */
+  header{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+  h1{
+    font-size:15px;font-weight:600;margin:0 0 4px;letter-spacing:.02em;
+  }
+  h1 .num{color:var(--active)}
+  .sub{color:var(--muted);font-size:11.5px;margin:0;max-width:68ch;line-height:1.6}
+  .sub b{color:var(--path);font-weight:600}
+
+  /* ---------- inputs ---------- */
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 10px}
+  .lbl{
+    font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+    margin-right:2px;
+  }
+  select,input[type=text],button{
+    font-family:var(--mono);font-size:12px;color:var(--ink);
+    background:var(--panel);border:1px solid var(--line);border-radius:5px;
+    padding:6px 9px;
+  }
+  select{max-width:100%}
+  input[type=text]{width:210px}
+  button{cursor:pointer}
+  button:hover{border-color:var(--path)}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.35;cursor:default;transform:none}
+  button.primary{background:var(--path);border-color:var(--path);color:#08122a;font-weight:600}
+  button.on{border-color:var(--active);color:var(--active)}
+  :focus-visible{outline:2px solid var(--active);outline-offset:2px}
+  .err{color:var(--sentinel);font-size:11.5px}
+  .hint{color:var(--dim);font-size:11px}
+
+  /* ---------- controls ---------- */
+  .controls{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:7px;
+    padding:9px 10px;
+  }
+  .scrub{flex:1 1 220px;display:flex;align-items:center;gap:8px;min-width:180px}
+  input[type=range]{width:100%;accent-color:var(--path);background:transparent}
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin:9px 2px 14px;font-size:11px;color:var(--muted)}
+  .stats b{color:var(--ink);font-weight:600}
+  .verdict{margin-left:auto;font-weight:600}
+  .verdict.t{color:var(--height)}
+  .verdict.f{color:var(--sentinel)}
+
+  /* ---------- narration ---------- */
+  .narration{
+    font-family:var(--sans);font-size:15px;line-height:1.45;
+    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--active);
+    border-radius:0 7px 7px 0;padding:12px 14px;margin-bottom:14px;min-height:56px;
+    display:flex;align-items:center;
+  }
+  .narration .tag{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    color:var(--bg);background:var(--active);border-radius:3px;padding:2px 6px;
+    margin-right:10px;vertical-align:2px;white-space:nowrap;
+  }
+  .narration code{font-family:var(--mono);font-size:13.5px;color:var(--path)}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:14px;align-items:start}
+  @media (max-width:920px){.grid{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+  .panel{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .panel > h2{
+    font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+    margin:0;padding:9px 12px;border-bottom:1px solid var(--line-soft);
+    display:flex;align-items:center;gap:8px;font-weight:500;
+  }
+  .panel > h2 .note{margin-left:auto;letter-spacing:.04em;text-transform:none;font-size:10.5px}
+  .body{padding:10px 12px}
+
+  /* ---------- source ---------- */
+  #source{padding:8px 0}
+  .ln{display:flex;gap:10px;padding:1px 12px;white-space:pre;opacity:.34;font-size:12px}
+  .ln .g{color:var(--dim);width:16px;text-align:right;flex:none;font-size:10.5px;padding-top:1px}
+  .ln.done{opacity:.62}
+  .ln.cur{opacity:1;background:rgba(255,184,77,.13);box-shadow:inset 2px 0 0 var(--active)}
+  .ln.cur .g{color:var(--active)}
+  .k{color:#ff9ec4}.t{color:#7fd6ff}.n{color:var(--height)}.c{color:var(--dim);font-style:italic}
+
+  /* ---------- stack ---------- */
+  #stack{display:flex;flex-direction:column;gap:6px;min-height:60px}
+  .frame{border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel)}
+  .frame.active{border-color:var(--active);background:rgba(255,184,77,.07)}
+  .frame.ret{border-color:var(--height);border-style:dashed;opacity:.9}
+  .frame.ret.neg{border-color:var(--sentinel)}
+  .frame .top{display:flex;align-items:baseline;gap:8px}
+  .frame .d{font-size:9.5px;color:var(--dim);flex:none}
+  .frame .sig{font-size:12.5px}
+  .frame .st{margin-left:auto;font-size:10px;color:var(--muted)}
+  .expr{margin-top:4px;font-size:12.5px;color:var(--muted)}
+  .expr .hole{color:var(--dim)}
+  .expr .v{color:var(--height)}
+  .expr .neg{color:var(--sentinel)}
+  .expr .fill{
+    background:rgba(79,214,169,.2);border-radius:3px;padding:0 3px;
+    animation:flash .45s ease-out;
+  }
+  .expr .fill.neg{background:rgba(255,111,125,.22)}
+  @keyframes flash{from{background:rgba(255,255,255,.75)}to{}}
+  .chk{margin-top:4px;font-size:11.5px;color:var(--active)}
+  .empty{color:var(--dim);font-size:11.5px;padding:6px 2px}
+
+  /* ---------- trees ---------- */
+  .treewrap{overflow:auto;max-height:56vh;padding:6px}
+  .treewrap.small{max-height:38vh}
+  svg{display:block}
+  .edge{stroke:var(--line);stroke-width:1.5;fill:none}
+  .edge.ghost{stroke:var(--line-soft);stroke-dasharray:3 4}
+  .edge.path{stroke:var(--path);stroke-width:2}
+  .edge.done{stroke:var(--dim)}
+  .edge.pruned{stroke:var(--prune);stroke-dasharray:2 5;opacity:.65}
+  .nd{stroke-width:1.6;fill:var(--panel-2)}
+  .nd.ghost{stroke:var(--line-soft);opacity:.5}
+  .nd.path{stroke:var(--path)}
+  .nd.active{stroke:var(--active);fill:rgba(255,184,77,.16)}
+  .nd.done{stroke:var(--dim)}
+  .nd.done.neg{stroke:var(--sentinel)}
+  .nd.pruned{stroke:var(--prune);stroke-dasharray:2 4;opacity:.6}
+  .nlab{font-family:var(--mono);font-size:12px;text-anchor:middle;fill:var(--ink)}
+  .nlab.ghost{fill:var(--dim);opacity:.6}
+  .nlab.nul{font-size:11px;fill:var(--dim)}
+  .res{font-family:var(--mono);font-size:10.5px;text-anchor:middle;fill:var(--height)}
+  .res.neg{fill:var(--sentinel)}
+  .pulse{fill:none;stroke:var(--active);opacity:.55;animation:pulse 1.4s ease-out infinite}
+  @keyframes pulse{0%{r:18;opacity:.55}100%{r:30;opacity:0}}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 12px 10px;font-size:10.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1><span class="num">110.</span> Balanced Binary Tree — <span style="color:var(--muted)">bottom-up <code>height()</code>, stepped</span></h1>
+  <p class="sub">
+    Every call returns a subtree height, or <b>-1</b> meaning "unbalanced somewhere below."
+    Watch each frame's pending <code>1 + max(▢, ▢)</code> fill in as its children return.
+  </p>
+</header>
+
+<div class="bar">
+  <span class="lbl">Tree</span>
+  <select id="preset"></select>
+  <span class="lbl" style="margin-left:6px">Custom</span>
+  <input id="custom" type="text" placeholder="[3,9,20,null,null,15,7]" spellcheck="false">
+  <button id="load">Load</button>
+  <button id="pruneBtn">Short-circuit: on</button>
+  <span id="err" class="err"></span>
+</div>
+<p class="hint" id="presetNote"></p>
+
+<div class="controls">
+  <button id="reset" title="Reset to step 0">⟲</button>
+  <button id="back" title="Step back (←)">◀</button>
+  <button id="play" class="primary" title="Play / pause (space)">▶ play</button>
+  <button id="fwd" title="Step forward (→)">▶</button>
+  <div class="scrub">
+    <input id="scrub" type="range" min="0" max="0" value="0">
+    <span id="stepNo" style="font-size:11px;color:var(--muted);white-space:nowrap"></span>
+  </div>
+  <span class="lbl">Speed</span>
+  <input id="speed" type="range" min="0" max="10" value="6" style="width:90px">
+</div>
+
+<div class="stats">
+  <span>depth <b id="sDepth">0</b> / max <b id="sMax">0</b></span>
+  <span>calls <b id="sCalls">0</b> / <b id="sTotal">0</b></span>
+  <span>frames on stack <b id="sFrames">0</b></span>
+  <span id="sPruned"></span>
+  <span class="verdict" id="verdict"></span>
+</div>
+
+<div class="narration" id="narration"></div>
+
+<div class="grid">
+  <div class="col">
+    <section class="panel">
+      <h2>Source <span class="note" id="srcNote"></span></h2>
+      <div id="source"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Call stack <span class="note">newest on top</span></h2>
+      <div class="body"><div id="stack"></div></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel">
+      <h2>Recursion tree
+        <span class="note">
+          <button id="zOut" style="padding:2px 7px">−</button>
+          <button id="zIn" style="padding:2px 7px">+</button>
+          <button id="zFit" style="padding:2px 7px">fit</button>
+        </span>
+      </h2>
+      <div class="treewrap" id="callWrap"><svg id="callSvg"></svg></div>
+      <div class="legend">
+        <span><i style="background:var(--active)"></i>active</span>
+        <span><i style="background:var(--path)"></i>on the current path</span>
+        <span><i style="background:var(--dim)"></i>returned</span>
+        <span><i style="background:var(--prune)"></i>skipped by short-circuit</span>
+        <span><i style="background:var(--line)"></i>not called yet</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>The binary tree itself <span class="note">the recursion tree above is this, plus one leaf per null</span></h2>
+      <div class="treewrap small" id="treeWrap"><svg id="treeSvg"></svg></div>
+    </section>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ===================== LOGIC START ===================== */
+
+/* ---- Java source, two variants. Line numbers are 1-based. ---- */
+var SRC = {
+  prune: {
+    label: "short-circuit on",
+    lines: [
+      "class Solution {",
+      "    public boolean isBalanced(TreeNode root) {",
+      "        return height(root) != -1;",
+      "    }",
+      "",
+      "    private int height(TreeNode node) {",
+      "        if (node == null) return 0;",
+      "",
+      "        int left = height(node.left);",
+      "        if (left == -1) return -1;      // stop early",
+      "",
+      "        int right = height(node.right);",
+      "        if (right == -1) return -1;     // stop early",
+      "",
+      "        if (Math.abs(left - right) > 1) return -1;",
+      "        return 1 + Math.max(left, right);",
+      "    }",
+      "}"
+    ],
+    L: {TOP:3, ENTER:6, NULL:7, LEFT:9, CHECKL:10, RIGHT:12, CHECKR:13, ABS:15, RET:16}
+  },
+  plain: {
+    label: "short-circuit off",
+    lines: [
+      "class Solution {",
+      "    public boolean isBalanced(TreeNode root) {",
+      "        return height(root) != -1;",
+      "    }",
+      "",
+      "    private int height(TreeNode node) {",
+      "        if (node == null) return 0;",
+      "",
+      "        int left  = height(node.left);",
+      "        int right = height(node.right);",
+      "",
+      "        if (left == -1 || right == -1) return -1;",
+      "        if (Math.abs(left - right) > 1) return -1;",
+      "        return 1 + Math.max(left, right);",
+      "    }",
+      "}"
+    ],
+    L: {TOP:3, ENTER:6, NULL:7, LEFT:9, RIGHT:10, SENT:12, ABS:13, RET:14}
+  }
+};
+
+var MAX_NODES = 31, MAX_HEIGHT = 6;
+
+/* ---- input parsing ---- */
+function parseTokens(str){
+  var cleaned = String(str).replace(/[\[\]]/g, " ").trim();
+  if(!cleaned) return [];
+  return cleaned.split(/[\s,]+/).filter(function(s){return s.length;}).map(function(t){
+    if(/^(null|nil|n|#|x|_)$/i.test(t)) return null;
+    if(!/^-?\d+$/.test(t)) throw new Error('"' + t + '" is not an integer or null');
+    return parseInt(t, 10);
+  });
+}
+
+function buildTree(tokens){
+  if(tokens.length === 0) return null;
+  if(tokens[0] === null) throw new Error("the root cannot be null");
+  function mk(v){ return {val:v, left:null, right:null, key:"", depth:0}; }
+  var root = mk(tokens[0]), q = [root], i = 1, count = 1;
+  while(q.length && i < tokens.length){
+    var n = q.shift();
+    var sides = ["left","right"];
+    for(var s = 0; s < 2; s++){
+      if(i >= tokens.length) break;
+      var v = tokens[i++];
+      if(v !== null){
+        var c = mk(v);
+        n[sides[s]] = c;
+        q.push(c);
+        count++;
+        if(count > MAX_NODES) throw new Error("keep it to " + MAX_NODES + " nodes so the tree stays drawable");
+      }
+    }
+  }
+  if(i < tokens.length) throw new Error("too many values — the extras have no parent to hang from");
+  (function walk(n, key, d){
+    if(!n) return;
+    n.key = key; n.depth = d;
+    walk(n.left, key + "L", d + 1);
+    walk(n.right, key + "R", d + 1);
+  })(root, "R", 0);
+  var h = treeHeight(root);
+  if(h > MAX_HEIGHT) throw new Error("that tree is " + h + " levels deep — cap is " + MAX_HEIGHT);
+  return root;
+}
+function treeHeight(n){ return n ? 1 + Math.max(treeHeight(n.left), treeHeight(n.right)) : 0; }
+function countNodes(n){ return n ? 1 + countNodes(n.left) + countNodes(n.right) : 0; }
+
+/* independent reference answer, used to sanity-check the trace */
+function refBalanced(n){
+  if(!n) return true;
+  if(!refBalanced(n.left) || !refBalanced(n.right)) return false;
+  return Math.abs(treeHeight(n.left) - treeHeight(n.right)) <= 1;
+}
+
+/* ---- layouts ---- */
+/* Call tree: every real node contributes two child calls; nulls are leaves. */
+function layoutCallTree(root){
+  var map = {}, leaf = 0, XG = 62, YG = 76, maxD = 0;
+  function place(node, key, depth, parent, side){
+    var rec = {key:key, depth:depth, parent:parent, side:side, isNull:!node,
+               val:node ? node.val : null, x:0, y:depth * YG};
+    map[key] = rec;
+    if(depth > maxD) maxD = depth;
+    if(!node){ rec.x = leaf * XG; leaf++; return rec; }
+    var l = place(node.left,  key + "L", depth + 1, key, "left");
+    var r = place(node.right, key + "R", depth + 1, key, "right");
+    rec.x = (l.x + r.x) / 2;
+    return rec;
+  }
+  place(root, "R", 0, null, null);
+  return {map:map, w:Math.max(leaf - 1, 0) * XG, h:maxD * YG, count:Object.keys(map).length};
+}
+/* Structure tree: real nodes only, in-order x. */
+function layoutTree(root){
+  var map = {}, idx = 0, XG = 56, YG = 66, maxD = 0;
+  (function place(n, depth){
+    if(!n) return;
+    place(n.left, depth + 1);
+    map[n.key] = {key:n.key, val:n.val, x:idx * XG, y:depth * YG, depth:depth,
+                  left:n.left ? n.left.key : null, right:n.right ? n.right.key : null};
+    idx++;
+    if(depth > maxD) maxD = depth;
+    place(n.right, depth + 1);
+  })(root, 0);
+  return {map:map, w:Math.max(idx - 1, 0) * XG, h:maxD * YG};
+}
+
+/* ---- STEP 2: the trace generator ---- */
+/* height() is hand-written; it yields one event per meaningful step. */
+function buildTrace(root, prune){
+  var events = [], maxDepth = 0, calls = 0;
+  var L = prune ? SRC.prune.L : SRC.plain.L;
+  function E(e){ events.push(e); }
+
+  function skippedKeys(node, key){
+    var out = [];
+    (function w(n, k){ out.push(k); if(n){ w(n.left, k + "L"); w(n.right, k + "R"); } })(node, key);
+    return out;
+  }
+
+  function height(node, key, depth, parentKey, side){
+    calls++;
+    if(depth > maxDepth) maxDepth = depth;
+    E({type:"CALL", key:key, parentKey:parentKey, side:side, depth:depth,
+       isNull:!node, val:node ? node.val : null, line:L.ENTER,
+       args: node ? "height(" + node.val + ")" : "height(null)"});
+
+    if(!node){
+      E({type:"BASE", key:key, depth:depth, line:L.NULL, value:0});
+      E({type:"RETURN", key:key, parentKey:parentKey, side:side, depth:depth,
+         value:0, line:L.NULL, reason:"base"});
+      return 0;
+    }
+
+    E({type:"EVAL", key:key, depth:depth, side:"left", line:L.LEFT,
+       childVal: node.left ? node.left.val : null});
+    var left = height(node.left, key + "L", depth + 1, key, "left");
+
+    if(prune){
+      E({type:"CHECK", key:key, depth:depth, line:L.CHECKL, check:"leftSentinel", left:left});
+      if(left === -1){
+        var sk = skippedKeys(node.right, key + "R");
+        E({type:"PRUNE", key:key, depth:depth, line:L.CHECKL, skipped:sk,
+           nodesSkipped: countNodes(node.right)});
+        E({type:"RETURN", key:key, parentKey:parentKey, side:side, depth:depth,
+           value:-1, line:L.CHECKL, reason:"leftUnbalanced"});
+        return -1;
+      }
+    }
+
+    E({type:"EVAL", key:key, depth:depth, side:"right", line:L.RIGHT, left:left,
+       childVal: node.right ? node.right.val : null});
+    var right = height(node.right, key + "R", depth + 1, key, "right");
+
+    if(prune){
+      E({type:"CHECK", key:key, depth:depth, line:L.CHECKR, check:"rightSentinel", right:right});
+      if(right === -1){
+        E({type:"RETURN", key:key, parentKey:parentKey, side:side, depth:depth,
+           value:-1, line:L.CHECKR, reason:"rightUnbalanced"});
+        return -1;
+      }
+    } else {
+      E({type:"CHECK", key:key, depth:depth, line:L.SENT, check:"sentinel", left:left, right:right});
+      if(left === -1 || right === -1){
+        E({type:"RETURN", key:key, parentKey:parentKey, side:side, depth:depth,
+           value:-1, line:L.SENT, reason:"childUnbalanced"});
+        return -1;
+      }
+    }
+
+    E({type:"CHECK", key:key, depth:depth, line:L.ABS, check:"abs", left:left, right:right});
+    if(Math.abs(left - right) > 1){
+      E({type:"RETURN", key:key, parentKey:parentKey, side:side, depth:depth,
+         value:-1, line:L.ABS, reason:"diff", left:left, right:right});
+      return -1;
+    }
+
+    var h = 1 + Math.max(left, right);
+    E({type:"RETURN", key:key, parentKey:parentKey, side:side, depth:depth,
+       value:h, line:L.RET, reason:"height", left:left, right:right});
+    return h;
+  }
+
+  E({type:"START", line:L.TOP, depth:0});
+  var result = height(root, "R", 0, null, null);
+  E({type:"DONE", line:L.TOP, depth:0, value:result, balanced:result !== -1});
+
+  return {events:events, maxDepth:maxDepth, calls:calls, result:result, prune:prune};
+}
+
+/* ---- replay: state is a pure function of events[0..i] ---- */
+function replayTo(trace, i){
+  var stack = [], frames = {}, pruned = {}, executed = {};
+  var callsSoFar = 0, returning = null, justFilled = null, done = null, started = false;
+  var evs = trace.events;
+  for(var k = 0; k <= i; k++){
+    var e = evs[k];
+    if(k < i && e.line) executed[e.line] = true;
+    returning = null; justFilled = null;
+    switch(e.type){
+      case "START": started = true; break;
+      case "CALL": {
+        var f = {key:e.key, parentKey:e.parentKey, side:e.side, depth:e.depth,
+                 isNull:e.isNull, val:e.val, args:e.args,
+                 left:undefined, right:undefined, phase:"enter", check:null, result:undefined,
+                 pruned:false};
+        frames[e.key] = f; stack.push(f); callsSoFar++;
+        break;
+      }
+      case "BASE": frames[e.key].phase = "base"; break;
+      case "EVAL": frames[e.key].phase = "wait-" + e.side; break;
+      case "CHECK": frames[e.key].check = e; break;
+      case "PRUNE": {
+        frames[e.key].pruned = true;
+        for(var s = 0; s < e.skipped.length; s++) pruned[e.skipped[s]] = true;
+        break;
+      }
+      case "RETURN": {
+        var fr = frames[e.key];
+        fr.result = e.value; fr.phase = "returned";
+        stack.pop();
+        if(e.parentKey && frames[e.parentKey]){
+          frames[e.parentKey][e.side] = e.value;
+          justFilled = {parentKey:e.parentKey, side:e.side, value:e.value};
+        }
+        returning = fr;
+        break;
+      }
+      case "DONE": done = e; break;
+    }
+  }
+  var top = stack.length ? stack[stack.length - 1] : null;
+  return {
+    event: evs[i], index: i, stack: stack, frames: frames, pruned: pruned,
+    executed: executed, callsSoFar: callsSoFar, returning: returning,
+    justFilled: justFilled, done: done, started: started, top: top,
+    curLine: evs[i].line || 0,
+    curDepth: top ? top.depth : (returning ? returning.depth : 0)
+  };
+}
+
+/* ---- narration ---- */
+function fmtVal(v){ return v === -1 ? "\u22121" : String(v); }
+function narrate(st){
+  var e = st.event, f = e.key ? st.frames[e.key] : null;
+  var who = f ? (f.isNull ? "height(null)" : "height(" + f.val + ")") : "height";
+  switch(e.type){
+    case "START":
+      return {tag:"start", text:"isBalanced calls height(root). If that ever returns \u22121, the tree is unbalanced."};
+    case "CALL":
+      return e.isNull
+        ? {tag:"call", text:"Call height(null) at depth " + e.depth + " \u2014 a null child still costs a frame, and it is the base case."}
+        : {tag:"call", text:"Call height(" + e.val + ") at depth " + e.depth + " \u2014 push a frame with the pending expression 1 + max(\u25a2, \u25a2)."};
+    case "BASE":
+      return {tag:"base", text:"node == null, so this frame returns 0 immediately. Nothing below it is explored."};
+    case "EVAL":
+      if(e.side === "left")
+        return {tag:"descend", text:who + " cannot finish until it knows its left subtree's height, so it calls " + (e.childVal === null ? "height(null)" : "height(" + e.childVal + ")") + "."};
+      return {tag:"descend", text:"Left side came back as " + fmtVal(e.left) + ". Now " + who + " measures the right subtree."};
+    case "CHECK":
+      if(e.check === "leftSentinel")
+        return e.left === -1
+          ? {tag:"check", text:"left is \u22121 \u2014 something below is already unbalanced, so " + who + " gives up here."}
+          : {tag:"check", text:"left is " + e.left + ", not \u22121, so " + who + " keeps going."};
+      if(e.check === "rightSentinel")
+        return e.right === -1
+          ? {tag:"check", text:"right is \u22121, so " + who + " passes the failure straight up."}
+          : {tag:"check", text:"right is " + e.right + ", not \u22121 \u2014 both heights are real, so compare them."};
+      if(e.check === "sentinel")
+        return (e.left === -1 || e.right === -1)
+          ? {tag:"check", text:"One of the children returned \u22121, so " + who + " returns \u22121 too \u2014 note it explored both sides anyway."}
+          : {tag:"check", text:"Neither child returned \u22121, so both heights are usable."};
+      var d = Math.abs(e.left - e.right);
+      return d > 1
+        ? {tag:"check", text:"|" + e.left + " \u2212 " + e.right + "| = " + d + ", which is more than 1 \u2014 " + who + " is the unbalanced node."}
+        : {tag:"check", text:"|" + e.left + " \u2212 " + e.right + "| = " + d + ", within 1, so this node is fine."};
+    case "PRUNE":
+      return {tag:"skip", text:"Short-circuit: the right subtree (" + e.nodesSkipped + " node" + (e.nodesSkipped === 1 ? "" : "s") + ") is never called at all."};
+    case "RETURN": {
+      var parent = e.parentKey ? st.frames[e.parentKey] : null;
+      var pw = parent ? "height(" + parent.val + ")" : null;
+      var tail = pw ? " and fills the " + e.side + " hole in " + pw + "." : ", and that is the answer for the whole tree.";
+      if(e.reason === "base") return {tag:"return", text:who + " returns 0" + tail};
+      if(e.value === -1) return {tag:"return", text:who + " returns \u22121, carrying \u201cunbalanced\u201d upward" + (pw ? tail : ".")};
+      return {tag:"return", text:who + " returns 1 + max(" + e.left + ", " + e.right + ") = " + e.value + tail};
+    }
+    case "DONE":
+      return e.balanced
+        ? {tag:"done", text:"height(root) = " + e.value + ". No \u22121 ever surfaced, so isBalanced returns true."}
+        : {tag:"done", text:"height(root) = \u22121, so isBalanced returns false \u2014 the tree is not height-balanced."};
+  }
+  return {tag:"", text:""};
+}
+
+/* ---- presets ---- */
+var PRESETS = [
+  {t:"[1]",                          d:"one node \u2014 only null base cases"},
+  {t:"[1,2,3]",                      d:"first real branch, both sides equal"},
+  {t:"[3,9,20,null,null,15,7]",      d:"LeetCode example 1 \u2014 balanced"},
+  {t:"[1,2,null,3,null,4]",          d:"a left chain \u2014 where the first \u22121 appears"},
+  {t:"[1,2,2,3,3,null,null,4,4]",    d:"LeetCode example 2 \u2014 only the root fails"},
+  {t:"[1,2,3,4,null,5,6,7]",         d:"short-circuit skips an entire right subtree"}
+];
+/* ===================== LOGIC END ===================== */
+
+/* ---------- rendering ---------- */
+var S = {root:null, trace:null, cl:null, tl:null, step:0, prune:true, zoom:1,
+         playing:false, timer:null, presetIdx:2};
+
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function hlJava(line){
+  var idx = line.indexOf("//");
+  var code = idx >= 0 ? line.slice(0, idx) : line;
+  var cm   = idx >= 0 ? line.slice(idx) : "";
+  var out = esc(code).replace(
+    /\b(class|public|private|return|if|int|boolean|null|new|void)\b|\b(Solution|TreeNode|Math)\b|\b(\d+)\b/g,
+    function(m, k, t, n){
+      if(k) return '<span class="k">' + k + "</span>";
+      if(t) return '<span class="t">' + t + "</span>";
+      return '<span class="n">' + n + "</span>";
+    });
+  if(cm) out += '<span class="c">' + esc(cm) + "</span>";
+  return out;
+}
+
+function renderSource(st){
+  var src = S.prune ? SRC.prune : SRC.plain;
+  var html = "";
+  for(var i = 0; i < src.lines.length; i++){
+    var ln = i + 1;
+    var cls = "ln" + (ln === st.curLine ? " cur" : (st.executed[ln] ? " done" : ""));
+    html += '<div class="' + cls + '" data-l="' + ln + '"><span class="g">' + ln + "</span><span>" +
+            (src.lines[i] ? hlJava(src.lines[i]) : "&nbsp;") + "</span></div>";
+  }
+  var box = $("source");
+  box.innerHTML = html;
+  var cur = box.querySelector(".cur");
+  if(cur){
+    var want = cur.offsetTop - box.clientHeight / 2 + 12;
+    box.scrollTop = Math.max(0, want);
+  }
+  $("srcNote").textContent = "Java \u00b7 " + src.label;
+}
+
+function holeHtml(f, side, st){
+  var v = f[side];
+  if(v === undefined) return '<span class="hole">\u25a2</span>';
+  var neg = v === -1;
+  var filled = st.justFilled && st.justFilled.parentKey === f.key && st.justFilled.side === side;
+  return '<span class="' + (neg ? "neg" : "v") + (filled ? " fill" + (neg ? " neg" : "") : "") + '">' + fmtVal(v) + "</span>";
+}
+
+function exprHtml(f, st){
+  if(f.isNull) return '<span class="v">return 0</span>';
+  if(f.result !== undefined && f.result !== null){
+    if(f.result === -1) return '<span class="neg">return \u22121</span>';
+    return '<span class="v">return ' + f.result + "</span>";
+  }
+  return "1 + max(" + holeHtml(f, "left", st) + ", " + holeHtml(f, "right", st) + ")";
+}
+
+function checkText(e){
+  if(!e) return "";
+  if(e.check === "leftSentinel")  return "left = "  + fmtVal(e.left)  + (e.left  === -1 ? " \u2192 bail out" : " \u2192 continue");
+  if(e.check === "rightSentinel") return "right = " + fmtVal(e.right) + (e.right === -1 ? " \u2192 bail out" : " \u2192 continue");
+  if(e.check === "sentinel")      return "left = " + fmtVal(e.left) + ", right = " + fmtVal(e.right);
+  if(e.check === "abs")           return "|" + e.left + " \u2212 " + e.right + "| = " + Math.abs(e.left - e.right) +
+                                         (Math.abs(e.left - e.right) > 1 ? " > 1" : " \u2264 1");
+  return "";
+}
+
+function frameHtml(f, st, opts){
+  opts = opts || {};
+  var cls = "frame" + (opts.returning ? " ret" + (f.result === -1 ? " neg" : "") : (opts.active ? " active" : ""));
+  var status = opts.returning ? "returns " + fmtVal(f.result)
+             : f.phase === "wait-left"  ? "waiting on left"
+             : f.phase === "wait-right" ? "waiting on right"
+             : f.phase === "base"       ? "base case"
+             : opts.active              ? "running" : "";
+  var h = '<div class="' + cls + '"><div class="top">' +
+          '<span class="d">d' + f.depth + "</span>" +
+          '<span class="sig">' + esc(f.args) + "</span>" +
+          '<span class="st">' + status + "</span></div>" +
+          '<div class="expr">' + exprHtml(f, st) + "</div>";
+  if(f.check && !opts.returning && opts.active) h += '<div class="chk">' + checkText(f.check) + "</div>";
+  if(f.pruned) h += '<div class="chk" style="color:var(--prune)">right subtree skipped</div>';
+  h += "</div>";
+  return h;
+}
+
+function renderStack(st){
+  var out = "";
+  if(st.returning) out += frameHtml(st.returning, st, {returning:true});
+  for(var i = st.stack.length - 1; i >= 0; i--){
+    out += frameHtml(st.stack[i], st, {active: i === st.stack.length - 1 && !st.returning});
+  }
+  if(!out) out = '<div class="empty">' + (st.done ? "Stack empty \u2014 execution finished." : "Stack empty \u2014 nothing called yet.") + "</div>";
+  $("stack").innerHTML = out;
+}
+
+function nodeStateOf(key, st){
+  var f = st.frames[key];
+  if(f){
+    if(f.result !== undefined) return "done";
+    if(st.top && st.top.key === key) return "active";
+    return "path";
+  }
+  if(st.pruned[key]) return "pruned";
+  return "ghost";
+}
+
+function svgEl(tag, attrs){
+  var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for(var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function renderCallTree(st){
+  var lay = S.cl, PAD = 36;
+  var W = lay.w + PAD * 2, H = lay.h + PAD * 2 + 20;
+  var svg = $("callSvg");
+  svg.innerHTML = "";
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("width", Math.round(W * S.zoom));
+  svg.setAttribute("height", Math.round(H * S.zoom));
+
+  var keys = Object.keys(lay.map), i, rec, k;
+  /* edges first */
+  for(i = 0; i < keys.length; i++){
+    rec = lay.map[keys[i]];
+    if(!rec.parent) continue;
+    var p = lay.map[rec.parent];
+    var s = nodeStateOf(rec.key, st);
+    var ecls = s === "ghost" ? "edge ghost" : s === "pruned" ? "edge pruned"
+             : s === "done" ? "edge done" : "edge path";
+    svg.appendChild(svgEl("path", {
+      "class": ecls,
+      d: "M" + (p.x + PAD) + "," + (p.y + PAD + 16) + " C" + (p.x + PAD) + "," + (p.y + PAD + 46) +
+         " " + (rec.x + PAD) + "," + (rec.y + PAD - 30) + " " + (rec.x + PAD) + "," + (rec.y + PAD - 16)
+    }));
+  }
+  /* nodes */
+  for(i = 0; i < keys.length; i++){
+    rec = lay.map[keys[i]];
+    var stt = nodeStateOf(rec.key, st);
+    var f = st.frames[rec.key];
+    var cx = rec.x + PAD, cy = rec.y + PAD;
+    var r = rec.isNull ? 11 : 16;
+    if(stt === "active" || (st.returning && st.returning.key === rec.key)){
+      svg.appendChild(svgEl("circle", {"class":"pulse", cx:cx, cy:cy, r:18}));
+    }
+    var neg = f && f.result === -1;
+    svg.appendChild(svgEl("circle", {
+      "class":"nd " + stt + (neg ? " neg" : ""), cx:cx, cy:cy, r:r
+    }));
+    var lab = svgEl("text", {"class":"nlab " + (rec.isNull ? "nul " : "") + (stt === "ghost" || stt === "pruned" ? "ghost" : ""),
+                             x:cx, y:cy + 4});
+    lab.textContent = rec.isNull ? "\u2205" : rec.val;
+    svg.appendChild(lab);
+    if(f && f.result !== undefined){
+      var res = svgEl("text", {"class":"res" + (neg ? " neg" : ""), x:cx, y:cy + r + 13});
+      res.textContent = neg ? "\u22121" : "h=" + f.result;
+      svg.appendChild(res);
+    }
+  }
+  /* keep the active node in view */
+  var focus = st.top ? st.top.key : (st.returning ? st.returning.key : null);
+  if(focus && lay.map[focus]){
+    var w = $("callWrap"), fx = (lay.map[focus].x + PAD) * S.zoom, fy = (lay.map[focus].y + PAD) * S.zoom;
+    if(w.scrollWidth  > w.clientWidth)  w.scrollLeft = Math.max(0, fx - w.clientWidth / 2);
+    if(w.scrollHeight > w.clientHeight) w.scrollTop  = Math.max(0, fy - w.clientHeight / 2);
+  }
+}
+
+function renderStructure(st){
+  var lay = S.tl, PAD = 30;
+  var svg = $("treeSvg");
+  svg.innerHTML = "";
+  var W = lay.w + PAD * 2, H = lay.h + PAD * 2 + 16;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  var wrap = $("treeWrap");
+  var scale = Math.min(1, Math.max(0.25, (wrap.clientWidth - 16) / W || 1));
+  svg.setAttribute("width", Math.round(W * scale));
+  svg.setAttribute("height", Math.round(H * scale));
+
+  var keys = Object.keys(lay.map), i, rec;
+  for(i = 0; i < keys.length; i++){
+    rec = lay.map[keys[i]];
+    ["left","right"].forEach(function(side){
+      var ck = rec[side];
+      if(!ck) return;
+      var c = lay.map[ck], s = nodeStateOf(ck, st);
+      var ecls = s === "ghost" ? "edge ghost" : s === "pruned" ? "edge pruned"
+               : s === "done" ? "edge done" : "edge path";
+      svg.appendChild(svgEl("line", {"class":ecls, x1:rec.x + PAD, y1:rec.y + PAD + 15,
+                                     x2:c.x + PAD, y2:c.y + PAD - 15}));
+    });
+  }
+  for(i = 0; i < keys.length; i++){
+    rec = lay.map[keys[i]];
+    var stt = nodeStateOf(rec.key, st), f = st.frames[rec.key];
+    var cx = rec.x + PAD, cy = rec.y + PAD, neg = f && f.result === -1;
+    if(stt === "active") svg.appendChild(svgEl("circle", {"class":"pulse", cx:cx, cy:cy, r:18}));
+    svg.appendChild(svgEl("circle", {"class":"nd " + stt + (neg ? " neg" : ""), cx:cx, cy:cy, r:15}));
+    var lab = svgEl("text", {"class":"nlab " + (stt === "ghost" || stt === "pruned" ? "ghost" : ""), x:cx, y:cy + 4});
+    lab.textContent = rec.val;
+    svg.appendChild(lab);
+    if(f && f.result !== undefined){
+      var res = svgEl("text", {"class":"res" + (neg ? " neg" : ""), x:cx, y:cy + 28});
+      res.textContent = neg ? "\u22121" : "h=" + f.result;
+      svg.appendChild(res);
+    }
+  }
+}
+
+function renderNarration(st){
+  var n = narrate(st);
+  $("narration").innerHTML = '<span class="tag">' + n.tag + "</span><span>" + n.text + "</span>";
+}
+
+function renderStats(st){
+  $("sDepth").textContent = st.curDepth;
+  $("sMax").textContent = S.trace.maxDepth;
+  $("sCalls").textContent = st.callsSoFar;
+  $("sTotal").textContent = S.trace.calls;
+  $("sFrames").textContent = st.stack.length;
+  var np = Object.keys(st.pruned).length;
+  $("sPruned").innerHTML = np ? 'calls skipped <b style="color:var(--prune)">' + np + "</b>" : "";
+  var v = $("verdict");
+  if(st.done){
+    v.className = "verdict " + (st.done.balanced ? "t" : "f");
+    v.textContent = "isBalanced \u2192 " + st.done.balanced;
+  } else { v.className = "verdict"; v.textContent = ""; }
+  $("stepNo").textContent = "step " + (st.index + 1) + " / " + S.trace.events.length;
+}
+
+/* single entry point: everything is derived from events[0..i] */
+function render(i){
+  S.step = Math.max(0, Math.min(i, S.trace.events.length - 1));
+  var st = replayTo(S.trace, S.step);
+  renderSource(st);
+  renderStack(st);
+  renderCallTree(st);
+  renderStructure(st);
+  renderNarration(st);
+  renderStats(st);
+  var sc = $("scrub");
+  sc.max = S.trace.events.length - 1;
+  sc.value = S.step;
+  $("back").disabled = S.step === 0;
+  $("fwd").disabled = S.step === S.trace.events.length - 1;
+}
+
+/* ---------- input handling ---------- */
+function loadTokens(str, note){
+  var tokens = parseTokens(str);
+  var root = buildTree(tokens);
+  S.root = root;
+  S.cl = layoutCallTree(root);
+  S.tl = layoutTree(root);
+  S.trace = buildTrace(root, S.prune);
+  S.zoom = 1;
+  fitZoom();
+  stopPlay();
+  $("err").textContent = "";
+  $("presetNote").textContent = note || "";
+  render(0);
+}
+
+function tryLoad(str, note){
+  try { loadTokens(str, note); }
+  catch(e){ $("err").textContent = e.message; }
+}
+
+function rebuildTrace(){
+  var keep = S.step;
+  S.trace = buildTrace(S.root, S.prune);
+  render(Math.min(keep, S.trace.events.length - 1));
+}
+
+function fitZoom(){
+  var w = $("callWrap"), W = S.cl.w + 72;
+  S.zoom = Math.min(1, (w.clientWidth - 16) / W || 1);
+  if(!isFinite(S.zoom) || S.zoom <= 0) S.zoom = 1;
+}
+
+/* ---------- controls ---------- */
+function stepBy(d){ render(S.step + d); }
+function stopPlay(){
+  S.playing = false;
+  if(S.timer){ clearInterval(S.timer); S.timer = null; }
+  $("play").innerHTML = "\u25b6 play";
+}
+function speedMs(){ return [1400,1100,900,750,600,480,380,300,220,150,90][+$("speed").value]; }
+function startPlay(){
+  if(S.step >= S.trace.events.length - 1) render(0);
+  S.playing = true;
+  $("play").innerHTML = "\u2016 pause";
+  S.timer = setInterval(function(){
+    if(S.step >= S.trace.events.length - 1){ stopPlay(); return; }
+    render(S.step + 1);
+  }, speedMs());
+}
+
+(function init(){
+  var sel = $("preset");
+  PRESETS.forEach(function(p, i){
+    var o = document.createElement("option");
+    o.value = i; o.textContent = p.t + "  \u2014  " + p.d;
+    sel.appendChild(o);
+  });
+  sel.value = S.presetIdx;
+
+  sel.addEventListener("change", function(){
+    S.presetIdx = +sel.value;
+    $("custom").value = "";
+    tryLoad(PRESETS[S.presetIdx].t, PRESETS[S.presetIdx].d);
+  });
+  $("load").addEventListener("click", function(){
+    var v = $("custom").value.trim();
+    if(!v){ $("err").textContent = "Type a level-order list, e.g. [1,2,2,3,null,null,4]"; return; }
+    tryLoad(v, "custom input \u00b7 up to " + MAX_NODES + " nodes, " + MAX_HEIGHT + " levels");
+  });
+  $("custom").addEventListener("keydown", function(e){ if(e.key === "Enter") $("load").click(); });
+
+  $("pruneBtn").addEventListener("click", function(){
+    S.prune = !S.prune;
+    this.textContent = "Short-circuit: " + (S.prune ? "on" : "off");
+    this.classList.toggle("on", !S.prune);
+    stopPlay();
+    rebuildTrace();
+  });
+
+  $("back").addEventListener("click", function(){ stopPlay(); stepBy(-1); });
+  $("fwd").addEventListener("click",  function(){ stopPlay(); stepBy(1); });
+  $("reset").addEventListener("click",function(){ stopPlay(); render(0); });
+  $("play").addEventListener("click", function(){ S.playing ? stopPlay() : startPlay(); });
+  $("scrub").addEventListener("input", function(){ stopPlay(); render(+this.value); });
+  $("speed").addEventListener("input", function(){ if(S.playing){ stopPlay(); startPlay(); } });
+  $("zIn").addEventListener("click",  function(){ S.zoom = Math.min(1.8, S.zoom * 1.25); render(S.step); });
+  $("zOut").addEventListener("click", function(){ S.zoom = Math.max(0.28, S.zoom / 1.25); render(S.step); });
+  $("zFit").addEventListener("click", function(){ fitZoom(); render(S.step); });
+
+  document.addEventListener("keydown", function(e){
+    if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if(e.key === "ArrowRight"){ e.preventDefault(); stopPlay(); stepBy(1); }
+    else if(e.key === "ArrowLeft"){ e.preventDefault(); stopPlay(); stepBy(-1); }
+    else if(e.key === " "){ e.preventDefault(); S.playing ? stopPlay() : startPlay(); }
+  });
+  window.addEventListener("resize", function(){ if(S.trace) render(S.step); });
+
+  tryLoad(PRESETS[S.presetIdx].t, PRESETS[S.presetIdx].d);
+})();
+</script>
+</body>
+</html>

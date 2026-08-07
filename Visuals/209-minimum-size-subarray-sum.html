@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 209 &middot; Minimum Size Subarray Sum &mdash; visual guide</title>
+<meta name="description" content="Interactive walkthrough of LeetCode 209: the minimise-length sliding window, where best is recorded inside the shrink loop and positivity is the precondition that makes the window sound.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+
+/* ============================================================
+   VARIABLE-SIZE WINDOW — shared page-local additions
+   The window grows on the right and shrinks on the left, so the
+   tape needs the same five states the fixed-width pages use, all
+   built from shared tokens — no new hue is introduced below:
+     .wbody     settled interior of the window   -> --r-window
+     .wl / .wr  the two boundaries               -> --r-left / --r-right
+     .entering  the cell added on this step      -> --r-right, lifted
+     .leaving   the cell evicted on this step    -> --r-left, dashed, sunk
+     .gone      already evicted past l           -> hue-less, dim + dashed
+   plus .bestmark, a --r-hit underline for the best window recorded.
+   ============================================================ */
+.tape.fw { gap: 5px; }
+.tape.fw .col { width: 38px; }
+@media (max-width: 560px) { .tape.fw .col { width: 29px; } }
+.tape.fw .cell { font-size: 16px; border-radius: 8px; }
+
+.cell.wbody    { background: var(--r-window-wash); border-color: var(--r-window-line); color: var(--r-window); }
+.cell.wl       { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.wr       { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.entering { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);
+                 border-width: 2.5px; transform: translateY(-9px); }
+.cell.leaving  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);
+                 border-width: 2px; border-style: dashed; transform: translateY(8px); }
+.cell.gone     { opacity: .34; border-style: dashed; border-color: var(--rule); color: var(--fg-dim); background: var(--bg-sunk); }
+.cell.ahead    { opacity: .6; }
+.cell.bestmark::after {
+  content: ""; position: absolute; left: 12%; right: 12%; bottom: -5px;
+  height: 3px; border-radius: 2px; background: var(--r-hit);
+}
+
+.caret .pW   { color: var(--accent-fg); background: var(--r-window); }
+.caret .pIn  { color: var(--accent-fg); background: var(--r-right); }
+.caret .pOut { color: var(--accent-fg); background: var(--r-left); }
+
+/* the running statistic — one chip per quantity that rides the frame */
+.stats { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 620px; }
+.stat {
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk);
+  border-radius: 8px; padding: 4px 11px; color: var(--fg-dim);
+}
+.stat b { font-weight: 600; color: var(--fg); }
+.stat.w     { border-color: var(--r-window-line); background: var(--r-window-wash); color: var(--r-window); }
+.stat.w b   { color: var(--r-window); }
+.stat.h     { border-color: var(--r-hit-line);    background: var(--r-hit-wash);    color: var(--r-hit); }
+.stat.h b   { color: var(--r-hit); }
+.stat.a     { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
+.stat.a b   { color: var(--r-anchor); }
+.stat.plus  { border-color: var(--r-right-line);  background: var(--r-right-wash);  color: var(--r-right); }
+.stat.plus b{ color: var(--r-right); }
+.stat.minus { border-color: var(--r-left-line);   background: var(--r-left-wash);   color: var(--r-left); }
+.stat.minus b { color: var(--r-left); }
+.stat.mute  { border-style: dashed; }
+
+/* the governing rule, restated under the stage on every frame */
+.rulebar {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 7px 13px; max-width: 620px; text-align: center;
+}
+.rulebar b { color: var(--fg-mid); font-weight: 600; }
+.rulebar .w { color: var(--r-window); font-weight: 600; }
+.rulebar .l { color: var(--r-left);   font-weight: 600; }
+.rulebar .r { color: var(--r-right);  font-weight: 600; }
+.rulebar .m { color: var(--r-hit);    font-weight: 600; }
+.rulebar .a { color: var(--r-anchor); font-weight: 600; }
+.rulebar .x { color: var(--fg-dim);   font-weight: 600; }
+
+/* B-vs-C mode badge — every variable-window page declares which it is */
+.modechip {
+  display: inline-block; font-family: var(--sans); font-size: 10px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; padding: 2px 8px;
+  border-radius: 999px; margin-right: 9px; vertical-align: 1px;
+}
+.modechip.b { color: var(--r-hit);    background: var(--r-hit-wash);    border: 1px solid var(--r-hit-line); }
+.modechip.c { color: var(--r-window); background: var(--r-window-wash); border: 1px solid var(--r-window-line); }
+
+.message .w { color: var(--r-window); font-weight: 600; }
+.message .a { color: var(--r-anchor); font-weight: 600; }
+.sum-line .w { color: var(--r-window); }
+.sum-line .m { color: var(--r-hit); }
+
+.taperow { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
+.tapecap {
+  font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); text-align: center;
+}
+.tapecap em { font-style: normal; color: var(--r-window); }
+
+.dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
+.dot.a { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
+.trip.no { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
+.trip.bank { color: var(--r-anchor); background: var(--r-anchor-wash); border-color: var(--r-anchor-line); }
+.code .cm { color: var(--t-com); font-style: italic; }
+
+/* the record point, pinned in the source so the B/C difference is
+   visible without stepping: this is the line where `best` is written. */
+.code .ln.recpoint { background: var(--r-hit-wash); }
+.code .ln.recpoint::after {
+  content: "RECORD"; position: absolute; right: 12px; top: 1px;
+  font-family: var(--sans); font-size: 9px; font-weight: 600; letter-spacing: .1em;
+  color: var(--r-hit); opacity: .8;
+}
+.code .ln.recpoint.exec { background: var(--accent-wash); }
+
+/* --- 209 only: the sum gauge, target as a hard threshold --- */
+.gauge { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; max-width: 420px; }
+.gaugetrack {
+  position: relative; width: 100%; height: 11px; border-radius: 6px;
+  background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+}
+.gaugefill {
+  position: absolute; left: 1px; top: 1px; bottom: 1px; border-radius: 5px;
+  background: var(--r-window); opacity: .55; transition: width .18s;
+}
+.gaugetrack.hit .gaugefill { background: var(--r-hit); opacity: .7; }
+.gaugethr { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg-mid); }
+.gaugelab {
+  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+  display: flex; justify-content: space-between; width: 100%;
+}
+.gaugelab .m { color: var(--r-hit); font-weight: 600; }
+.gaugelab .w { color: var(--r-window); font-weight: 600; }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant C &mdash; minimise <span class="tag">LeetCode 209</span></div>
+  <h1>Minimum Size Subarray Sum <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    This is the canonical <b>minimise</b> window, and the whole variant lives in one line's position.
+    <span class="r">r</span> always advances and adds. Then, <em>while the window is already valid</em>
+    (<span class="k">sum &ge; target</span>), you shrink from the <span class="l">left</span> &mdash; and you
+    record <span class="m">best</span> <em>inside</em> that shrink loop, before each eviction, because the
+    window is only as small as it will ever be at that instant. Move the record one line down, outside the
+    loop, and you measure windows that have already been broken. The machine is only sound because every
+    value is <b>positive</b>: adding on the right can only push the sum up, removing on the left can only
+    push it down, so &quot;valid&quot; is monotone in the boundaries. LC 862 allows negatives, that monotonicity
+    dies, and the sliding window dies with it &mdash; that problem needs a monotonic deque over prefix sums instead.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">nums &mdash; positive integers, comma-separated</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="2,3,1,2,4,3" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <div class="field" style="flex:0 0 210px; min-width:210px;">
+      <label for="tInput">target</label>
+      <div class="input-shell">
+        <input id="tInput" type="text" value="7" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="taperow">
+          <div class="tapecap">nums &nbsp;&middot;&nbsp; <em>teal</em> cells are inside the window</div>
+          <div class="tape fw" id="tape"></div>
+        </div>
+        <div class="gauge">
+          <div class="gaugetrack" id="gaugeTrack">
+            <div class="gaugefill" id="gaugeFill"></div>
+            <div class="gaugethr" id="gaugeThr"></div>
+          </div>
+          <div class="gaugelab"><span>window sum</span><span id="gaugeTxt"></span></div>
+        </div>
+        <div class="rulebar" id="ruleBar"></div>
+        <div class="stats" id="stats"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets" id="verdict"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot w"></i>inside the window</span>
+        <span><i class="dot r"></i>entering (sum +=)</span>
+        <span><i class="dot l"></i>evicted (sum &minus;=)</span>
+        <span><i class="dot m"></i>shortest window recorded</span>
+        <span><i class="dot x"></i>left behind</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; each index enters once and leaves once, so the inner
+    <code>while</code> is amortised O(1). Sub-variant <b>C</b>: record <code>best</code> <em>inside</em> the
+    shrink loop. All values positive is not a detail &mdash; it is the precondition that makes the window work.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['ty','int '],['fn','minSubArrayLen'],['tx','('],['kw','int'],['tx',' target, '],['kw','int'],['tx','[] nums) {']],
+    [['tx','    '],['kw','int '],['tx','l = 0, sum = 0, best = Integer.MAX_VALUE;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {   '],['cm','// right always advances']],
+    [['tx','        sum += nums[r];                          '],['cm','// grow: sum can only rise']],
+    [['tx','        '],['kw','while '],['tx','(sum >= target) {                  '],['cm','// window is VALID -> shrink it']],
+    [['tx','            best = Math.min(best, r - l + 1);    '],['cm','// <<< RECORD INSIDE the loop']],
+    [['tx','            sum -= nums[l];                      '],['cm','// evict: sum can only fall']],
+    [['tx','            l++;']],
+    [['tx','        }']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','best == Integer.MAX_VALUE ? 0 : best;']],
+    [['tx','}']]
+  ];
+  const REC_LINE = 5;
+
+  const RULE = `<span class="modechip c">Mode C &middot; minimise</span>` +
+    `grow <span class="r">r</span> always &middot; <b>while VALID</b> (sum &ge; target) shrink <span class="l">l</span> ` +
+    `&middot; record <span class="m">best</span> <b>INSIDE</b> the shrink loop`;
+
+  function buildFrames(nums, target){
+    const n = nums.length, F = [];
+    let l = 0, sum = 0, best = Infinity, bestL = -1, bestR = -1, r = -1;
+    const INF = '&infin;';
+    const f = o => F.push(Object.assign({
+      nums, target, n, l, r, sum, best, bestL, bestR, enter:-1, leave:-1, shrinking:false
+    }, o));
+
+    if(n === 0){
+      f({phase:'done', code:0, done:true, msg:`Empty array &mdash; nothing to slide over. <b>Return 0</b>.`});
+      return F;
+    }
+
+    f({phase:'seed', code:1,
+      msg:`<span class="l">l = 0</span>, <span class="k">sum = 0</span>, <span class="m">best = &infin;</span>. Every value is <b>positive</b>, so pushing <span class="r">r</span> right can only raise the sum and pulling <span class="l">l</span> right can only lower it. That monotonicity is the entire licence to slide.`});
+
+    for(r = 0; r < n; r++){
+      sum += nums[r];
+      f({phase:'grow', code:3, enter:r,
+        msg:`<span class="r">nums[${r}] = ${nums[r]}</span> enters on the right. <span class="k">sum = ${sum}</span>, window <span class="w">[${l}..${r}]</span> is ${r-l+1} wide.`});
+
+      if(sum < target){
+        f({phase:'grow', code:4,
+          msg:`<span class="k">${sum} &lt; ${target}</span> &mdash; still <b>invalid</b>, too small to count. Nothing to record, nothing to shrink. Advance <span class="r">r</span>.`});
+      }
+
+      while(sum >= target){
+        const w = r - l + 1;
+        const improved = w < best;
+        if(improved){ best = w; bestL = l; bestR = r; }
+        f({phase:improved?'found':'shrink', code:REC_LINE, shrinking:true,
+          msg:`<span class="k">${sum} &ge; ${target}</span> &mdash; <b>valid</b>. Record <em>now</em>, at width <b>${w}</b>: ` +
+              (improved
+                ? `<span class="m">best = ${best}</span>, a new minimum at <span class="m">[${bestL}..${bestR}]</span>.`
+                : `<span class="m">best stays ${best}</span> &mdash; this window is not shorter.`) +
+              ` This is the line that makes it sub-variant C.`});
+
+        const out = l;
+        sum -= nums[out];
+        l++;
+        f({phase:'shrink', code:6, leave:out, shrinking:true,
+          msg:`Evict <span class="l">nums[${out}] = ${nums[out]}</span> from the left &mdash; the only way to get shorter. <span class="k">sum = ${sum}</span>, window is now <span class="w">${l>r?'empty':`[${l}..${r}]`}</span>.` +
+              (sum < target ? ` It just fell below <span class="k">${target}</span>, so the shrink loop ends here.` : ` Still &ge; <span class="k">${target}</span> &mdash; loop again and record again.`)});
+      }
+    }
+
+    r = n - 1;
+    if(best === Infinity){
+      f({phase:'done', code:10, l:0, r:-1, done:true, none:true,
+        msg:`<span class="x">The sum never reached ${target}</span> &mdash; not even the whole array. <span class="m">best</span> is still ${INF}, so the contract says <b>return 0</b>, not ${INF}.`});
+    } else {
+      f({phase:'done', code:10, l:bestL, r:bestR, sum:nums.slice(bestL,bestR+1).reduce((a,b)=>a+b,0), done:true,
+        msg:`Scan complete. Shortest valid window is <span class="m">[${bestL}..${bestR}]</span> = [${nums.slice(bestL,bestR+1).join(', ')}], length <b>${best}</b>. <b>Return ${best}</b>.`});
+    }
+    return F;
+  }
+
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
+        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), tEl=$('tInput'),
+        statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
+        gTrack=$('gaugeTrack'), gFill=$('gaugeFill'), gThr=$('gaugeThr'), gTxt=$('gaugeTxt');
+  let frames=[], idx=0, playing=false, timer=null;
+
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln${i===REC_LINE?' recpoint':''}" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+
+  function parseArr(str){
+    const a = String(str).split(/[^0-9]+/).filter(x=>x.length)
+      .map(x=>Math.max(1, Math.min(99, parseInt(x,10))));
+    return a.slice(0,12);
+  }
+  function parseT(str){
+    let t = parseInt(String(str).replace(/[^0-9]/g,''), 10);
+    if(isNaN(t) || t < 1) t = 1;
+    return Math.min(999, t);
+  }
+
+  function buildTape(nums){
+    tapeEl.innerHTML='';
+    nums.forEach((v,k)=>{
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
+        `<div class="cell" data-cell="${k}">${v}</div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`;
+      tapeEl.appendChild(col);
+    });
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+    const nums = f.nums, n = nums.length;
+    const live = f.l <= f.r && f.r >= 0;
+    for(let c=0;c<n;c++){
+      const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
+      const caret=tapeEl.querySelector(`[data-caret="${c}"]`);
+      const idxLbl=tapeEl.querySelector(`[data-idx="${c}"]`);
+      if(!cell) continue;
+      const inWin = live && c>=f.l && c<=f.r;
+      let cls='cell';
+      if(c===f.enter)        cls+=' entering';
+      else if(c===f.leave)   cls+=' leaving';
+      else if(inWin)         cls += (f.l===f.r ? ' wr' : (c===f.l ? ' wl' : (c===f.r ? ' wr' : ' wbody')));
+      else if(c < f.l)       cls+=' gone';
+      else                   cls+=' ahead';
+      if(f.bestL>=0 && c>=f.bestL && c<=f.bestR) cls+=' bestmark';
+      cell.className=cls;
+
+      let ct='';
+      if(c===f.enter)      ct='<span class="p pIn">+in</span>';
+      else if(c===f.leave) ct='<span class="p pOut">&minus;out</span>';
+      else if(inWin && f.l===f.r) ct='<span class="p pR">l r</span>';
+      else if(inWin && c===f.l)   ct='<span class="p pL">l</span>';
+      else if(inWin && c===f.r)   ct='<span class="p pR">r</span>';
+      caret.innerHTML=ct; caret.style.opacity = ct ? '1':'0';
+      idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
+    }
+
+    const denom = Math.max(f.target*1.6, f.sum, 1);
+    gFill.style.width = Math.max(0, Math.min(100, f.sum/denom*100)) + '%';
+    gThr.style.left = (f.target/denom*100) + '%';
+    const valid = f.sum >= f.target;
+    gTrack.classList.toggle('hit', valid);
+    gTxt.innerHTML = `<span class="${valid?'m':'w'}">${f.sum}</span> &nbsp;/&nbsp; target ${f.target} &nbsp;&middot;&nbsp; ${valid?'VALID &mdash; shrink':'invalid &mdash; grow'}`;
+
+    const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
+    const width = live ? (f.r-f.l+1) : 0;
+    statsEl.innerHTML =
+      `<span class="stat w">window ${winTxt} &middot; width <b>${width}</b></span>`+
+      `<span class="stat ${valid?'h':'mute'}">sum <b>${f.sum}</b> ${valid?'&ge;':'&lt;'} ${f.target}</span>`+
+      (f.best===Infinity
+        ? `<span class="stat mute">best <b>&infin;</b> &mdash; nothing recorded yet</span>`
+        : `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`)+
+      `<span class="stat ${f.shrinking?'minus':'mute'}">l <b>${f.l}</b></span>`+
+      `<span class="stat ${f.enter>=0?'plus':'mute'}">r <b>${f.r<0?'&mdash;':f.r}</b></span>`;
+
+    ruleEl.innerHTML = RULE;
+    msgEl.innerHTML = f.msg;
+    verdictEl.innerHTML = f.done
+      ? (f.none
+          ? `<span class="trip no">answer = 0 &middot; no window ever reached the target</span>`
+          : `<span class="trip">answer = ${f.best}</span><span class="trip neutral">shortest window [${f.bestL}..${f.bestR}]</span>`)
+      : '';
+
+    const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
+                shrink:['sort','&#8592; shrinking l'],found:['found','&#10003; new minimum'],
+                done:['done','&#9632; complete']};
+    const pe=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pe[0]; pillEl.innerHTML=pe[1];
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(arrRaw, tRaw){
+    stop();
+    const nums = parseArr(arrRaw);
+    const target = parseT(tRaw);
+    arrEl.value = nums.join(','); tEl.value = target;
+    buildTape(nums);
+    frames = buildFrames(nums, target);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').innerHTML='&#10073;&#10073;'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').innerHTML='&#9654;'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['2,3,1,2,4,3','7','the textbook run &mdash; answer 2'],
+    ['1,4,4','4','one element already clears the bar'],
+    ['1,1,1,1,1,1,1,1','11','never valid &rarr; return 0, not &infin;'],
+    ['5,1,3,5,10,7,4,9,2,8','15','shrink fires repeatedly, deep in the array'],
+    ['1,2,3,4,5','15','only the whole array qualifies']
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(function(e){
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`[${e[0]}], t=${e[1]}<b>${e[2]}</b>`;
+      c.onclick=function(){ run(e[0], e[1]); };
+      box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(arrEl.value, tEl.value);
+  [arrEl,tEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, tEl.value); }));
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===arrEl||document.activeElement===tEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(arrEl.value, tEl.value);
+})();
+</script>
+
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

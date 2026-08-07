@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maximum Width of Binary Tree — Hotel Binaria · LC 662</title>
+<style>
+/* ============================================================
+   TOKENS
+   Palette: cool graphite ground + brass "room plaque" accent
+   Type:    serif display / system sans body / mono plaques
+   ============================================================ */
+:root{
+  --bg:#f6f7f9;
+  --bg-2:#eef0f4;
+  --surface:#ffffff;
+  --surface-2:#fbfcfd;
+  --ink:#12151a;
+  --ink-2:#39404b;
+  --muted:#69727f;
+  --faint:#98a1ae;
+  --line:#e3e6ec;
+  --line-2:#d3d8e0;
+
+  --brass:#9a6b1e;
+  --brass-2:#c08a2e;
+  --brass-bg:#fdf6e7;
+  --brass-line:#ecd9ab;
+
+  --coral:#b03434;
+  --coral-bg:#fdf0ef;
+  --coral-line:#f3cdc9;
+
+  --violet:#6142c4;
+  --violet-bg:#f4f1fe;
+  --violet-line:#ddd5f8;
+
+  --teal:#0f6f68;
+  --teal-bg:#eaf7f5;
+  --teal-line:#c3e6e1;
+
+  --blue:#25559c;
+  --blue-bg:#eef3fb;
+  --blue-line:#cfdcf1;
+
+  --shadow-sm:0 1px 2px rgba(16,20,28,.05), 0 1px 1px rgba(16,20,28,.03);
+  --shadow-md:0 4px 16px rgba(16,20,28,.07), 0 1px 3px rgba(16,20,28,.04);
+  --shadow-lg:0 18px 48px rgba(16,20,28,.12), 0 2px 8px rgba(16,20,28,.05);
+
+  --serif:"Iowan Old Style","Palatino Linotype","Palatino","Book Antiqua",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+
+  --sidebar-w:286px;
+  --topbar-h:58px;
+  --measure:73ch;
+
+  --tok-key:#8a3fa0;
+  --tok-type:#1c6b8c;
+  --tok-str:#0d7050;
+  --tok-num:#a2571b;
+  --tok-com:#8b95a3;
+  --tok-fn:#2b4fb8;
+  --tok-punct:#5d6675;
+}
+[data-theme="dark"]{
+  --bg:#0b0d11;
+  --bg-2:#11141a;
+  --surface:#14181f;
+  --surface-2:#171c24;
+  --ink:#e8ecf3;
+  --ink-2:#c3cbd7;
+  --muted:#8d97a6;
+  --faint:#69737f;
+  --line:#232932;
+  --line-2:#2f3742;
+
+  --brass:#dfae5c;
+  --brass-2:#f0c877;
+  --brass-bg:#221c0e;
+  --brass-line:#463a1c;
+
+  --coral:#f0837b;
+  --coral-bg:#241413;
+  --coral-line:#4c2724;
+
+  --violet:#b3a0f5;
+  --violet-bg:#1a1630;
+  --violet-line:#332a5c;
+
+  --teal:#5fd0c3;
+  --teal-bg:#0d2422;
+  --teal-line:#1c463f;
+
+  --blue:#87b0f0;
+  --blue-bg:#111a29;
+  --blue-line:#22344f;
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 18px rgba(0,0,0,.45);
+  --shadow-lg:0 20px 50px rgba(0,0,0,.6);
+
+  --tok-key:#d295e8;
+  --tok-type:#6fc6e8;
+  --tok-str:#7ed3a6;
+  --tok-num:#e8a86a;
+  --tok-com:#6b7583;
+  --tok-fn:#8fb3f5;
+  --tok-punct:#98a1af;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:88px; -webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16.5px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+  transition:background .3s ease,color .3s ease;
+}
+::selection{background:var(--brass-line);color:var(--ink)}
+
+/* ---------- progress bar ---------- */
+#progressTrack{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:120}
+#progressFill{height:100%;width:0;background:linear-gradient(90deg,var(--brass),var(--brass-2));transition:width .12s linear}
+
+/* ---------- topbar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:100;height:var(--topbar-h);
+  display:flex;align-items:center;gap:12px;padding:0 18px;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:saturate(180%) blur(14px);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-key{
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;
+  color:var(--brass);border:1px solid var(--brass-line);background:var(--brass-bg);
+  padding:3px 7px;border-radius:5px;white-space:nowrap;
+}
+.brand-title{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{
+  font:inherit;font-size:13px;font-weight:500;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:6px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:background .16s,border-color .16s,color .16s,transform .1s;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--bg-2);border-color:var(--line-2);color:var(--ink)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--brass);border-color:var(--brass);color:#fff}
+[data-theme="dark"] .btn.primary{color:#17130a}
+.btn.primary:hover{background:var(--brass-2);border-color:var(--brass-2);color:#fff}
+[data-theme="dark"] .btn.primary:hover{color:#17130a}
+.icon-btn{width:34px;height:34px;padding:0;justify-content:center;font-size:15px}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:4px}
+#menuBtn{display:none}
+
+/* ---------- layout ---------- */
+.layout{display:flex;align-items:flex-start;max-width:1400px;margin:0 auto}
+aside{
+  width:var(--sidebar-w);flex:none;position:sticky;top:var(--topbar-h);
+  height:calc(100vh - var(--topbar-h));overflow-y:auto;padding:26px 14px 60px 22px;
+  border-right:1px solid var(--line);
+}
+aside::-webkit-scrollbar{width:8px}
+aside::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+main{flex:1;min-width:0;padding:0 32px 140px;display:flex;justify-content:center}
+.article{width:100%;max-width:var(--measure)}
+
+/* ---------- sidebar ---------- */
+.search-wrap{position:relative;margin-bottom:16px}
+#search{
+  width:100%;font:inherit;font-size:13.5px;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:8px 10px 8px 31px;transition:border-color .16s,box-shadow .16s;
+}
+#search::placeholder{color:var(--faint)}
+#search:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 14%,transparent)}
+.search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:12px;pointer-events:none}
+.side-meta{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--faint);margin:0 4px 10px;
+}
+.meter{height:4px;border-radius:4px;background:var(--bg-2);overflow:hidden;margin:0 4px 18px}
+.meter>i{display:block;height:100%;width:0;background:var(--brass);transition:width .3s ease}
+nav ol{list-style:none;margin:0;padding:0}
+.nav-item{
+  display:flex;align-items:baseline;gap:9px;
+  padding:6.5px 10px;border-radius:8px;text-decoration:none;color:var(--muted);
+  font-size:13.5px;line-height:1.4;transition:background .14s,color .14s;
+  border-left:2px solid transparent;
+}
+.nav-item:hover{background:var(--bg-2);color:var(--ink)}
+.nav-item .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);flex:none;width:16px;transition:color .14s}
+.nav-item.active{background:var(--brass-bg);color:var(--ink);font-weight:600;border-left-color:var(--brass)}
+.nav-item.active .n{color:var(--brass)}
+.nav-item.done .n::after{content:"✓";margin-left:2px;color:var(--teal)}
+.nav-item.hidden{display:none}
+.no-hits{display:none;font-size:13px;color:var(--faint);padding:10px 12px;font-style:italic}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 20px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--brass);display:flex;align-items:center;gap:10px;margin-bottom:20px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+h1{
+  font-family:var(--serif);font-weight:600;font-size:clamp(34px,5.4vw,50px);
+  line-height:1.1;letter-spacing:-.02em;margin:0 0 18px;
+}
+.dek{font-size:19px;line-height:1.62;color:var(--muted);margin:0 0 26px;max-width:60ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 11px;
+}
+.chip b{color:var(--ink);font-weight:600}
+
+/* ---------- sections ---------- */
+section{padding:52px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:none}
+.sec-head{margin-bottom:22px}
+.sec-num{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--brass);
+  background:var(--brass-bg);border:1px solid var(--brass-line);
+  padding:2.5px 8px;border-radius:5px;display:inline-block;margin-bottom:14px;
+}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(25px,3.6vw,33px);line-height:1.2;letter-spacing:-.018em;margin:0}
+h3{font-family:var(--sans);font-weight:650;font-size:17.5px;letter-spacing:-.01em;margin:34px 0 12px;color:var(--ink)}
+h4{font-family:var(--sans);font-weight:650;font-size:15px;margin:24px 0 8px;color:var(--ink)}
+p{margin:0 0 17px;color:var(--ink-2)}
+ul,ol{margin:0 0 17px;padding-left:22px;color:var(--ink-2)}
+li{margin-bottom:8px}
+li::marker{color:var(--faint)}
+strong{color:var(--ink);font-weight:650}
+em{color:var(--ink);font-style:italic}
+a{color:var(--brass);text-decoration-color:color-mix(in srgb,var(--brass) 35%,transparent);text-underline-offset:2px}
+hr.soft{border:none;border-top:1px solid var(--line);margin:34px 0}
+.lead{font-size:18px;color:var(--ink)}
+code.i{
+  font-family:var(--mono);font-size:.87em;background:var(--bg-2);
+  border:1px solid var(--line);border-radius:5px;padding:1.5px 5px;color:var(--ink);
+}
+.big-answer{
+  font-family:var(--serif);font-size:26px;text-align:center;color:var(--ink);
+  background:var(--teal-bg);border:1px solid var(--teal-line);border-radius:12px;
+  padding:18px;margin:22px 0;
+}
+
+/* ---------- callouts ---------- */
+.callout{
+  border:1px solid;border-radius:13px;padding:18px 20px 4px;margin:24px 0;
+  position:relative;background:var(--surface);box-shadow:var(--shadow-sm);
+}
+.callout>.ct{
+  display:flex;align-items:center;gap:8px;font-family:var(--mono);
+  font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;margin-bottom:10px;
+}
+.callout p:last-child{margin-bottom:16px}
+.callout ul{margin-bottom:16px}
+.c-obs{background:var(--brass-bg);border-color:var(--brass-line)}
+.c-obs>.ct{color:var(--brass)}
+.c-pit{background:var(--coral-bg);border-color:var(--coral-line)}
+.c-pit>.ct{color:var(--coral)}
+.c-mem{background:var(--violet-bg);border-color:var(--violet-line)}
+.c-mem>.ct{color:var(--violet)}
+.c-tip{background:var(--teal-bg);border-color:var(--teal-line)}
+.c-tip>.ct{color:var(--teal)}
+.c-note{background:var(--blue-bg);border-color:var(--blue-line)}
+.c-note>.ct{color:var(--blue)}
+.hook-line{
+  font-family:var(--serif);font-size:23px;line-height:1.4;color:var(--ink);
+  margin:6px 0 18px;letter-spacing:-.01em;
+}
+
+/* ---------- code ---------- */
+.codeblock{margin:22px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface-2);box-shadow:var(--shadow-sm)}
+.code-bar{
+  display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;
+  border-bottom:1px solid var(--line);background:var(--surface);
+}
+.code-label{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.copy-btn{
+  margin-left:auto;font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+  color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:6px;
+  padding:4px 9px;cursor:pointer;transition:.15s;
+}
+.copy-btn:hover{color:var(--ink);border-color:var(--line-2);background:var(--bg-2)}
+.copy-btn.ok{color:var(--teal);border-color:var(--teal-line);background:var(--teal-bg)}
+pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13.2px;line-height:1.68;color:var(--ink)}
+pre::-webkit-scrollbar{height:8px}
+pre::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+.tok-keyword{color:var(--tok-key)}
+.tok-type{color:var(--tok-type)}
+.tok-string{color:var(--tok-str)}
+.tok-number{color:var(--tok-num)}
+.tok-comment{color:var(--tok-com);font-style:italic}
+.tok-fn{color:var(--tok-fn)}
+.tok-punct{color:var(--tok-punct)}
+.tok-annotation{color:var(--tok-num)}
+.ascii{font-family:var(--mono);font-size:13px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:20px 0}
+
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:440px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+th{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;background:var(--surface-2);white-space:nowrap;
+}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .14s}
+tbody tr:hover{background:var(--surface-2)}
+td b,th b{color:var(--ink)}
+.mono-cell{font-family:var(--mono);font-size:13px;white-space:nowrap}
+
+/* ---------- details / collapsibles ---------- */
+details.fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:20px 0;overflow:hidden;box-shadow:var(--shadow-sm)}
+details.fold>summary{
+  cursor:pointer;list-style:none;padding:14px 18px;display:flex;align-items:center;gap:11px;
+  font-weight:600;font-size:15px;color:var(--ink);transition:background .15s;
+}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary:hover{background:var(--surface-2)}
+.caret{
+  width:15px;height:15px;flex:none;color:var(--faint);transition:transform .22s ease;
+  display:inline-block;
+}
+details[open]>summary .caret{transform:rotate(90deg)}
+.summary-tag{
+  margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--faint);border:1px solid var(--line);
+  padding:2px 7px;border-radius:99px;
+}
+.fold-body{padding:2px 18px 6px;border-top:1px solid var(--line);animation:slideDown .22s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+details.bug{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);margin:9px 0}
+details.bug>summary{
+  cursor:pointer;list-style:none;padding:11px 14px;display:flex;gap:10px;align-items:baseline;
+  font-size:14.5px;font-weight:600;color:var(--ink);
+}
+details.bug>summary::-webkit-details-marker{display:none}
+details.bug>summary .bn{font-family:var(--mono);font-size:11px;color:var(--coral);flex:none}
+details.bug .bug-body{padding:0 14px 12px 38px;font-size:14.5px;color:var(--ink-2)}
+details.bug .bug-body p{margin:0 0 10px}
+details.bug[open]{background:var(--surface);border-color:var(--line-2)}
+
+/* ---------- reveal cards ---------- */
+.reveal{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:16px 0;overflow:hidden;box-shadow:var(--shadow-sm)}
+.reveal-head{padding:13px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.reveal-head .rc{
+  font-family:var(--mono);font-size:12.6px;color:var(--ink);background:var(--bg-2);
+  border:1px solid var(--line);border-radius:6px;padding:3px 8px;
+}
+.reveal-btn{
+  margin-left:auto;font:inherit;font-size:12.5px;font-weight:500;color:var(--brass);
+  background:var(--brass-bg);border:1px solid var(--brass-line);border-radius:99px;
+  padding:4px 12px;cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.reveal-btn:hover{background:color-mix(in srgb,var(--brass) 14%,transparent)}
+.reveal-body{display:none;padding:2px 16px 4px;border-top:1px dashed var(--line);animation:slideDown .2s ease}
+.reveal.open .reveal-body{display:block}
+.reveal-body .disaster{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--coral);margin:13px 0 6px;
+}
+
+/* ---------- tooltips ---------- */
+.term{
+  border-bottom:1px dashed var(--brass);cursor:help;position:relative;color:var(--ink);font-weight:500;
+}
+.term::after{
+  content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%) translateY(4px);
+  width:max-content;max-width:290px;background:var(--ink);color:var(--bg);
+  font-family:var(--sans);font-size:12.6px;font-weight:400;line-height:1.5;letter-spacing:0;
+  padding:9px 12px;border-radius:9px;box-shadow:var(--shadow-lg);
+  opacity:0;pointer-events:none;transition:opacity .17s ease,transform .17s ease;z-index:60;text-align:left;
+}
+.term::before{
+  content:"";position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%) translateY(4px);
+  border:5px solid transparent;border-top-color:var(--ink);opacity:0;transition:opacity .17s,transform .17s;z-index:61;
+}
+.term:hover::after,.term:focus::after,.term:hover::before,.term:focus::before{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- movie / hotel ---------- */
+.hotel{
+  background:linear-gradient(180deg,var(--surface),var(--surface-2));
+  border:1px solid var(--line);border-radius:16px;padding:22px 20px 18px;margin:24px 0;box-shadow:var(--shadow-md);
+}
+.hotel-sign{
+  font-family:var(--serif);font-size:20px;text-align:center;color:var(--brass);
+  letter-spacing:.06em;margin-bottom:4px;
+}
+.hotel-sub{text-align:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:20px}
+.floor{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.floor-tag{font-family:var(--mono);font-size:10.5px;color:var(--faint);width:52px;flex:none;letter-spacing:.04em}
+.rooms{display:flex;gap:5px;flex:1}
+.room{
+  flex:1;height:38px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;position:relative;transition:.25s;
+}
+.room.empty{border:1px dashed var(--line-2);color:var(--faint);background:transparent}
+.room.full{
+  border:1px solid var(--brass-line);background:var(--brass-bg);color:var(--brass);font-weight:700;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass) 10%,transparent);
+}
+.room .guest{font-size:14px}
+.carpet{
+  position:absolute;left:0;right:0;bottom:-6px;height:3px;border-radius:3px;
+  background:var(--brass);opacity:0;transition:opacity .3s;
+}
+.floor.measured .carpet{opacity:.55}
+.floor-w{
+  font-family:var(--mono);font-size:11px;color:var(--brass);width:64px;flex:none;text-align:right;
+  opacity:0;transition:opacity .35s;
+}
+.floor.measured .floor-w{opacity:1}
+.gary{
+  display:flex;align-items:center;gap:14px;margin-top:20px;padding:14px 16px;
+  border:1px solid var(--line);border-radius:12px;background:var(--surface);
+}
+.gary-emoji{font-size:26px;animation:bob 3.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.gary p{margin:0;font-size:14.5px}
+.cast-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:22px 0;background:var(--surface)}
+.cast-grid>div{padding:11px 15px;border-bottom:1px solid var(--line);font-size:14px}
+.cast-grid>div:nth-child(odd){border-right:1px solid var(--line);color:var(--ink);font-weight:550}
+.cast-grid>div:nth-child(even){color:var(--muted)}
+.cast-grid>div:nth-last-child(-n+2){border-bottom:none}
+
+/* ---------- seat rule diagram ---------- */
+.seatrule{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;margin:24px 0;box-shadow:var(--shadow-sm)}
+.seatrule svg{width:100%;height:auto;display:block;max-width:520px;margin:0 auto}
+.sr-node{fill:var(--brass-bg);stroke:var(--brass);stroke-width:1.6}
+.sr-txt{font-family:var(--mono);font-size:13px;fill:var(--brass);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.sr-lbl{font-family:var(--mono);font-size:10.5px;fill:var(--muted);text-anchor:middle}
+.sr-edge{stroke:var(--line-2);stroke-width:1.6;fill:none}
+.sr-flow{stroke:var(--brass);stroke-width:2;fill:none;stroke-dasharray:5 5;animation:dash 1.6s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-20}}
+.seat-calc{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px;font-family:var(--mono);font-size:13.5px;color:var(--muted)}
+.seat-calc input{
+  width:90px;font:inherit;font-family:var(--mono);font-size:14px;text-align:center;color:var(--ink);
+  background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;
+}
+.seat-calc input:focus{outline:none;border-color:var(--brass)}
+.seat-out{color:var(--brass);font-weight:700}
+
+/* ---------- interactive tree explorer ---------- */
+.tree-card{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:18px;margin:24px 0;box-shadow:var(--shadow-sm)}
+.tree-card svg{width:100%;height:auto;display:block}
+.pt-node{fill:var(--surface-2);stroke:var(--line-2);stroke-width:1.5;cursor:pointer;transition:.2s}
+.pt-node:hover{stroke:var(--brass)}
+.pt-node.sel{fill:var(--brass);stroke:var(--brass)}
+.pt-node.kid{fill:var(--brass-bg);stroke:var(--brass);stroke-width:2}
+.pt-txt{font-family:var(--mono);font-size:11.5px;fill:var(--muted);text-anchor:middle;dominant-baseline:central;pointer-events:none;transition:.2s;font-weight:600}
+.pt-node.sel + .pt-txt{fill:#fff}
+[data-theme="dark"] .pt-node.sel + .pt-txt{fill:#17130a}
+.pt-node.kid + .pt-txt{fill:var(--brass)}
+.pt-edge{stroke:var(--line);stroke-width:1.4}
+.pt-edge.lit{stroke:var(--brass);stroke-width:2.4}
+.pt-readout{text-align:center;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:14px;min-height:22px}
+.pt-readout b{color:var(--brass)}
+
+/* ---------- dry run player ---------- */
+.player{border:1px solid var(--line);border-radius:16px;background:var(--surface);margin:26px 0;overflow:hidden;box-shadow:var(--shadow-md)}
+.player-top{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.player-top .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.step-count{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--brass);background:var(--brass-bg);border:1px solid var(--brass-line);padding:3px 9px;border-radius:99px}
+.stage{padding:8px 10px 4px;background:var(--surface)}
+.stage svg{width:100%;height:auto;display:block}
+.tn-circle{fill:var(--surface);stroke:var(--line-2);stroke-width:1.8;transition:.28s}
+.tn-circle.done{fill:var(--bg-2);stroke:var(--line-2)}
+.tn-circle.inq{fill:var(--blue-bg);stroke:var(--blue);stroke-width:2}
+.tn-circle.active{fill:var(--brass);stroke:var(--brass);stroke-width:2.4}
+.tn-val{font-family:var(--mono);font-size:13.5px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none;transition:.28s}
+.tn-circle.active + .tn-val{fill:#fff}
+[data-theme="dark"] .tn-circle.active + .tn-val{fill:#17130a}
+.tn-idx{font-family:var(--mono);font-size:9.5px;fill:var(--faint);text-anchor:middle;transition:.28s}
+.tn-idx.lit{fill:var(--brass);font-weight:700}
+.tn-ghost{fill:none;stroke:var(--line-2);stroke-width:1.2;stroke-dasharray:3 3;opacity:.75}
+.tn-ghost.inspan{stroke:var(--brass);opacity:.65}
+.tn-edge{stroke:var(--line-2);stroke-width:1.6}
+.span-line{stroke:var(--brass);stroke-width:2.4;stroke-linecap:round;transition:opacity .3s}
+.span-cap{stroke:var(--brass);stroke-width:2.4;stroke-linecap:round}
+.span-txt{font-family:var(--mono);font-size:12px;fill:var(--brass);font-weight:700;text-anchor:middle}
+.narration{
+  padding:14px 18px;border-top:1px solid var(--line);background:var(--surface-2);
+  font-size:14.8px;line-height:1.6;color:var(--ink-2);min-height:74px;
+}
+.narration .tag{
+  display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;margin-right:9px;vertical-align:1.5px;
+}
+.tag.t-level{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-line)}
+.tag.t-pop{background:var(--brass-bg);color:var(--brass);border:1px solid var(--brass-line)}
+.tag.t-measure{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-line)}
+.tag.t-init{background:var(--violet-bg);color:var(--violet);border:1px solid var(--violet-line)}
+.varbar{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.vcell{background:var(--surface);padding:10px 8px;text-align:center;transition:background .35s}
+.vcell .vk{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:3px}
+.vcell .vv{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--ink)}
+.vcell.flash{background:var(--brass-bg)}
+.vcell.flash .vv{color:var(--brass)}
+.queuebar{display:flex;align-items:center;gap:9px;padding:11px 14px;border-top:1px solid var(--line);background:var(--surface);flex-wrap:wrap;min-height:50px}
+.queuebar .qk{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.qchip{
+  font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:7px;
+  background:var(--blue-bg);border:1px solid var(--blue-line);color:var(--blue);
+  animation:pop .25s ease;white-space:nowrap;
+}
+.qchip .qi{opacity:.7;font-size:10.5px}
+@keyframes pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.qempty{font-family:var(--mono);font-size:12px;color:var(--faint);font-style:italic}
+.player-ctrl{display:flex;align-items:center;gap:8px;padding:11px 14px;border-top:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.scrub{flex:1;min-width:110px;accent-color:var(--brass);height:4px}
+
+/* ---------- overflow demo ---------- */
+.ovf{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin:24px 0;overflow:hidden;box-shadow:var(--shadow-sm)}
+.ovf-top{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--bg-2);border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px}
+.seg button{
+  font:inherit;font-size:12.5px;border:none;background:transparent;color:var(--muted);
+  padding:5px 11px;border-radius:7px;cursor:pointer;transition:.15s;
+}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-sm)}
+.ovf-rows{max-height:260px;overflow-y:auto;padding:6px 0}
+.ovf-row{display:flex;align-items:center;gap:12px;padding:3px 16px;font-family:var(--mono);font-size:12.5px}
+.ovf-row .d{color:var(--faint);width:62px;flex:none}
+.ovf-row .v{color:var(--ink-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ovf-row.bad .v{color:var(--coral);font-weight:700}
+.ovf-row.bad::after{content:"overflow";font-size:10px;color:var(--coral);letter-spacing:.08em;text-transform:uppercase}
+.ovf-note{padding:12px 16px;border-top:1px solid var(--line);font-size:13.8px;color:var(--muted);background:var(--surface-2)}
+
+/* ---------- section nav ---------- */
+.secnav{display:flex;gap:12px;margin-top:44px;padding-top:26px;border-top:1px solid var(--line)}
+.secnav a{
+  flex:1;text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:13px 16px;
+  background:var(--surface);transition:.16s;color:var(--ink);box-shadow:var(--shadow-sm);
+}
+.secnav a:hover{border-color:var(--brass);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.secnav .k{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+.secnav .t{font-size:14.5px;font-weight:600}
+.secnav .next{text-align:right}
+.secnav a.disabled{opacity:.35;pointer-events:none}
+
+/* ---------- FABs ---------- */
+.fabs{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:90}
+.fab{
+  width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--shadow-md);transition:.18s;font-size:15px;
+}
+.fab:hover{color:var(--ink);border-color:var(--brass);transform:translateY(-2px)}
+#topFab{opacity:0;pointer-events:none;transform:translateY(8px)}
+#topFab.show{opacity:1;pointer-events:auto;transform:none}
+
+/* ---------- end card ---------- */
+.endcard{
+  margin-top:56px;padding:34px;border-radius:16px;text-align:center;
+  border:1px solid var(--brass-line);background:var(--brass-bg);
+}
+.endcard .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-bottom:12px}
+.endcard p{font-family:var(--serif);font-size:19px;color:var(--ink);margin:0 0 6px}
+.endcard small{color:var(--muted);font-size:13.5px}
+
+/* ---------- scrim (mobile) ---------- */
+#scrim{position:fixed;inset:0;background:rgba(10,12,16,.44);z-index:98;opacity:0;pointer-events:none;transition:opacity .22s}
+#scrim.show{opacity:1;pointer-events:auto}
+
+@media (max-width:1000px){
+  #menuBtn{display:inline-flex}
+  aside{
+    position:fixed;top:var(--topbar-h);left:0;z-index:99;background:var(--surface);
+    transform:translateX(-102%);transition:transform .26s cubic-bezier(.4,0,.2,1);
+    box-shadow:var(--shadow-lg);height:calc(100vh - var(--topbar-h));
+  }
+  aside.open{transform:none}
+  main{padding:0 20px 120px}
+  .cast-grid{grid-template-columns:1fr}
+  .cast-grid>div:nth-child(odd){border-right:none;border-bottom:1px solid var(--line);padding-bottom:2px}
+  .cast-grid>div:nth-child(even){padding-top:2px}
+  .cast-grid>div:nth-last-child(2){border-bottom:1px solid var(--line)}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .hero{padding:40px 0 18px}
+  section{padding:40px 0}
+  .varbar{grid-template-columns:repeat(3,1fr)}
+  .secnav{flex-direction:column}
+  .floor-tag{width:38px;font-size:9.5px}
+  .floor-w{width:52px;font-size:10px}
+  .room{height:32px;font-size:10px}
+  .hide-sm{display:none}
+  .term::after{max-width:220px}
+}
+</style>
+</head>
+<body>
+
+<div id="progressTrack"><div id="progressFill"></div></div>
+
+<header class="topbar">
+  <button class="btn icon-btn" id="menuBtn" aria-label="Show section list">☰</button>
+  <div class="brand">
+    <span class="brand-key">LC 662</span>
+    <span class="brand-title">Maximum Width of Binary Tree</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn hide-sm" id="expandAll">Expand all</button>
+  <button class="btn icon-btn" id="themeBtn" aria-label="Switch to dark mode" title="Switch theme">🌙</button>
+</header>
+
+<div id="scrim"></div>
+
+<div class="layout">
+
+  <aside id="sidebar">
+    <div class="search-wrap">
+      <span class="search-ico">⌕</span>
+      <input id="search" type="search" placeholder="Filter sections" aria-label="Filter sections">
+    </div>
+    <div class="side-meta"><span>Lesson progress</span><span id="progCount">0 / 14</span></div>
+    <div class="meter"><i id="progMeter"></i></div>
+    <nav aria-label="Lesson sections">
+      <ol id="navList"></ol>
+      <div class="no-hits" id="noHits">No section matches that.</div>
+    </nav>
+  </aside>
+
+  <main>
+  <div class="article">
+
+    <div class="hero">
+      <div class="eyebrow">Interview pattern · Tree geometry</div>
+      <h1>Maximum Width of Binary&nbsp;Tree</h1>
+      <p class="dek">The width of a level isn't how many nodes sit on it. It's how much hallway stretches between the outermost two — empty rooms included. This lesson installs that intuition permanently.</p>
+      <div class="chips">
+        <span class="chip">LeetCode <b>662</b></span>
+        <span class="chip">Difficulty <b>Medium</b></span>
+        <span class="chip">Time <b>O(n)</b></span>
+        <span class="chip">Core trick <b>index normalization</b></span>
+        <span class="chip">Asked at <b>Google · Amazon · Meta</b></span>
+      </div>
+    </div>
+
+    <!-- ================= 1 ================= -->
+    <section id="s1" data-title="The Problem in Plain English">
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <h2>The Problem in Plain English</h2>
+      </div>
+
+      <p class="lead">Imagine your binary tree is actually a <strong>seating chart in a theater</strong>.</p>
+
+      <p>Row 0 has 1 seat. Row 1 has 2 seats. Row 2 has 4 seats. Row 3 has 8 seats. Every row doubles. This is true <em>whether or not anyone is sitting there</em> — the seats exist regardless.</p>
+
+      <p>Now some people show up and sit down. Not everybody. The chart is patchy — a person here, three empty seats, a person there.</p>
+
+      <p>For each row, I want you to do exactly one thing:</p>
+
+      <div class="callout c-note">
+        <div class="ct">▸ The whole task</div>
+        <p>Point at the <strong>leftmost occupied seat</strong>. Point at the <strong>rightmost occupied seat</strong>. Now count every seat from your left finger to your right finger — <strong>including all the empty ones in between.</strong></p>
+      </div>
+
+      <p>That number is the row's width. Do that for every row. Tell me the biggest number you got. Done. That's the whole problem.</p>
+
+      <p>The important, sneaky thing: <strong>empty seats in the middle still count.</strong> If row 5 has one person at the far left and one person at the far right and 30 empty seats between them, that row's width is 32, not 2.</p>
+
+      <p>But empty seats <em>outside</em> the two people don't count. We measure from person to person, not wall to wall.</p>
+
+      <p>That's it. No algorithm words. Just: <em>how far apart are the two outermost people on the most spread-out row?</em></p>
+
+      <div class="ascii">row 0    [ 1 ]                                       width 1
+
+row 1    [ 3 ][ 2 ]                                  width 2
+
+row 2    [ 5 ][ · ][ · ][ 9 ]                        width 4
+              ^^^^^^^^^^  these two count
+
+row 3    [ 6 ][ · ][ · ][ · ][ · ][ · ][ · ][ 7 ]    width 8
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^  all six count</div>
+
+      <div class="secnav">
+        <a class="disabled prev" href="#"><span class="k">Previous</span><span class="t">—</span></a>
+        <a class="next" href="#s2"><span class="k">Next</span><span class="t">Why Most People Get Stuck</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 2 ================= -->
+    <section id="s2" data-title="Why Most People Get Stuck">
+      <div class="sec-head">
+        <span class="sec-num">02</span>
+        <h2>Why Most People Get Stuck</h2>
+      </div>
+
+      <p>Here's the trap, and almost everyone falls into it.</p>
+
+      <p>You read "maximum width," you think "level order traversal," you feel great, you write BFS, and then you write this:</p>
+
+      <div class="codeblock" data-code="trap" data-label="the seductive wrong line"></div>
+
+      <p>And it feels <em>so right</em>. Queue size = number of nodes on this level = width, right?</p>
+
+      <p><strong>No.</strong> Queue size counts <em>people</em>. The problem asks about <em>seats</em>. Those are completely different numbers the moment the tree has holes in it.</p>
+
+      <div class="ascii">        1
+       / \
+      3   2
+     /     \
+    5       9
+
+bottom row: 2 nodes  →  queue.size() says width = 2
+bottom row: 5 and 9 are separated by two ghost seats  →  real width = 4</div>
+
+      <div class="callout c-pit">
+        <div class="ct">⚠️ The mental trap</div>
+        <p>You've been trained to think a tree is a <strong>set of pointers</strong>, so you only "see" the nodes that exist. This problem is asking you to see the nodes that <em>don't</em> exist.</p>
+        <p>Your brain has no data structure for those. They're not in memory. There's no <code class="i">null</code> object sitting there with a position. They're just… absence.</p>
+      </div>
+
+      <p>And so people flail. They try:</p>
+
+      <ul>
+        <li><strong>Padding the tree with fake null nodes</strong> → memory explodes on a skewed tree. A 1000-deep tree would need 2<sup>1000</sup> fake nodes.</li>
+        <li><strong>Recording "gaps" with counters</strong> → gets insanely fiddly and breaks on nested holes.</li>
+        <li><strong>A boolean array per level</strong> → same explosion problem.</li>
+      </ul>
+
+      <p>Every one of these fails for the same reason: <strong>you're trying to materialize the empty space.</strong> And empty space, by definition, refuses to be materialized cheaply.</p>
+
+      <p>The unlock is realizing you don't have to. You just have to <em>number</em> it.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s1"><span class="k">Previous</span><span class="t">The Problem in Plain English</span></a>
+        <a class="next" href="#s3"><span class="k">Next</span><span class="t">The Key Observation</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 3 ================= -->
+    <section id="s3" data-title="The Key Observation">
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <h2>The Key Observation</h2>
+      </div>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 Key Observation</div>
+        <p><strong>Every node has a fixed seat number, determined entirely by the path taken to reach it — and that seat number exists whether or not the neighbours exist.</strong></p>
+      </div>
+
+      <p>Let me convince you, not just tell you.</p>
+
+      <p>Take a node sitting at <strong>position <code class="i">i</code></strong> in its row (counting from 0, left to right, across the <em>full theoretical row including empty seats</em>).</p>
+
+      <p>Ask: where do its children sit?</p>
+
+      <p>Each of the <code class="i">i</code> seats to its left — occupied or not — has room for exactly 2 children in the next row. So before this node's children begin, there are exactly <code class="i">2i</code> seats already spoken for. Therefore:</p>
+
+      <div class="seatrule">
+        <svg viewBox="0 0 520 200" role="img" aria-label="A node at index i has children at 2i and 2i plus 1">
+          <path class="sr-edge" d="M260 62 L 150 130"></path>
+          <path class="sr-edge" d="M260 62 L 370 130"></path>
+          <path class="sr-flow" d="M260 62 L 150 130"></path>
+          <path class="sr-flow" d="M260 62 L 370 130"></path>
+          <circle class="sr-node" cx="260" cy="52" r="26"></circle>
+          <text class="sr-txt" x="260" y="52">i</text>
+          <text class="sr-lbl" x="260" y="17">parent seat</text>
+          <circle class="sr-node" cx="150" cy="146" r="26"></circle>
+          <text class="sr-txt" x="150" y="146">2i</text>
+          <text class="sr-lbl" x="150" y="190">left child</text>
+          <circle class="sr-node" cx="370" cy="146" r="26"></circle>
+          <text class="sr-txt" x="370" y="146">2i+1</text>
+          <text class="sr-lbl" x="370" y="190">right child</text>
+        </svg>
+        <div class="seat-calc">
+          <label for="seatIn">a node at seat</label>
+          <input id="seatIn" type="number" value="47" min="0" step="1">
+          <span>→ children at <span class="seat-out" id="seatOut">94 and 95</span></span>
+        </div>
+      </div>
+
+      <p>That's not a convention someone invented. That's arithmetic. The row below is literally twice as wide, so positions double.</p>
+
+      <h3>Why this destroys the problem</h3>
+
+      <p><strong>Seat numbers are computed from the parent alone.</strong> They don't need to know about siblings, cousins, gaps, or anything else. A node at position 47 produces children at 94 and 95 — full stop. It doesn't matter if positions 0 through 93 are a barren wasteland.</p>
+
+      <p><strong>The empty seats get numbered for free.</strong> You never build them, never store them, never visit them. They exist purely as <em>the integers you skipped</em>.</p>
+
+      <p>And then the finish:</p>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 The formula that does all the work</div>
+        <p style="font-family:var(--mono);font-size:15px;text-align:center;color:var(--ink)">width = rightmostSeat − leftmostSeat + 1</p>
+        <p>Subtraction counts the gap. Gaps are exactly what the problem asked for. <strong>You have converted "count the invisible things" into "subtract two visible numbers."</strong></p>
+      </div>
+
+      <p>That's the whole trick. Everything else is bookkeeping.</p>
+
+      <h3>Click a node to see the rule with your own eyes</h3>
+
+      <p>Every circle below is a seat in the perfect theatre. Click one — its two children light up, and the arithmetic appears underneath.</p>
+
+      <div class="tree-card">
+        <svg id="ptSvg" viewBox="0 0 700 250" role="img" aria-label="Interactive perfect binary tree of seat indices"></svg>
+        <div class="pt-readout" id="ptRead">Click any seat.</div>
+      </div>
+
+      <hr class="soft">
+
+      <h3>The second observation — the one that separates a pass from a fail</h3>
+
+      <p>Seat numbers <strong>double every level</strong>. Row 40 has seat numbers around 2<sup>40</sup>. Row 60 has seat numbers around 2<sup>60</sup>.</p>
+
+      <p>Your <code class="i">int</code> dies at 2<sup>31</sup>. Your <code class="i">long</code> dies at 2<sup>63</sup>. A tree can easily be 100 levels deep.</p>
+
+      <p>So a right-leaning tree — root, right, right, right, sixty times — produces a node with seat number 2<sup>60</sup> − 1, your <code class="i">int</code> wraps to a negative number, and your answer becomes garbage.</p>
+
+      <p><strong>But notice</strong>: on that right-leaning tree, every single row has exactly one node. Every row's width is 1. The <em>answer</em> is tiny. Only the <em>labels</em> are astronomical.</p>
+
+      <p>Which tells you the fix immediately:</p>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 Second observation</div>
+        <p><strong>The absolute seat numbers were never the point. Only the differences were.</strong></p>
+        <p>So at the start of each row, take the leftmost node's seat number and declare it <strong>zero</strong>. Shift everything on that row down by the same amount. Differences are unchanged — that's what subtracting a constant <em>means</em> — but the numbers stay small forever.</p>
+      </div>
+
+      <p>This is <span class="term" tabindex="0" data-tip="Re-basing every level's indices so the leftmost node becomes 0. Since we only ever subtract indices within a level, a uniform shift changes nothing we care about.">index normalization</span>, and it is the entire reason this problem is rated Medium-hard instead of Easy.</p>
+
+      <h3>Watch the overflow happen — and watch it get fixed</h3>
+
+      <p>This is a right-leaning spine: root, right, right, right… Every level has exactly one node, so the true answer is always <strong>1</strong>. Toggle normalization off and watch a 32-bit integer die at depth 31.</p>
+
+      <div class="ovf">
+        <div class="ovf-top">
+          <div class="seg" role="tablist">
+            <button id="ovfOff" class="on" role="tab">Without normalization</button>
+            <button id="ovfOn" role="tab">With normalization</button>
+          </div>
+          <span class="lbl" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-left:auto">int arithmetic, 32-bit</span>
+        </div>
+        <div class="ovf-rows" id="ovfRows"></div>
+        <div class="ovf-note" id="ovfNote"></div>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s2"><span class="k">Previous</span><span class="t">Why Most People Get Stuck</span></a>
+        <a class="next" href="#s4"><span class="k">Next</span><span class="t">The Movie</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 4 ================= -->
+    <section id="s4" data-title="The Movie">
+      <div class="sec-head">
+        <span class="sec-num">04</span>
+        <h2>The Movie</h2>
+      </div>
+
+      <p class="lead">Welcome to the Hotel Fibonacci — sorry, <strong>Hotel Binaria</strong>. 🏨</p>
+
+      <p>An infinite hotel. Floor 0 has 1 room. Floor 1 has 2 rooms. Floor 2 has 4 rooms. Every floor down, rooms double. (Yes, the hotel is an upside-down pyramid. The architect was fired. He now works at Google.)</p>
+
+      <p><strong>The house rule:</strong> when a guest in room <code class="i">i</code> has children, hotel policy assigns them to rooms <code class="i">2i</code> and <code class="i">2i+1</code> on the floor below. Always. It's in the contract. Nobody gets to pick.</p>
+
+      <p>The hotel is mostly empty. Guests are scattered. Rooms sit dark and dusty between them.</p>
+
+      <div class="hotel">
+        <div class="hotel-sign">✦ HOTEL BINARIA ✦</div>
+        <div class="hotel-sub">every floor down, the rooms double</div>
+        <div id="hotelFloors"></div>
+        <div class="gary">
+          <span class="gary-emoji">🧹</span>
+          <p id="garyLine">Meet Gary, the world's laziest carpet inspector. Press the button and watch him work.</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn primary" id="garyGo">Send Gary up the hotel</button>
+          <button class="btn" id="garyReset">Reset floors</button>
+        </div>
+      </div>
+
+      <p><strong>Enter our hero: Gary, the world's laziest carpet inspector.</strong></p>
+
+      <p>Gary's job: for each floor, measure how much carpet needs cleaning. Management's rule is brutally simple — <em>"Clean from the first occupied room to the last occupied room. Everything between them gets cleaned too, even the empty rooms, because guests walk through that hallway."</em></p>
+
+      <p>Gary doesn't clean before the first guest. Gary doesn't clean after the last guest. Gary cleans <strong>first guest → last guest, inclusive.</strong></p>
+
+      <p>So Gary walks onto a floor, writes down the room number of the first guest, strolls to the far end, writes down the room number of the last guest, subtracts, adds one, and goes back to his nap. <strong>He never counts the empty rooms. He never even looks inside them.</strong> Subtraction did the counting.</p>
+
+      <h3>Now the twist 🎬</h3>
+
+      <p>Gary gets sent to floor 900. He arrives, pulls out his clipboard, and the room number is:</p>
+
+      <div class="ascii" style="color:var(--coral)">10633823966279326983230456482242756608</div>
+
+      <p>Gary's clipboard is an <code class="i">int</code>. Gary's clipboard catches fire. 🔥</p>
+
+      <p>So the hotel manager introduces <strong>local floor numbering.</strong> On every floor, a bellhop stands at the first occupied room and slaps a sticker on the door that says <strong>"ROOM 0."</strong> Everything else on that floor gets renumbered relative to that sticker. The guest 5 rooms down is now "room 5," even if her global number has 40 digits.</p>
+
+      <p>Does this break the doubling rule? Not even slightly — the bellhop just applies <code class="i">2i</code> and <code class="i">2i+1</code> to the <em>local</em> number when assigning children, and the next floor's bellhop re-stickers again. Distances between guests are perfectly preserved, because <strong>shifting everyone on a floor by the same amount doesn't change how far apart they are.</strong></p>
+
+      <p>Gary's clipboard survives. Gary keeps his job. Gary continues to not care about empty rooms.</p>
+
+      <h3>Cast list</h3>
+
+      <div class="cast-grid">
+        <div>Hotel floor</div><div>Tree level</div>
+        <div>Room number</div><div>Node index</div>
+        <div>Policy <code class="i">2i</code>, <code class="i">2i+1</code></div><div>Child index formula</div>
+        <div>Empty dusty rooms</div><div>Nulls that still count toward width</div>
+        <div>Gary subtracting two numbers</div><div><code class="i">right − left + 1</code></div>
+        <div>The bellhop's "ROOM 0" sticker</div><div>Index normalization</div>
+        <div>Clipboard catching fire</div><div>Integer overflow</div>
+        <div>Gary never entering empty rooms</div><div>Never materializing nulls</div>
+      </div>
+
+      <p>Remember Gary. Gary is your friend. Gary is lazy and Gary is correct.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s3"><span class="k">Previous</span><span class="t">The Key Observation</span></a>
+        <a class="next" href="#s5"><span class="k">Next</span><span class="t">Build the Algorithm Naturally</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 5 ================= -->
+    <section id="s5" data-title="Build the Algorithm Naturally">
+      <div class="sec-head">
+        <span class="sec-num">05</span>
+        <h2>Build the Algorithm Naturally</h2>
+      </div>
+
+      <p>Let's invent this from nothing. Start stupid.</p>
+
+      <h3>Attempt 0 — "Just count nodes per level"</h3>
+      <div class="ascii">maxWidth = max over levels of (number of nodes at that level)</div>
+      <p>Dies immediately on <code class="i">[1,3,2,5,null,null,9]</code>. Bottom level has 2 nodes but width 4. The gaps are invisible to us. ❌</p>
+      <p><strong>Lesson learned:</strong> we need to see the gaps.</p>
+
+      <h3>Attempt 1 — "Fine, let's MAKE the gaps real"</h3>
+      <p>Build a complete tree. Every missing child becomes an actual <code class="i">null</code> placeholder node that we push into the queue. Now the queue holds every seat, occupied or not, and <code class="i">queue.size()</code> is honest.</p>
+      <p>This <em>works</em>. And then someone hands you a right-skewed tree of 1000 nodes, you try to allocate 2<sup>1000</sup> placeholders, and the heat death of the universe arrives before your program does. ❌</p>
+      <p><strong>Lesson learned:</strong> the gaps must be <em>known</em> but never <em>stored</em>. We need a way to talk about a seat without instantiating it.</p>
+
+      <h3>Attempt 2 — "Give every node an address"</h3>
+      <p>A name for something absent — that's just a number. So: label every node with the seat it occupies in the perfect tree.</p>
+      <p>Root gets 0. Node at <code class="i">i</code> gives children <code class="i">2i</code> and <code class="i">2i+1</code>. Now a gap isn't an object, it's a <strong>skipped integer</strong>. Nothing gets allocated. The absent seats are absent, but <em>addressable</em>.</p>
+      <div class="ascii">width(level) = maxIndexOnLevel − minIndexOnLevel + 1</div>
+      <p>Empty rooms counted, zero empty rooms built. ✅</p>
+
+      <h3>Attempt 3 — "How do I get min and max per level?"</h3>
+      <p>Two options, and they're both worth knowing:</p>
+      <ul>
+        <li><strong>BFS</strong>: process level by level. The queue is naturally in left-to-right order, so the <em>first</em> node you pop on a level is the leftmost and the <em>last</em> one you pop is the rightmost. You don't even need a min/max scan — order gives it to you free.</li>
+        <li><strong>DFS (preorder, left before right)</strong>: the very first time you ever set foot on depth <code class="i">d</code>, you must be at the leftmost node of that depth — because preorder always exhausts left before touching right. So record <code class="i">first[d]</code> on first arrival, and every later node at depth <code class="i">d</code> computes <code class="i">index − first[d] + 1</code> against it.</li>
+      </ul>
+      <p>Both are O(n). Both correct. (We compare them in section 13.)</p>
+
+      <h3>Attempt 4 — "My numbers exploded"</h3>
+      <p>Run either on a 60-deep tree. Indices hit 2<sup>60</sup>. <code class="i">int</code> overflows into negative territory. Your width becomes some cursed number like <code class="i">-1073741820</code>. ❌</p>
+      <p>Stare at it. Ask: <em>what do I actually use these indices for?</em></p>
+      <p>Only one thing: <strong>subtracting two of them within the same level.</strong> Never across levels. Never as an identity. Never as a key. Just subtraction, within a level.</p>
+      <p>And subtraction is invariant to shifting: <code class="i">(a − c) − (b − c) = a − b</code>.</p>
+      <p>So: <strong>at the start of every level, subtract the leftmost index from everybody on that level.</strong> Leftmost becomes 0. Generate children from the <em>shifted</em> value. The next level re-shifts. Indices never grow beyond roughly the true width of the level. ✅</p>
+
+      <h3>The final algorithm — which now feels inevitable</h3>
+      <ol>
+        <li>BFS with <code class="i">(node, index)</code> pairs. Root is <code class="i">(root, 0)</code>.</li>
+        <li>At each level: snapshot <code class="i">levelSize = queue.size()</code>, and <code class="i">leftMost = queue.peek().index</code>.</li>
+        <li>Pop exactly <code class="i">levelSize</code> nodes. Track the index of the last one popped as <code class="i">rightMost</code>.</li>
+        <li>For each popped node: normalize <code class="i">norm = index − leftMost</code>, push children at <code class="i">2·norm</code> and <code class="i">2·norm + 1</code>.</li>
+        <li><code class="i">maxWidth = max(maxWidth, rightMost − leftMost + 1)</code>.</li>
+      </ol>
+
+      <div class="callout c-tip">
+        <div class="ct">🎯 Interview Tip</div>
+        <p>Every single line traces back to a failure we personally suffered. That's what makes it stick — and it's also the story to <em>tell out loud</em> in an interview. Narrating "counting nodes fails → padding nulls explodes → so index them instead" makes you look like a problem solver rather than someone who memorised a solution.</p>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s4"><span class="k">Previous</span><span class="t">The Movie</span></a>
+        <a class="next" href="#s6"><span class="k">Next</span><span class="t">Dry Run</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 6 ================= -->
+    <section id="s6" data-title="Dry Run">
+      <div class="sec-head">
+        <span class="sec-num">06</span>
+        <h2>Dry Run</h2>
+      </div>
+
+      <p>Tree: <code class="i">[1, 3, 2, 5, null, null, 9, 6, null, null, 7]</code></p>
+
+      <div class="ascii">              1                 ← level 0
+            /   \
+          3       2             ← level 1
+         /         \
+        5           9           ← level 2
+       /             \
+      6               7         ← level 3</div>
+
+      <p>Seats in the perfect theatre, so you can <em>see</em> the ghosts before we start:</p>
+
+      <div class="ascii">level 0:   [1]                                    seat 0
+level 1:   [3][2]                                 seats 0, 1
+level 2:   [5][·][·][9]                           seats 0, 1, 2, 3
+level 3:   [6][·][·][·][·][·][·][7]               seats 0..7</div>
+
+      <p>Now the machine, one step at a time. Dashed circles are ghost seats — the algorithm never allocates them, but the subtraction counts them.</p>
+
+      <div class="player">
+        <div class="player-top">
+          <span class="lbl">Step-by-step execution</span>
+          <span class="step-count" id="stepCount">1 / 17</span>
+        </div>
+        <div class="stage">
+          <svg id="drySvg" viewBox="0 0 720 380" role="img" aria-label="Animated BFS execution over the example tree"></svg>
+        </div>
+        <div class="narration" id="narration"></div>
+        <div class="varbar">
+          <div class="vcell" data-v="levelSize"><span class="vk">levelSize</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="leftMost"><span class="vk">leftMost</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="rightMost"><span class="vk">rightMost</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="norm"><span class="vk">norm</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="maxWidth"><span class="vk">maxWidth</span><span class="vv">0</span></div>
+        </div>
+        <div class="queuebar"><span class="qk">Queue</span><span id="queueChips"></span></div>
+        <div class="player-ctrl">
+          <button class="btn" id="dryPrev">‹ Previous</button>
+          <button class="btn primary" id="dryNext">Next ›</button>
+          <button class="btn" id="dryPlay">▶ Play</button>
+          <button class="btn" id="dryReset">↺ Replay</button>
+          <input class="scrub" id="dryScrub" type="range" min="0" max="16" value="0" aria-label="Scrub through steps">
+        </div>
+      </div>
+
+      <div class="big-answer">Answer: <strong>8</strong></div>
+
+      <h3>Now watch normalization actually save your life</h3>
+
+      <p>Different tree — a pure right spine:</p>
+
+      <div class="ascii">1
+ \
+  2
+   \
+    3
+     \
+      ... (60 more)</div>
+
+      <p><strong>Without normalization</strong>, indices go 0, 1, 3, 7, 15, 31, … 2<sup>60</sup> − 1. At depth 31 the <code class="i">int</code> wraps negative, and the moment any tree has a real spread at depth, you get garbage.</p>
+
+      <p><strong>With normalization</strong>, each level has exactly one node, it's the leftmost, so <code class="i">norm = 0</code>, and its child gets index <code class="i">2·0 + 1 = 1</code>. Next level: <code class="i">leftMost = 1</code>, <code class="i">norm = 0</code>, child gets <code class="i">1</code> again. <strong>The index oscillates between 0 and 1 forever.</strong> Depth 5000? Still fine. Gary's clipboard survives. 🧯</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s5"><span class="k">Previous</span><span class="t">Build the Algorithm Naturally</span></a>
+        <a class="next" href="#s7"><span class="k">Next</span><span class="t">Implementation Intuition</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 7 ================= -->
+    <section id="s7" data-title="Implementation Intuition">
+      <div class="sec-head">
+        <span class="sec-num">07</span>
+        <h2>Implementation Intuition</h2>
+      </div>
+
+      <p>For each line, one question: <strong>what disaster happens if we delete it?</strong> Click to open each card.</p>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">if (root == null) return 0;</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed</div>
+          <p><code class="i">queue.offer(new Item(root, 0))</code> puts a null node in, then <code class="i">cur.node.left</code> throws a <strong>NullPointerException</strong> on line one of the loop. Also, "width of an empty tree" is 0 by definition, not 1.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">int levelSize = queue.size();  // BEFORE the inner loop</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed — this is the #1 killer</div>
+          <p>If you instead write <code class="i">for (int i = 0; i &lt; queue.size(); i++)</code>: you pop 1 node and push 2 children, so <code class="i">queue.size()</code> is now <em>bigger</em> than when you started. The loop condition re-reads it, keeps going, and you start processing <strong>next level's nodes as if they were this level's.</strong> Levels smear into each other, <code class="i">rightMost</code> picks up a child's index, and your width is nonsense.</p>
+          <p><code class="i">levelSize</code> is a <strong>snapshot</strong>. It's a fence between "now" and "next." Freeze it or lose it.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">int leftMost = queue.peek().index;</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Two jobs in one line</div>
+          <p><strong>1. Measurement anchor.</strong> It's the left finger. Without it you have no baseline to subtract.</p>
+          <p><strong>2. Overflow shield.</strong> It's the bellhop's "ROOM 0" sticker.</p>
+          <p>Remove it and indices double every level unchecked. Depth 31 → <code class="i">int</code> overflow → negative indices → <code class="i">right − left + 1</code> produces absurd values. It doesn't crash. It just quietly lies. Those are the worst bugs.</p>
+          <p><strong>Why <code class="i">peek()</code> and not a min-scan?</strong> Because BFS enqueues left-to-right, level by level, and a queue is FIFO. The front of the queue at the start of a level <em>is</em> the leftmost node of that level. It's already sorted for you. Don't scan for a minimum — order gave it to you free.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">int norm = cur.index - leftMost;</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed</div>
+          <p>Children get generated from raw exploding indices, and normalization becomes purely cosmetic. <strong>You must normalize before generating children, not after.</strong> Shifting only the current level while feeding unshifted values downward means the explosion continues one level down. The shift has to propagate.</p>
+          <div class="disaster">Why it's mathematically safe</div>
+          <p>Children of <code class="i">p</code> are <code class="i">2p + b</code>. If we shift the parent by constant <code class="i">L</code>, children become <code class="i">2(p − L) + b = 2p + b − 2L</code>. Every node on the child level gets shifted by the <em>same</em> constant <code class="i">2L</code>… plus whatever shift its own parent had. And since all parents on a level share the same <code class="i">L</code>, all children share the same total shift. <strong>Uniform shift preserves all differences.</strong> Which is the only thing we ever measure. ✅</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">rightMost = cur.index;   // inside the loop</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if you move it</div>
+          <p>If you instead try <code class="i">queue.peek().index</code> after the loop, the queue now contains the <strong>next</strong> level. You'd measure the wrong row.</p>
+          <p><strong>Why simple assignment (not <code class="i">Math.max</code>) works:</strong> the last node popped in a level is, by FIFO order, the rightmost. Overwriting every iteration leaves you with the last one. Clean.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">if (cur.node.left != null) { ... }</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed</div>
+          <p>Null nodes enter the queue, <code class="i">levelSize</code> counts them, <code class="i">cur.node.left</code> throws an NPE, and — critically — <strong>a trailing null would corrupt <code class="i">rightMost</code></strong>, inflating your width past the last real node. Gary does not clean past the last guest.</p>
+          <p>This is also the line where you <em>choose not to materialize the ghosts.</em> It's the whole space-saving decision, hiding in an <code class="i">if</code>.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">2 * norm    and    2 * norm + 1</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Why exactly these numbers</div>
+          <p>Not arbitrary. <code class="i">2·norm</code> means "all <code class="i">norm</code> seats before me each contributed 2 children, so mine start right after." The <code class="i">+1</code> means "right child sits immediately after left child." Swap them and your tree mirrors, breaking the leftmost-first guarantee that the whole method depends on.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">rightMost - leftMost + 1</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if the +1 goes missing</div>
+          <p>The <code class="i">+1</code> is inclusive counting. Seats 3 through 7 is <code class="i">7 − 3 + 1 = 5</code> seats, not 4. Forget it and every single answer is off by one — including the single-node tree, which would report 0.</p>
+        </div>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s6"><span class="k">Previous</span><span class="t">Dry Run</span></a>
+        <a class="next" href="#s8"><span class="k">Next</span><span class="t">Common Bugs</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 8 ================= -->
+    <section id="s8" data-title="Common Bugs">
+      <div class="sec-head">
+        <span class="sec-num">08</span>
+        <h2>Common Bugs</h2>
+      </div>
+
+      <p>Twelve ways this goes wrong, in rough order of how often they actually happen.</p>
+
+      <details class="fold" open>
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          The twelve classic failures
+          <span class="summary-tag">12 items</span>
+        </summary>
+        <div class="fold-body">
+
+          <details class="bug"><summary><span class="bn">01</span> <code class="i">queue.size()</code> in the loop condition</summary>
+            <div class="bug-body"><p>Level bleeding. The queue grows as you push children, so the loop keeps running into the next level. If your answer is <em>too large</em> and grows with tree size, look here first.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">02</span> Missing the <code class="i">+ 1</code></summary>
+            <div class="bug-body"><p>Every answer off by exactly one. Sanity check you can run in your head: a single-node tree must return 1.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">03</span> Integer overflow from skipping normalization</summary>
+            <div class="bug-body"><p>Silent. Passes small tests, fails deep ones. Symptom: negative or wildly huge width. Note that <code class="i">long</code> <strong>does not save you</strong> — it just moves the crash from depth 31 to depth 63. Normalization is the actual fix.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">04</span> Normalizing the measurement but not the children</summary>
+            <div class="bug-body"><p>You compute <code class="i">norm</code> for the width but push <code class="i">2 * cur.index</code> instead of <code class="i">2 * norm</code>. The width is right; the overflow is untouched. Classic half-fix.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">05</span> Using <code class="i">queue.size()</code> as the width</summary>
+            <div class="bug-body"><p>The original sin. Ignores ghosts entirely. Counts guests instead of hallway.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">06</span> Pushing null children</summary>
+            <div class="bug-body"><p>NPE on the next pop, or — worse — a phantom trailing node that inflates <code class="i">rightMost</code> and silently widens your answer.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">07</span> Reading <code class="i">rightMost</code> after the loop</summary>
+            <div class="bug-body"><p>You measure the next level. Off-by-one-<em>level</em>, which is much more confusing to debug than off-by-one-index.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">08</span> Right-before-left ordering</summary>
+            <div class="bug-body"><p>In BFS this scrambles which node is "leftmost." In DFS it's fatal — your <code class="i">first[depth]</code> records the <em>rightmost</em> node, and every width comes out ≤ 1 or negative.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">09</span> DFS: overwriting <code class="i">first[depth]</code> on every visit</summary>
+            <div class="bug-body"><p>It must be written <strong>only on first arrival</strong> (<code class="i">if (depth == list.size())</code>). Overwrite it and every node becomes its own anchor, so every width computes to 1.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">10</span> DFS: sloppy <code class="i">HashMap</code> bookkeeping</summary>
+            <div class="bug-body"><p>Works, but an <code class="i">ArrayList</code> indexed by depth is cleaner and makes the "first arrival" check a one-liner (<code class="i">depth == list.size()</code>), which is much harder to get wrong under interview pressure.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">11</span> Assuming indices are globally unique IDs</summary>
+            <div class="bug-body"><p>They're not, under per-level numbering — a node on level 2 and a node on level 5 can both be "index 3." That's <em>fine</em>, because we only ever compare within a level. But if you try to reuse these as map keys across levels, you'll be baffled.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">12</span> Taking <code class="i">Math.max</code> of the raw index across all levels</summary>
+            <div class="bug-body"><p>Meaningless. Width is a per-level quantity. Reset your anchors every single level.</p></div>
+          </details>
+
+        </div>
+      </details>
+
+      <div class="callout c-pit">
+        <div class="ct">⚠️ Common Pitfall — the one that fails the interview</div>
+        <p>Bug 3 is the one that separates candidates. Nearly everyone writes correct BFS. Far fewer notice that the index doubles per level and will overflow. If you say <em>"indices double each level so they'd overflow around depth 31 — I'll normalize per level since I only need differences"</em> before the interviewer asks, you have just answered the hidden question the problem was designed around.</p>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s7"><span class="k">Previous</span><span class="t">Implementation Intuition</span></a>
+        <a class="next" href="#s9"><span class="k">Next</span><span class="t">Recognising the Pattern</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 9 ================= -->
+    <section id="s9" data-title="Recognising the Pattern">
+      <div class="sec-head">
+        <span class="sec-num">09</span>
+        <h2>How to Recognise This Pattern Again</h2>
+      </div>
+
+      <h3>Trigger words in the prompt</h3>
+      <ul>
+        <li>"width," "span," "spread," "distance between the ends"</li>
+        <li><strong>"including the <code class="i">null</code> nodes in between"</strong> — this phrase alone should make you write <code class="i">2i / 2i+1</code> immediately, no thinking required</li>
+        <li>"as if the tree were a complete/perfect binary tree"</li>
+        <li>"position in the level," "same level," "leftmost and rightmost"</li>
+      </ul>
+
+      <h3>Structural tells</h3>
+      <ul>
+        <li>The answer depends on <strong>where nodes are</strong>, not just <strong>that they exist</strong>.</li>
+        <li>Missing children matter — a <code class="i">null</code> changes the answer.</li>
+        <li>The problem is asking about <em>geometry</em>, not <em>content</em>.</li>
+      </ul>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 The general rule to internalise</div>
+        <p><strong>When a tree question is about POSITION rather than VALUE, stop treating the tree as pointers and start treating it as coordinates.</strong></p>
+      </div>
+
+      <p>Same family, all solved by "assign numbers instead of following pointers":</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Problem</th><th>The coordinate you assign</th></tr></thead>
+          <tbody>
+            <tr><td>Maximum width (this one)</td><td class="mono-cell">seat index: 2i, 2i+1</td></tr>
+            <tr><td>Vertical order traversal</td><td class="mono-cell">column: x−1, x+1</td></tr>
+            <tr><td>Top view / bottom view</td><td class="mono-cell">column: x−1, x+1</td></tr>
+            <tr><td>Diagonal traversal</td><td class="mono-cell">diagonal: col − row</td></tr>
+            <tr><td>Left view / right view</td><td class="mono-cell">depth + first/last seen</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout c-pit">
+        <div class="ct">⚠️ The companion rule</div>
+        <p>Any time you assign an index that <strong>doubles per level</strong>, you have signed up for an overflow bug. Normalize immediately. Don't wait for the test case to teach you.</p>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s8"><span class="k">Previous</span><span class="t">Common Bugs</span></a>
+        <a class="next" href="#s10"><span class="k">Next</span><span class="t">Memory Hook</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 10 ================= -->
+    <section id="s10" data-title="Memory Hook">
+      <div class="sec-head">
+        <span class="sec-num">10</span>
+        <h2>Memory Hook</h2>
+      </div>
+
+      <div class="callout c-mem">
+        <div class="ct">🧠 Memory Hook</div>
+        <p class="hook-line">"Don't count the guests — read their room numbers. The empty rooms count themselves."</p>
+      </div>
+
+      <p>And the backup hook, for the overflow half of the problem:</p>
+
+      <div class="callout c-mem">
+        <div class="ct">🧠 Memory Hook — the bellhop</div>
+        <p class="hook-line">"Room numbers don't matter. Only the hallway between them does. So restart the numbering on every floor."</p>
+      </div>
+
+      <p>If you remember nothing else from this lesson six months from now, remember Gary refusing to walk into empty rooms, and the bellhop slapping a "ROOM 0" sticker on every floor. Those two images regenerate the entire algorithm from scratch.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s9"><span class="k">Previous</span><span class="t">Recognising the Pattern</span></a>
+        <a class="next" href="#s11"><span class="k">Next</span><span class="t">Interview Explanation</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 11 ================= -->
+    <section id="s11" data-title="Interview Explanation">
+      <div class="sec-head">
+        <span class="sec-num">11</span>
+        <h2>Interview Explanation — 60 seconds</h2>
+      </div>
+
+      <p>The interviewer asks: <em>"Walk me through your approach."</em> Here is the answer, near-verbatim.</p>
+
+      <div class="callout c-tip">
+        <div class="ct">🎯 Say this</div>
+        <p>"Width here isn't the node count — it's the span including the nulls between the outermost nodes. So instead of trying to represent the nulls, I'll assign every node the index it <em>would</em> have in a perfect binary tree: a node at index <code class="i">i</code> has children at <code class="i">2i</code> and <code class="i">2i + 1</code>. That way the missing nodes are just skipped integers — I never allocate them.</p>
+        <p>Then I BFS level by level, carrying <code class="i">(node, index)</code> pairs. Because a queue preserves left-to-right order, the first node I pop on a level is the leftmost and the last is the rightmost, so the level's width is just <code class="i">last − first + 1</code>. I take the max across levels.</p>
+        <p>One catch: indices double each level, so they overflow around depth 31. But I only ever <em>subtract</em> indices within a level — I never need their absolute values. So at the start of each level I subtract the leftmost index from every node before generating children. That keeps the numbers bounded by the actual width while leaving all the differences intact.</p>
+        <p>O(n) time, O(w) space where w is the max level width. I can also do it with a preorder DFS, recording the first index seen at each depth — same idea, different traversal."</p>
+      </div>
+
+      <p>That last sentence is free points. It signals you understand the <em>idea</em> is traversal-independent, not that you memorised one implementation.</p>
+
+      <h3>The three beats, if you forget the script</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Beat</th><th>The one sentence</th></tr></thead>
+          <tbody>
+            <tr><td><b>Reframe</b></td><td>Width is a span, not a count — so index the seats instead of counting nodes.</td></tr>
+            <tr><td><b>Mechanism</b></td><td>BFS with (node, index); FIFO order hands me leftmost and rightmost for free.</td></tr>
+            <tr><td><b>Hidden catch</b></td><td>Indices double per level → overflow → normalize per level, since only differences matter.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s10"><span class="k">Previous</span><span class="t">Memory Hook</span></a>
+        <a class="next" href="#s12"><span class="k">Next</span><span class="t">Complexity</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 12 ================= -->
+    <section id="s12" data-title="Complexity">
+      <div class="sec-head">
+        <span class="sec-num">12</span>
+        <h2>Complexity</h2>
+      </div>
+
+      <details class="fold" open>
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Where every unit of cost comes from
+          <span class="summary-tag">O(n) time</span>
+        </summary>
+        <div class="fold-body">
+
+          <h4>Time: O(n)</h4>
+          <p>Where does the cost come from? Each node is:</p>
+          <ul>
+            <li>enqueued exactly once (by its parent, or as the root),</li>
+            <li>dequeued exactly once,</li>
+            <li>and does O(1) work when dequeued — one subtraction, two null checks, at most two pushes, one max.</li>
+          </ul>
+          <p>There is no scanning, no sorting, no revisiting, no nested traversal. <code class="i">n</code> nodes × constant work = <strong>O(n)</strong>.</p>
+
+          <div class="callout c-obs">
+            <div class="ct">💡 The payoff, stated precisely</div>
+            <p><strong>The ghost seats cost nothing.</strong> A level might span 1,000,000 seats and contain 2 nodes — you do 2 units of work, not 1,000,000. If you'd padded with nulls, time would be O(2<sup>h</sup>), which is catastrophically worse. Arithmetic beats materialisation.</p>
+          </div>
+
+          <h4>Space: O(w), where w is the max number of actual nodes on any level</h4>
+          <p>The queue holds one level plus part of the next.</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Shape</th><th>Queue holds</th><th>Space</th><th>Stresses</th></tr></thead>
+              <tbody>
+                <tr><td>Perfect tree</td><td class="mono-cell">n/2 at the bottom</td><td class="mono-cell">O(n)</td><td>memory</td></tr>
+                <tr><td>Skewed spine</td><td class="mono-cell">1–2 nodes</td><td class="mono-cell">O(1)</td><td>overflow</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>Note the asymmetry: the <em>deep</em> tree is cheap on space but is the one that would have overflowed. The <em>wide</em> tree is expensive on space but never overflows. Two different trees stress two different parts of your solution — which is exactly why interviewers like this problem.</p>
+
+          <h4>DFS variant</h4>
+          <p>Time O(n) identically. Space O(h) for the recursion stack plus O(h) for the <code class="i">first[]</code> list. Better on wide trees (O(log n) for balanced), worse on deep ones — a 10,000-deep tree will <strong>StackOverflowError</strong>. That's the real tradeoff, and it's a good thing to say out loud.</p>
+
+        </div>
+      </details>
+
+      <div class="secnav">
+        <a class="prev" href="#s11"><span class="k">Previous</span><span class="t">Interview Explanation</span></a>
+        <a class="next" href="#s13"><span class="k">Next</span><span class="t">Java Walkthrough</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 13 ================= -->
+    <section id="s13" data-title="Java Walkthrough">
+      <div class="sec-head">
+        <span class="sec-num">13</span>
+        <h2>Java Implementation Walkthrough</h2>
+      </div>
+
+      <details class="fold" open>
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Solution A — BFS with normalization
+          <span class="summary-tag">write this one</span>
+        </summary>
+        <div class="fold-body">
+
+          <div class="codeblock" data-code="bfs" data-label="Java · BFS + index normalization"></div>
+
+          <h4>Line by line</h4>
+
+          <p><code class="i">private static class Item</code> — we need to carry <em>two</em> things through the queue: the node and its seat. Java has no tuple, and you can't stash the index on <code class="i">TreeNode</code>. Alternatives: two parallel queues (fragile — they can desync), or <code class="i">Map&lt;TreeNode,Integer&gt;</code> (slower and keyed on identity). A tiny pair class is the honest answer. <code class="i">static</code> because it doesn't need the outer instance.</p>
+
+          <p><code class="i">if (root == null) return 0;</code> — guards the NPE and defines the empty case.</p>
+
+          <p><code class="i">ArrayDeque</code> over <code class="i">LinkedList</code> — faster, no per-node allocation. Note <code class="i">ArrayDeque</code> <strong>rejects nulls</strong>, which is a happy accident: if you ever accidentally enqueue a null it fails loudly instead of silently. <code class="i">LinkedList</code> would let it through.</p>
+
+          <p><code class="i">queue.offer(new Item(root, 0))</code> — root is seat 0. (Root could be 1 with global heap numbering; with per-level positions, 0 is natural and the <code class="i">2i / 2i+1</code> recurrence still holds because <em>positions within a level</em> also double.)</p>
+
+          <p><code class="i">int levelSize = queue.size();</code> — the fence. Freeze the level boundary before it moves.</p>
+
+          <p><code class="i">int leftMost = queue.peek().index;</code> — left finger and normalization anchor, both.</p>
+
+          <p><code class="i">int rightMost = leftMost;</code> — initialised so a level with one node computes <code class="i">leftMost − leftMost + 1 = 1</code>, correctly.</p>
+
+          <p><code class="i">for (int i = 0; i &lt; levelSize; i++)</code> — exactly one level. <code class="i">i</code> is a counter, nothing more; we never use it.</p>
+
+          <p><code class="i">int norm = cur.index - leftMost;</code> — the "ROOM 0" sticker. Applied to <em>this</em> node so its children inherit small numbers.</p>
+
+          <p><code class="i">rightMost = cur.index;</code> — plain overwrite. FIFO guarantees the last write is the rightmost node. It uses the <strong>un-normalized</strong> index because it's compared against <code class="i">leftMost</code>, which is also un-normalized — same coordinate system on both sides of the subtraction. (You could equally use <code class="i">norm</code> and compare against 0. Just don't mix the two.)</p>
+
+          <p><code class="i">2 * norm</code> and <code class="i">2 * norm + 1</code> — the seat rule, applied to the normalized value so the shift propagates downward.</p>
+
+          <p><code class="i">maxWidth = Math.max(...)</code> — after the level, not during it. During it, you don't yet know <code class="i">rightMost</code>.</p>
+
+        </div>
+      </details>
+
+      <details class="fold">
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Solution B — DFS with normalization
+          <span class="summary-tag">mention this one</span>
+        </summary>
+        <div class="fold-body">
+
+          <div class="codeblock" data-code="dfs" data-label="Java · preorder DFS + first-index-per-depth"></div>
+
+          <h4>Why this works</h4>
+
+          <p><code class="i">depth == firstIndexAtDepth.size()</code> — the list has entries for depths <code class="i">0..size−1</code>. If we've arrived at a depth equal to the size, we've never been here before. And since preorder always fully explores <code class="i">left</code> before <code class="i">right</code>, <strong>the first node ever visited at depth <code class="i">d</code> is the leftmost node at depth <code class="i">d</code>.</strong> That's the load-bearing guarantee. Flip the two recursive calls and the whole thing collapses.</p>
+
+          <p><code class="i">norm + 1</code> — since <code class="i">firstIndexAtDepth.get(depth)</code> is the leftmost, <code class="i">norm</code> is the distance from it, and <code class="i">+1</code> makes it inclusive.</p>
+
+          <p>The normalization propagates the same way: children are generated from <code class="i">norm</code>, and because every node at a given depth is shifted by a consistent amount, all differences survive.</p>
+
+          <div class="callout c-pit">
+            <div class="ct">⚠️ Common Pitfall</div>
+            <p>Delete the <code class="i">if (depth == size)</code> guard and always overwrite, and every node becomes its own anchor: <code class="i">norm</code> is always 0, and the answer is always 1. Silent, and maddening to find.</p>
+          </div>
+
+        </div>
+      </details>
+
+      <details class="fold">
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Which one do you actually write?
+          <span class="summary-tag">decision table</span>
+        </summary>
+        <div class="fold-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th></th><th>BFS</th><th>DFS</th></tr></thead>
+              <tbody>
+                <tr><td><b>Space</b></td><td>O(max level width)</td><td>O(height)</td></tr>
+                <tr><td><b>Wide tree</b> (perfect, 10⁵ nodes)</td><td>O(n) queue — heavy</td><td>O(log n) — great</td></tr>
+                <tr><td><b>Deep tree</b> (skewed, 10⁵ nodes)</td><td>O(1) queue — great</td><td>StackOverflowError ☠️</td></tr>
+                <tr><td><b>Finding leftmost</b></td><td>free (FIFO order)</td><td>needs first-arrival bookkeeping</td></tr>
+                <tr><td><b>Interview default</b></td><td><b>✅ this one</b></td><td>mention it, code it if asked</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Default to BFS.</strong> It maps to the "level" language in the problem, the leftmost/rightmost extraction is free, and it can't blow the stack. Bring up DFS as the alternative — noting it's better on wide balanced trees, worse on deep ones — and you've shown you understand both.</p>
+        </div>
+      </details>
+
+      <div class="secnav">
+        <a class="prev" href="#s12"><span class="k">Previous</span><span class="t">Complexity</span></a>
+        <a class="next" href="#s14"><span class="k">Next</span><span class="t">Visual Cheat Sheet</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 14 ================= -->
+    <section id="s14" data-title="Visual Cheat Sheet">
+      <div class="sec-head">
+        <span class="sec-num">14</span>
+        <h2>Visual Cheat Sheet</h2>
+      </div>
+
+      <p>The whole lesson, compressed to the size of an index card.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Idea</th><th>Remember</th></tr></thead>
+          <tbody>
+            <tr><td><b>Observation</b></td><td>A node at position <code class="i">i</code> has children at <code class="i">2i</code> and <code class="i">2i+1</code>. Gaps become <em>skipped integers</em>, not allocated objects.</td></tr>
+            <tr><td><b>Core formula</b></td><td><code class="i">width = rightmostIndex − leftmostIndex + 1</code>. Subtraction counts the ghosts for free.</td></tr>
+            <tr><td><b>Pattern</b></td><td>BFS (or preorder DFS) carrying a <b>positional index</b> alongside each node. Position-based tree problem, not value-based.</td></tr>
+            <tr><td><b>Data structure</b></td><td><code class="i">Queue&lt;(node, index)&gt;</code> — needs a tiny pair class. DFS variant: an <code class="i">ArrayList</code> mapping depth → first index seen.</td></tr>
+            <tr><td><b>The critical trick</b></td><td><b>Index normalization</b> — subtract <code class="i">leftMost</code> at the start of every level, <em>before</em> generating children. Uniform shift preserves differences.</td></tr>
+            <tr><td><b>Pitfall 1</b></td><td><code class="i">queue.size()</code> inside the loop condition → levels bleed together. Snapshot <code class="i">levelSize</code> first.</td></tr>
+            <tr><td><b>Pitfall 2</b></td><td>Overflow. Indices double per level; <code class="i">int</code> dies at depth 31, <code class="i">long</code> at 63. Normalization — not a bigger type — is the fix.</td></tr>
+            <tr><td><b>Pitfall 3</b></td><td>Forgetting <code class="i">+1</code>; using <code class="i">queue.size()</code> as the width; pushing null children.</td></tr>
+            <tr><td><b>Recognition cue</b></td><td>"Width," "span," and especially <b>"including the nulls in between"</b> → assign <code class="i">2i / 2i+1</code> immediately.</td></tr>
+            <tr><td><b>Memory hook</b></td><td><b>"Don't count the guests — read their room numbers. The empty rooms count themselves."</b></td></tr>
+            <tr><td><b>Complexity</b></td><td>Time O(n) — each node enqueued and dequeued once. Space O(max level width) for BFS, O(height) for DFS.</td></tr>
+            <tr><td><b>The movie</b></td><td>Gary the lazy carpet inspector at Hotel Binaria. Measures first guest to last guest, never enters an empty room, and the bellhop re-stickers "ROOM 0" on every floor so his clipboard doesn't catch fire.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="endcard">
+        <div class="k">Lesson complete</div>
+        <p>Type <strong>"next"</strong> when you're ready.</p>
+        <small>Or name the problem you want — the next lesson uses this exact structure.</small>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s13"><span class="k">Previous</span><span class="t">Java Walkthrough</span></a>
+        <a class="disabled next" href="#"><span class="k">Next</span><span class="t">—</span></a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<div class="fabs">
+  <button class="fab" id="prevFab" title="Previous section" aria-label="Previous section">↑</button>
+  <button class="fab" id="nextFab" title="Next section" aria-label="Next section">↓</button>
+  <button class="fab" id="topFab" title="Back to top" aria-label="Back to top">⤒</button>
+</div>
+
+<script>
+/* =========================================================
+   0. CODE SNIPPETS
+   ========================================================= */
+const CODE = {
+trap:
+`// BFS, feels right, is wrong
+maxWidth = Math.max(maxWidth, queue.size());   // <-- the trap`,
+
+bfs:
+`class Solution {
+
+    private static class Item {
+        TreeNode node;
+        int index;
+        Item(TreeNode node, int index) {
+            this.node = node;
+            this.index = index;
+        }
+    }
+
+    public int widthOfBinaryTree(TreeNode root) {
+        if (root == null) return 0;
+
+        int maxWidth = 0;
+        Queue<Item> queue = new ArrayDeque<>();
+        queue.offer(new Item(root, 0));
+
+        while (!queue.isEmpty()) {
+            int levelSize = queue.size();          // snapshot: the level fence
+            int leftMost  = queue.peek().index;    // anchor + overflow shield
+            int rightMost = leftMost;
+
+            for (int i = 0; i < levelSize; i++) {
+                Item cur = queue.poll();
+
+                int norm = cur.index - leftMost;   // the "ROOM 0" sticker
+                rightMost = cur.index;             // FIFO: last pop = rightmost
+
+                if (cur.node.left != null) {
+                    queue.offer(new Item(cur.node.left, 2 * norm));
+                }
+                if (cur.node.right != null) {
+                    queue.offer(new Item(cur.node.right, 2 * norm + 1));
+                }
+            }
+
+            maxWidth = Math.max(maxWidth, rightMost - leftMost + 1);
+        }
+
+        return maxWidth;
+    }
+}`,
+
+dfs:
+`class Solution {
+
+    private final List<Integer> firstIndexAtDepth = new ArrayList<>();
+    private int maxWidth = 0;
+
+    public int widthOfBinaryTree(TreeNode root) {
+        dfs(root, 0, 0);
+        return maxWidth;
+    }
+
+    private void dfs(TreeNode node, int depth, int index) {
+        if (node == null) return;
+
+        if (depth == firstIndexAtDepth.size()) {
+            firstIndexAtDepth.add(index);          // first arrival = leftmost
+        }
+
+        int norm = index - firstIndexAtDepth.get(depth);
+        maxWidth = Math.max(maxWidth, norm + 1);
+
+        dfs(node.left,  depth + 1, 2 * norm);      // left BEFORE right: load-bearing
+        dfs(node.right, depth + 1, 2 * norm + 1);
+    }
+}`
+};
+
+/* =========================================================
+   1. SYNTAX HIGHLIGHTER (hand-rolled, Java-flavoured)
+   ========================================================= */
+const KEYWORDS = "class|public|private|protected|static|final|void|int|long|short|byte|char|float|double|boolean|new|return|if|else|for|while|do|switch|case|break|continue|null|true|false|this|super|import|package|extends|implements|throws|throw|try|catch|finally|instanceof";
+const TYPES = "TreeNode|Queue|Deque|ArrayDeque|LinkedList|List|ArrayList|Map|HashMap|Math|Item|String|Integer|Solution|Object";
+
+const JAVA_RE = new RegExp([
+  "(?<comment>\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)",
+  "(?<string>\"(?:\\\\.|[^\"\\\\])*\")",
+  "(?<annotation>@\\w+)",
+  "(?<number>\\b\\d+(?:\\.\\d+)?\\b)",
+  "(?<keyword>\\b(?:" + KEYWORDS + ")\\b)",
+  "(?<type>\\b(?:" + TYPES + ")\\b)",
+  "(?<fn>\\b[a-zA-Z_]\\w*(?=\\s*\\())",
+  "(?<punct>[{}()\\[\\];,.<>=+\\-*\\/!&|?:%])"
+].join("|"), "g");
+
+function esc(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function highlight(code){
+  let out = "", last = 0, m;
+  JAVA_RE.lastIndex = 0;
+  while ((m = JAVA_RE.exec(code)) !== null){
+    out += esc(code.slice(last, m.index));
+    const g = m.groups;
+    const kind = Object.keys(g).find(k => g[k] !== undefined);
+    out += '<span class="tok-' + kind + '">' + esc(m[0]) + "</span>";
+    last = m.index + m[0].length;
+  }
+  out += esc(code.slice(last));
+  return out;
+}
+
+document.querySelectorAll(".codeblock[data-code]").forEach(block => {
+  const key = block.dataset.code;
+  const raw = CODE[key] || "";
+  block.innerHTML =
+    '<div class="code-bar">' +
+      '<span class="code-label">' + esc(block.dataset.label || "java") + "</span>" +
+      '<button class="copy-btn" type="button">Copy</button>' +
+    "</div>" +
+    "<pre><code>" + highlight(raw) + "</code></pre>";
+  block.querySelector(".copy-btn").addEventListener("click", function(){
+    const btn = this;
+    const done = () => {
+      btn.textContent = "Copied";
+      btn.classList.add("ok");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(raw).then(done).catch(() => fallbackCopy(raw, done));
+    } else {
+      fallbackCopy(raw, done);
+    }
+  });
+});
+function fallbackCopy(text, cb){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); cb(); } catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* =========================================================
+   2. THEME
+   ========================================================= */
+const themeBtn = document.getElementById("themeBtn");
+function setTheme(t){
+  document.documentElement.setAttribute("data-theme", t);
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  try { localStorage.setItem("lc662-theme", t); } catch(e){}
+}
+let startTheme = "light";
+try {
+  const saved = localStorage.getItem("lc662-theme");
+  if (saved) startTheme = saved;
+  else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) startTheme = "dark";
+} catch(e){}
+setTheme(startTheme);
+themeBtn.addEventListener("click", () => {
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+});
+
+/* =========================================================
+   3. SIDEBAR NAV / ACTIVE SECTION / PROGRESS
+   ========================================================= */
+const sections = Array.from(document.querySelectorAll("main section"));
+const navList  = document.getElementById("navList");
+const navItems = [];
+
+sections.forEach((sec, i) => {
+  const li = document.createElement("li");
+  const a  = document.createElement("a");
+  a.className = "nav-item";
+  a.href = "#" + sec.id;
+  a.innerHTML = '<span class="n">' + String(i + 1).padStart(2, "0") + "</span><span class=\"t\">" + sec.dataset.title + "</span>";
+  li.appendChild(a);
+  navList.appendChild(li);
+  navItems.push(a);
+});
+
+let currentIdx = 0;
+const seen = new Set();
+const progCount = document.getElementById("progCount");
+const progMeter = document.getElementById("progMeter");
+
+function setActive(i){
+  if (i === currentIdx && navItems[i].classList.contains("active")) return;
+  currentIdx = i;
+  navItems.forEach((a, k) => a.classList.toggle("active", k === i));
+  for (let k = 0; k <= i; k++){ seen.add(k); navItems[k].classList.add("done"); }
+  progCount.textContent = seen.size + " / " + sections.length;
+  progMeter.style.width = (seen.size / sections.length * 100) + "%";
+  const item = navItems[i];
+  const side = document.getElementById("sidebar");
+  const top = item.offsetTop, bot = top + item.offsetHeight;
+  if (top < side.scrollTop || bot > side.scrollTop + side.clientHeight){
+    side.scrollTo({ top: top - side.clientHeight / 2, behavior: "smooth" });
+  }
+}
+
+const obs = new IntersectionObserver(entries => {
+  const visible = entries.filter(e => e.isIntersecting)
+                         .sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top);
+  if (visible.length){
+    setActive(sections.indexOf(visible[0].target));
+  }
+}, { rootMargin: "-88px 0px -62% 0px", threshold: 0 });
+sections.forEach(s => obs.observe(s));
+
+/* scroll progress bar + back-to-top */
+const fill = document.getElementById("progressFill");
+const topFab = document.getElementById("topFab");
+function onScroll(){
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  const p = h > 0 ? Math.min(1, window.scrollY / h) : 0;
+  fill.style.width = (p * 100) + "%";
+  topFab.classList.toggle("show", window.scrollY > 500);
+}
+window.addEventListener("scroll", onScroll, { passive: true });
+onScroll();
+
+topFab.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+document.getElementById("prevFab").addEventListener("click", () => jump(currentIdx - 1));
+document.getElementById("nextFab").addEventListener("click", () => jump(currentIdx + 1));
+function jump(i){
+  if (i < 0 || i >= sections.length) return;
+  sections[i].scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* =========================================================
+   4. SEARCH FILTER
+   ========================================================= */
+const search = document.getElementById("search");
+const noHits = document.getElementById("noHits");
+search.addEventListener("input", () => {
+  const q = search.value.trim().toLowerCase();
+  let hits = 0;
+  navItems.forEach((a, i) => {
+    const hay = (sections[i].dataset.title + " " + String(i+1)).toLowerCase();
+    const match = !q || hay.includes(q);
+    a.parentElement.classList.toggle("hidden", !match);
+    a.classList.toggle("hidden", !match);
+    if (match) hits++;
+  });
+  noHits.style.display = hits ? "none" : "block";
+});
+
+/* =========================================================
+   5. MOBILE DRAWER
+   ========================================================= */
+const sidebar = document.getElementById("sidebar");
+const scrim = document.getElementById("scrim");
+function closeDrawer(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+document.getElementById("menuBtn").addEventListener("click", () => {
+  sidebar.classList.toggle("open");
+  scrim.classList.toggle("show", sidebar.classList.contains("open"));
+});
+scrim.addEventListener("click", closeDrawer);
+navItems.forEach(a => a.addEventListener("click", () => { if (window.innerWidth <= 1000) closeDrawer(); }));
+
+/* =========================================================
+   6. EXPAND / COLLAPSE ALL
+   ========================================================= */
+const expandBtn = document.getElementById("expandAll");
+let allOpen = false;
+expandBtn.addEventListener("click", () => {
+  allOpen = !allOpen;
+  document.querySelectorAll("details").forEach(d => d.open = allOpen);
+  document.querySelectorAll(".reveal").forEach(r => r.classList.toggle("open", allOpen));
+  expandBtn.textContent = allOpen ? "Collapse all" : "Expand all";
+});
+
+/* =========================================================
+   7. CLICK-TO-REVEAL CARDS
+   ========================================================= */
+document.querySelectorAll(".reveal").forEach(card => {
+  const btn = card.querySelector(".reveal-btn");
+  btn.addEventListener("click", () => {
+    const open = card.classList.toggle("open");
+    btn.textContent = open ? "Hide" : "Reveal disaster";
+  });
+});
+
+/* =========================================================
+   8. SEAT RULE CALCULATOR
+   ========================================================= */
+const seatIn = document.getElementById("seatIn");
+const seatOut = document.getElementById("seatOut");
+function updSeat(){
+  const v = Math.max(0, Math.floor(Number(seatIn.value) || 0));
+  seatOut.textContent = (2*v) + " and " + (2*v + 1);
+}
+seatIn.addEventListener("input", updSeat);
+updSeat();
+
+/* =========================================================
+   9. INTERACTIVE PERFECT-TREE EXPLORER
+   ========================================================= */
+(function(){
+  const svg = document.getElementById("ptSvg");
+  const read = document.getElementById("ptRead");
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 700, depths = 3;
+  const nodes = [];      // {d, seat, x, y}
+  function pos(d, seat){
+    const cols = Math.pow(2, d), cw = W / cols;
+    return { x: seat*cw + cw/2, y: 34 + d*66 };
+  }
+  let edges = "";
+  for (let d = 0; d < depths; d++){
+    for (let s = 0; s < Math.pow(2, d); s++){
+      const p = pos(d, s);
+      [2*s, 2*s+1].forEach(cs => {
+        const c = pos(d+1, cs);
+        const ln = document.createElementNS(NS, "line");
+        ln.setAttribute("x1", p.x); ln.setAttribute("y1", p.y);
+        ln.setAttribute("x2", c.x); ln.setAttribute("y2", c.y);
+        ln.setAttribute("class", "pt-edge");
+        ln.dataset.from = d + ":" + s;
+        svg.appendChild(ln);
+      });
+    }
+  }
+  for (let d = 0; d <= depths; d++){
+    for (let s = 0; s < Math.pow(2, d); s++){
+      const p = pos(d, s);
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", p.x); c.setAttribute("cy", p.y);
+      c.setAttribute("r", d === depths ? 15 : 18);
+      c.setAttribute("class", "pt-node");
+      c.dataset.d = d; c.dataset.s = s;
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("x", p.x); t.setAttribute("y", p.y);
+      t.setAttribute("class", "pt-txt");
+      t.textContent = s;
+      svg.appendChild(c); svg.appendChild(t);
+      nodes.push({ d, s, c, t });
+    }
+  }
+  function clear(){
+    nodes.forEach(n => n.c.classList.remove("sel","kid"));
+    svg.querySelectorAll(".pt-edge").forEach(e => e.classList.remove("lit"));
+  }
+  svg.addEventListener("click", e => {
+    if (!e.target.classList.contains("pt-node")) return;
+    clear();
+    const d = +e.target.dataset.d, s = +e.target.dataset.s;
+    e.target.classList.add("sel");
+    if (d < depths){
+      nodes.filter(n => n.d === d+1 && (n.s === 2*s || n.s === 2*s+1))
+           .forEach(n => n.c.classList.add("kid"));
+      svg.querySelectorAll('.pt-edge[data-from="' + d + ":" + s + '"]').forEach(e2 => e2.classList.add("lit"));
+      read.innerHTML = "Seat <b>" + s + "</b> on level " + d +
+        " → children at <b>2·" + s + " = " + (2*s) + "</b> and <b>2·" + s + "+1 = " + (2*s+1) + "</b> on level " + (d+1) + ".";
+    } else {
+      read.innerHTML = "Seat <b>" + s + "</b> on level " + d + " — bottom row, no children drawn. Its children would be " + (2*s) + " and " + (2*s+1) + ".";
+    }
+  });
+  svg.setAttribute("viewBox", "0 0 700 " + (34 + depths*66 + 40));
+})();
+
+/* =========================================================
+   10. OVERFLOW DEMO (right spine, real int32 wrap)
+   ========================================================= */
+(function(){
+  const rows = document.getElementById("ovfRows");
+  const note = document.getElementById("ovfNote");
+  const bOff = document.getElementById("ovfOff");
+  const bOn  = document.getElementById("ovfOn");
+  const DEPTH = 36;
+
+  function render(normalized){
+    rows.innerHTML = "";
+    let idx = 0, bad = -1;
+    for (let d = 0; d <= DEPTH; d++){
+      const row = document.createElement("div");
+      row.className = "ovf-row";
+      const shown = normalized ? 0 : idx;
+      // in normalized mode leftMost == idx (only node on level) so norm is 0
+      const child = normalized ? 1 : (Math.imul(idx, 2) + 1) | 0;
+      if (!normalized && idx < 0 && bad < 0) bad = d;
+      if (!normalized && idx < 0) row.classList.add("bad");
+      row.innerHTML = '<span class="d">level ' + String(d).padStart(2, "0") + '</span>' +
+                      '<span class="v">index = ' + idx + (normalized ? "&nbsp;&nbsp;(leftMost = " + idx + ", norm = 0)" : "") + '</span>';
+      rows.appendChild(row);
+      idx = normalized ? child : ((Math.imul(idx, 2) + 1) | 0);
+    }
+    if (normalized){
+      note.innerHTML = "Indices oscillate between <b>0</b> and <b>1</b> forever. Each level's only node is its own leftMost, so <code class=\"i\">norm = 0</code> and its right child gets <code class=\"i\">2·0 + 1 = 1</code>. Depth 5000 would still be fine. The reported width stays a correct <b>1</b>.";
+    } else {
+      note.innerHTML = "The index doubles every level: 0, 1, 3, 7, 15, 31 … At <b>level " + (bad >= 0 ? bad : "?") + "</b> the 32-bit integer wraps and goes negative. From there, <code class=\"i\">rightMost − leftMost + 1</code> is computing on garbage. Switching to <code class=\"i\">long</code> only postpones this to level 63.";
+    }
+  }
+  bOff.addEventListener("click", () => { bOff.classList.add("on"); bOn.classList.remove("on"); render(false); });
+  bOn .addEventListener("click", () => { bOn.classList.add("on"); bOff.classList.remove("on"); render(true); });
+  render(false);
+})();
+
+/* =========================================================
+   11. HOTEL BINARIA (movie illustration)
+   ========================================================= */
+(function(){
+  const host = document.getElementById("hotelFloors");
+  const line = document.getElementById("garyLine");
+  // occupancy mirrors the dry-run tree
+  const FLOORS = [
+    { rooms: 1, full: [0],    label: "1" },
+    { rooms: 2, full: [0,1],  label: "3,2" },
+    { rooms: 4, full: [0,3],  label: "5,9" },
+    { rooms: 8, full: [0,7],  label: "6,7" }
+  ];
+  const GUESTS = [["1"], ["3","2"], ["5","9"], ["6","7"]];
+
+  FLOORS.forEach((f, d) => {
+    const row = document.createElement("div");
+    row.className = "floor";
+    row.dataset.d = d;
+    let html = '<span class="floor-tag">floor ' + d + '</span><span class="rooms">';
+    for (let r = 0; r < f.rooms; r++){
+      const gi = f.full.indexOf(r);
+      if (gi >= 0){
+        html += '<span class="room full">' + GUESTS[d][gi] + '<i class="carpet"></i></span>';
+      } else {
+        html += '<span class="room empty">' + r + '<i class="carpet"></i></span>';
+      }
+    }
+    html += '</span><span class="floor-w"></span>';
+    row.innerHTML = html;
+    host.appendChild(row);
+  });
+
+  const rows = Array.from(host.children);
+  let timers = [];
+  function reset(){
+    timers.forEach(clearTimeout); timers = [];
+    rows.forEach(r => {
+      r.classList.remove("measured");
+      r.querySelector(".floor-w").textContent = "";
+      r.querySelectorAll(".carpet").forEach(c => c.style.background = "");
+    });
+    line.textContent = "Meet Gary, the world's laziest carpet inspector. Press the button and watch him work.";
+  }
+  document.getElementById("garyReset").addEventListener("click", reset);
+  document.getElementById("garyGo").addEventListener("click", () => {
+    reset();
+    FLOORS.forEach((f, d) => {
+      timers.push(setTimeout(() => {
+        const row = rows[d];
+        const lo = f.full[0], hi = f.full[f.full.length - 1];
+        const w = hi - lo + 1;
+        row.classList.add("measured");
+        row.querySelectorAll(".room").forEach((rm, i) => {
+          rm.querySelector(".carpet").style.opacity = (i >= lo && i <= hi) ? ".6" : "0";
+        });
+        row.querySelector(".floor-w").textContent = hi + "−" + lo + "+1 = " + w;
+        line.innerHTML = "Floor " + d + ": first guest in room <b>" + lo + "</b>, last guest in room <b>" + hi +
+                         "</b>. Gary cleans <b>" + w + "</b> rooms of hallway — and never opens a single empty door.";
+      }, d * 950));
+    });
+    timers.push(setTimeout(() => {
+      line.innerHTML = "Widest floor: <b>8</b>. Gary is done, has counted zero empty rooms individually, and is going for a nap. 🧹";
+    }, FLOORS.length * 950 + 400));
+  });
+})();
+
+/* =========================================================
+   12. DRY RUN PLAYER
+   ========================================================= */
+(function(){
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("drySvg");
+
+  const NODES = [
+    { id:"n1", val:1, d:0, seat:0 },
+    { id:"n3", val:3, d:1, seat:0 },
+    { id:"n2", val:2, d:1, seat:1 },
+    { id:"n5", val:5, d:2, seat:0 },
+    { id:"n9", val:9, d:2, seat:3 },
+    { id:"n6", val:6, d:3, seat:0 },
+    { id:"n7", val:7, d:3, seat:7 }
+  ];
+  const EDGES = [["n1","n3"],["n1","n2"],["n3","n5"],["n2","n9"],["n5","n6"],["n9","n7"]];
+  const W = 720;
+  function pos(d, seat){
+    const cols = Math.pow(2, d), cw = W / cols;
+    return { x: seat*cw + cw/2, y: 46 + d*92 };
+  }
+  const byId = {};
+  NODES.forEach(n => byId[n.id] = n);
+
+  // --- build svg ---
+  EDGES.forEach(([a,b]) => {
+    const p = pos(byId[a].d, byId[a].seat), c = pos(byId[b].d, byId[b].seat);
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("x1", p.x); ln.setAttribute("y1", p.y);
+    ln.setAttribute("x2", c.x); ln.setAttribute("y2", c.y);
+    ln.setAttribute("class", "tn-edge");
+    svg.appendChild(ln);
+  });
+  // ghosts
+  const ghosts = [];
+  for (let d = 0; d <= 3; d++){
+    const occupied = NODES.filter(n => n.d === d).map(n => n.seat);
+    for (let s = 0; s < Math.pow(2, d); s++){
+      if (occupied.includes(s)) continue;
+      const p = pos(d, s);
+      const g = document.createElementNS(NS, "circle");
+      g.setAttribute("cx", p.x); g.setAttribute("cy", p.y);
+      g.setAttribute("r", 13);
+      g.setAttribute("class", "tn-ghost");
+      svg.appendChild(g);
+      ghosts.push({ d, s, el: g });
+    }
+  }
+  // span bracket
+  const spanG = document.createElementNS(NS, "g");
+  spanG.setAttribute("opacity", "0");
+  const spanLine = document.createElementNS(NS, "line"); spanLine.setAttribute("class", "span-line");
+  const capL = document.createElementNS(NS, "line"); capL.setAttribute("class", "span-cap");
+  const capR = document.createElementNS(NS, "line"); capR.setAttribute("class", "span-cap");
+  const spanTxt = document.createElementNS(NS, "text"); spanTxt.setAttribute("class", "span-txt");
+  spanG.appendChild(spanLine); spanG.appendChild(capL); spanG.appendChild(capR); spanG.appendChild(spanTxt);
+  svg.appendChild(spanG);
+  // nodes
+  NODES.forEach(n => {
+    const p = pos(n.d, n.seat);
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", p.x); c.setAttribute("cy", p.y); c.setAttribute("r", 21);
+    c.setAttribute("class", "tn-circle");
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", p.x); t.setAttribute("y", p.y); t.setAttribute("class", "tn-val");
+    t.textContent = n.val;
+    const ix = document.createElementNS(NS, "text");
+    ix.setAttribute("x", p.x); ix.setAttribute("y", p.y + 36); ix.setAttribute("class", "tn-idx");
+    ix.textContent = "idx " + n.seat;
+    svg.appendChild(c); svg.appendChild(t); svg.appendChild(ix);
+    n.circle = c; n.idxEl = ix;
+  });
+  svg.setAttribute("viewBox", "0 0 720 " + (46 + 3*92 + 60));
+
+  // --- steps ---
+  const Q = (a) => a.map(x => ({ v:x[0], i:x[1] }));
+  const STEPS = [
+  { tag:"init", d:null, act:null, span:null,
+    q: Q([[1,0]]),
+    v:{levelSize:"–",leftMost:"–",rightMost:"–",norm:"–",maxWidth:0}, ch:["maxWidth"],
+    txt:"Seed the queue with the root at index <b>0</b>, and set <code class=\"i\">maxWidth = 0</code>. Every ghost seat you see dashed below is a seat the algorithm will number but never allocate." },
+
+  { tag:"level", d:0, act:null, span:null,
+    q: Q([[1,0]]),
+    v:{levelSize:1,leftMost:0,rightMost:0,norm:"–",maxWidth:0}, ch:["levelSize","leftMost","rightMost"],
+    txt:"<b>Level 0 begins.</b> Snapshot <code class=\"i\">levelSize = 1</code> (the fence). Peek the front for <code class=\"i\">leftMost = 0</code> — that's both the left finger and the ROOM 0 sticker." },
+
+  { tag:"pop", d:0, act:"n1", span:null,
+    q: Q([[3,0],[2,1]]),
+    v:{levelSize:1,leftMost:0,rightMost:0,norm:0,maxWidth:0}, ch:["norm","rightMost"],
+    txt:"Pop node <b>1</b> at index 0. <code class=\"i\">norm = 0 − 0 = 0</code>. Push left child <b>3</b> at <code class=\"i\">2·0 = 0</code> and right child <b>2</b> at <code class=\"i\">2·0+1 = 1</code>." },
+
+  { tag:"measure", d:0, act:null, span:{d:0,from:0,to:0},
+    q: Q([[3,0],[2,1]]),
+    v:{levelSize:1,leftMost:0,rightMost:0,norm:0,maxWidth:1}, ch:["maxWidth"],
+    txt:"<b>Measure level 0:</b> <code class=\"i\">0 − 0 + 1 = 1</code>. <code class=\"i\">maxWidth</code> becomes <b>1</b>." },
+
+  { tag:"level", d:1, act:null, span:null,
+    q: Q([[3,0],[2,1]]),
+    v:{levelSize:2,leftMost:0,rightMost:0,norm:"–",maxWidth:1}, ch:["levelSize","leftMost","rightMost"],
+    txt:"<b>Level 1 begins.</b> <code class=\"i\">levelSize = 2</code>, <code class=\"i\">leftMost = 0</code>. Re-anchoring here is the bellhop re-stickering the floor." },
+
+  { tag:"pop", d:1, act:"n3", span:null,
+    q: Q([[2,1],[5,0]]),
+    v:{levelSize:2,leftMost:0,rightMost:0,norm:0,maxWidth:1}, ch:["norm"],
+    txt:"Pop node <b>3</b> at index 0. <code class=\"i\">norm = 0</code>. It has a left child <b>5</b> → index <code class=\"i\">2·0 = 0</code>. No right child, so seat 1 on level 2 will simply never be used." },
+
+  { tag:"pop", d:1, act:"n2", span:null,
+    q: Q([[5,0],[9,3]]),
+    v:{levelSize:2,leftMost:0,rightMost:1,norm:1,maxWidth:1}, ch:["norm","rightMost"],
+    txt:"Pop node <b>2</b> at index 1. <code class=\"i\">norm = 1 − 0 = 1</code>. No left child (seat 2 stays a ghost); right child <b>9</b> → <code class=\"i\">2·1+1 = 3</code>. <code class=\"i\">rightMost = 1</code>." },
+
+  { tag:"measure", d:1, act:null, span:{d:1,from:0,to:1},
+    q: Q([[5,0],[9,3]]),
+    v:{levelSize:2,leftMost:0,rightMost:1,norm:1,maxWidth:2}, ch:["maxWidth"],
+    txt:"<b>Measure level 1:</b> <code class=\"i\">1 − 0 + 1 = 2</code>. <code class=\"i\">maxWidth</code> becomes <b>2</b>." },
+
+  { tag:"level", d:2, act:null, span:null,
+    q: Q([[5,0],[9,3]]),
+    v:{levelSize:2,leftMost:0,rightMost:0,norm:"–",maxWidth:2}, ch:["levelSize","leftMost","rightMost"],
+    txt:"<b>Level 2 begins.</b> Two nodes in the queue, but their indices are 0 and 3 — two seats between them are already ghosts." },
+
+  { tag:"pop", d:2, act:"n5", span:null,
+    q: Q([[9,3],[6,0]]),
+    v:{levelSize:2,leftMost:0,rightMost:0,norm:0,maxWidth:2}, ch:["norm"],
+    txt:"Pop node <b>5</b> at index 0. <code class=\"i\">norm = 0</code>. Left child <b>6</b> → <code class=\"i\">2·0 = 0</code>." },
+
+  { tag:"pop", d:2, act:"n9", span:null,
+    q: Q([[6,0],[7,7]]),
+    v:{levelSize:2,leftMost:0,rightMost:3,norm:3,maxWidth:2}, ch:["norm","rightMost"],
+    txt:"Pop node <b>9</b> at index 3. <code class=\"i\">norm = 3</code>. Right child <b>7</b> → <code class=\"i\">2·3+1 = 7</code>. <code class=\"i\">rightMost = 3</code>." },
+
+  { tag:"measure", d:2, act:null, span:{d:2,from:0,to:3},
+    q: Q([[6,0],[7,7]]),
+    v:{levelSize:2,leftMost:0,rightMost:3,norm:3,maxWidth:4}, ch:["maxWidth"],
+    txt:"<b>Measure level 2:</b> <code class=\"i\">3 − 0 + 1 = 4</code>. The two ghosts at seats 1 and 2 just counted themselves — we never touched them. <code class=\"i\">maxWidth</code> becomes <b>4</b>." },
+
+  { tag:"level", d:3, act:null, span:null,
+    q: Q([[6,0],[7,7]]),
+    v:{levelSize:2,leftMost:0,rightMost:0,norm:"–",maxWidth:4}, ch:["levelSize","leftMost","rightMost"],
+    txt:"<b>Level 3 begins.</b> <code class=\"i\">levelSize = 2</code>, <code class=\"i\">leftMost = 0</code>. Six ghosts sit between our two nodes." },
+
+  { tag:"pop", d:3, act:"n6", span:null,
+    q: Q([[7,7]]),
+    v:{levelSize:2,leftMost:0,rightMost:0,norm:0,maxWidth:4}, ch:["norm"],
+    txt:"Pop node <b>6</b> at index 0. <code class=\"i\">norm = 0</code>. No children — nothing gets pushed." },
+
+  { tag:"pop", d:3, act:"n7", span:null,
+    q: Q([]),
+    v:{levelSize:2,leftMost:0,rightMost:7,norm:7,maxWidth:4}, ch:["norm","rightMost"],
+    txt:"Pop node <b>7</b> at index 7. <code class=\"i\">norm = 7</code>, <code class=\"i\">rightMost = 7</code>. No children. Queue is now empty." },
+
+  { tag:"measure", d:3, act:null, span:{d:3,from:0,to:7},
+    q: Q([]),
+    v:{levelSize:2,leftMost:0,rightMost:7,norm:7,maxWidth:8}, ch:["maxWidth"],
+    txt:"<b>Measure level 3:</b> <code class=\"i\">7 − 0 + 1 = 8</code>. Six ghosts, never allocated, all counted by one subtraction. <code class=\"i\">maxWidth</code> becomes <b>8</b>." },
+
+  { tag:"init", d:null, act:null, span:null,
+    q: Q([]),
+    v:{levelSize:"–",leftMost:"–",rightMost:"–",norm:"–",maxWidth:8}, ch:["maxWidth"],
+    txt:"Queue empty → the <code class=\"i\">while</code> loop ends. <b>Return 8.</b> Total work: 7 pops, 6 pushes, 4 subtractions. Zero ghosts visited." }
+  ];
+
+  // mark which nodes have already been processed at each step
+  (function(){
+    const seenIds = [];
+    STEPS.forEach(s => { if (s.act) seenIds.push(s.act); s.visited = seenIds.slice(); });
+  })();
+
+  // --- render ---
+  const narration = document.getElementById("narration");
+  const stepCount = document.getElementById("stepCount");
+  const queueChips = document.getElementById("queueChips");
+  const vcells = {};
+  document.querySelectorAll(".vcell").forEach(c => vcells[c.dataset.v] = c);
+  const scrub = document.getElementById("dryScrub");
+  scrub.max = STEPS.length - 1;
+
+  let cur = 0, playing = false, timer = null;
+
+  function render(i){
+    const s = STEPS[i];
+    stepCount.textContent = (i + 1) + " / " + STEPS.length;
+    scrub.value = i;
+    narration.innerHTML = '<span class="tag t-' + s.tag + '">' + s.tag + "</span>" + s.txt;
+
+    // queue chips
+    queueChips.innerHTML = "";
+    if (!s.q.length){
+      const e = document.createElement("span");
+      e.className = "qempty"; e.textContent = "empty";
+      queueChips.appendChild(e);
+    } else {
+      const wrap = document.createDocumentFragment();
+      s.q.forEach(item => {
+        const c = document.createElement("span");
+        c.className = "qchip";
+        c.innerHTML = item.v + ' <span class="qi">idx ' + item.i + "</span>";
+        wrap.appendChild(c);
+      });
+      queueChips.appendChild(wrap);
+      queueChips.style.display = "inline-flex";
+      queueChips.style.gap = "7px";
+      queueChips.style.flexWrap = "wrap";
+    }
+
+    // variables
+    Object.keys(vcells).forEach(k => {
+      const cell = vcells[k];
+      cell.querySelector(".vv").textContent = s.v[k];
+      cell.classList.toggle("flash", s.ch.indexOf(k) >= 0);
+    });
+
+    // node states
+    const inQueue = s.q.map(x => x.v);
+    NODES.forEach(n => {
+      n.circle.classList.remove("active","inq","done");
+      n.idxEl.classList.remove("lit");
+      if (s.act === n.id) { n.circle.classList.add("active"); n.idxEl.classList.add("lit"); }
+      else if (inQueue.indexOf(n.val) >= 0) { n.circle.classList.add("inq"); n.idxEl.classList.add("lit"); }
+      else if (s.visited && s.visited.indexOf(n.id) >= 0) { n.circle.classList.add("done"); }
+    });
+
+    // ghosts inside the measured span
+    ghosts.forEach(g => g.el.classList.remove("inspan"));
+    if (s.span){
+      ghosts.filter(g => g.d === s.span.d && g.s > s.span.from && g.s < s.span.to)
+            .forEach(g => g.el.classList.add("inspan"));
+      const a = pos(s.span.d, s.span.from), b = pos(s.span.d, s.span.to);
+      const y = a.y + 46;
+      spanLine.setAttribute("x1", a.x); spanLine.setAttribute("y1", y);
+      spanLine.setAttribute("x2", b.x); spanLine.setAttribute("y2", y);
+      capL.setAttribute("x1", a.x); capL.setAttribute("y1", y-7); capL.setAttribute("x2", a.x); capL.setAttribute("y2", y+7);
+      capR.setAttribute("x1", b.x); capR.setAttribute("y1", y-7); capR.setAttribute("x2", b.x); capR.setAttribute("y2", y+7);
+      spanTxt.setAttribute("x", (a.x + b.x) / 2);
+      spanTxt.setAttribute("y", y - 12);
+      spanTxt.textContent = "width " + (s.span.to - s.span.from + 1);
+      spanG.setAttribute("opacity", "1");
+    } else {
+      spanG.setAttribute("opacity", "0");
+    }
+
+    document.getElementById("dryPrev").disabled = (i === 0);
+    document.getElementById("dryNext").disabled = (i === STEPS.length - 1);
+  }
+
+  function go(i){ cur = Math.max(0, Math.min(STEPS.length - 1, i)); render(cur); }
+  document.getElementById("dryNext").addEventListener("click", () => { stop(); go(cur + 1); });
+  document.getElementById("dryPrev").addEventListener("click", () => { stop(); go(cur - 1); });
+  document.getElementById("dryReset").addEventListener("click", () => { stop(); go(0); });
+  scrub.addEventListener("input", () => { stop(); go(+scrub.value); });
+
+  const playBtn = document.getElementById("dryPlay");
+  function stop(){ playing = false; clearInterval(timer); playBtn.textContent = "▶ Play"; }
+  playBtn.addEventListener("click", () => {
+    if (playing) { stop(); return; }
+    if (cur === STEPS.length - 1) go(0);
+    playing = true; playBtn.textContent = "❚❚ Pause";
+    timer = setInterval(() => {
+      if (cur >= STEPS.length - 1) { stop(); return; }
+      go(cur + 1);
+    }, 2100);
+  });
+
+  render(0);
+})();
+
+/* =========================================================
+   13. KEYBOARD SHORTCUTS
+   ========================================================= */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.key === "j") jump(currentIdx + 1);
+  if (e.key === "k") jump(currentIdx - 1);
+  if (e.key === "/") { e.preventDefault(); search.focus(); }
+});
+</script>
+</body>
+</html>

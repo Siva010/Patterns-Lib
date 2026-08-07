@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 448 &middot; Find All Numbers Disappeared in an Array &mdash; visual guide</title>
+<meta name="description" content="Interactive cyclic-sort visualizer for Find All Numbers Disappeared in an Array (LeetCode 448): value v is swapped home to index v-1, then a second pass reads off every slot that is not holding index+1.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+
+/* ---------- cyclic sort tape (sub-variant J) ---------- */
+.cycwrap {
+  --colw: 46px; --gapw: 7px;
+  display: flex; flex-direction: column; gap: 8px;
+  align-items: center; max-width: 100%; overflow-x: auto; padding-bottom: 2px;
+}
+.tape.cyc { gap: var(--gapw); flex-wrap: nowrap; }
+.tape.cyc .col { width: var(--colw); gap: 4px; }
+.tape.cyc .cell { font-size: 17px; }
+.tape.cyc .caret { height: 19px; font-size: 10px; }
+.tape.cyc .caret .p { padding: 1px 5px; }
+
+/* "this slot wants k+1" — makes v -> index v-1 legible without reading the code */
+.want {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .02em;
+  color: var(--fg-dim); opacity: .8;
+}
+.want.ok { color: var(--r-hit); opacity: 1; }
+
+.cell.home { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+.cell.dest { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right); transform: translateY(-3px); }
+.cell.cur  { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.gone { background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim); color: var(--fg-dim); opacity: .55; transform: none; }
+.caret .pH { color: var(--accent-fg); background: var(--r-right); }
+
+/* the governing rule, restated under the stage on every frame */
+.rulebar {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 600px; text-align: center;
+}
+.rulebar b { color: var(--fg-mid); font-weight: 600; }
+.rulebar .i { color: var(--r-anchor); font-weight: 600; }
+.rulebar .r { color: var(--r-right);  font-weight: 600; }
+.rulebar .m { color: var(--r-hit);    font-weight: 600; }
+
+.guardbar {
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 620px; text-align: center;
+}
+.guardbar b { color: var(--fg-mid); font-weight: 600; }
+.guardbar.hot { color: var(--r-anchor); border: 1px solid var(--r-anchor-line); background: var(--r-anchor-wash); }
+.guardbar.hot b { color: var(--r-anchor); }
+
+.advtag {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em;
+  padding: 2px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
+}
+.advtag.go   { color: var(--r-right);  border-color: var(--r-right-line);  background: var(--r-right-wash); }
+.advtag.ok   { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+.advtag.stop { color: var(--fg-dim);   border-color: var(--rule-hard);     background: var(--bg-sunk); border-style: dashed; }
+.advtag.warn { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+
+.trip.no { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
+.trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
+
+.sum-line .i { color: var(--r-anchor); }
+.sum-line .r { color: var(--r-right); }
+.sum-line .m { color: var(--r-hit); }
+.sum-line .x { color: var(--fg-dim); }
+
+.code .cm { color: var(--t-com); font-style: italic; }
+.code .ln.guard::after {
+  content: "guard fires"; margin-left: 16px;
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--r-anchor); background: var(--r-anchor-wash);
+  border: 1px solid var(--r-anchor-line); border-radius: 999px; padding: 0 8px;
+}
+
+@media (max-width: 620px) {
+  .cycwrap { --colw: 34px; --gapw: 6px; }
+  .tape.cyc .cell { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .cell.cur, .cell.dest { transform: none; } }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+  <div class="eyebrow">Two Pointers &middot; cyclic sort <span class="tag">LeetCode 448</span></div>
+  <h1>Find All Numbers Disappeared in an Array <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    The values are in <code>1..n</code> and the array has length <code>n</code>, so the array is <em>almost</em>
+    a permutation of its own index set &mdash; and that is a data structure, not a coincidence. Value
+    <span class="i">v</span> has exactly one correct home: index <span class="r">v&minus;1</span>. Pass one
+    walks <span class="i">i</span> and repeatedly swaps whatever is sitting at <code>i</code> into its home
+    slot until nothing more can move. Pass two just reads off every index that ended up <em>not</em> holding
+    <code>index+1</code>; those are the missing numbers. This page shows the <b>swap</b> form because it is
+    the one that generalises &mdash; the same loop, plus a range check, solves LeetCode 41. The other
+    accepted answer is <b>negative marking</b>: walk the array and flip
+    <span class="k">nums[abs(v)-1]</span> negative to record "v was seen", then report every still-positive
+    index. It is shorter and never moves an element, but it only works because these values are guaranteed
+    positive and in range, and it destroys the sign bit. Cyclic sort survives negatives, zeros and huge
+    values; negative marking does not.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Array (comma-separated, values 1..n, up to 8)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="4, 3, 2, 7, 8, 2, 3, 1" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="cycwrap"><div class="tape cyc" id="tape"></div></div>
+        <div class="rulebar" id="ruleBar"></div>
+        <div class="guardbar" id="guardBar"></div>
+        <div class="sum-line" id="cmpLine"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets" id="verdict"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot i"></i>i &mdash; index being processed</span>
+        <span><i class="dot r"></i>home slot of the value in hand</span>
+        <span><i class="dot m"></i>value sitting at its home index</span>
+        <span><i class="dot x"></i>slot that never received its number</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    O(n) time &middot; O(1) extra space (the output list aside) &nbsp;&middot;&nbsp; the loop looks quadratic
+    but is not: every swap puts one value permanently home, so at most <code>n</code> swaps happen across
+    the entire outer loop. &nbsp;The guard is <code>nums[i] != nums[nums[i]-1]</code> &mdash; compare
+    <em>values</em>, not indices, or duplicates spin forever.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['ty','List<Integer> '],['fn','findDisappearedNumbers'],['tx','('],['kw','int'],['tx','[] nums) {']],
+    [['tx','    '],['kw','int '],['tx','n = nums.length;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < n; i++)']],
+    [['tx','        '],['kw','while '],['tx','(nums[i] != nums[nums[i] - 1])   '],['cm','// compare VALUES, not indices']],
+    [['tx','            swap(nums, i, nums[i] - 1);  '],['cm','// value v goes to index v-1']],
+    [['tx','']],
+    [['tx','    '],['ty','List<Integer> '],['tx','res = '],['kw','new '],['tx','ArrayList<>();']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < n; i++)']],
+    [['tx','        '],['kw','if '],['tx','(nums[i] != i + 1) res.add(i + 1);   '],['cm','// slot never got its number']],
+    [['tx','    '],['kw','return '],['tx','res;']],
+    [['tx','}']]
+  ];
+
+  const RULE = `<b>cyclic sort:</b> value <span class="i">v</span> belongs at index ` +
+               `<span class="r">v&minus;1</span> &middot; swap it home, repeat &middot; ` +
+               `then report every index <span class="m">not</span> holding index+1`;
+  const GUARD_OFF = `<b>the guard:</b> <span class="k">nums[i] != nums[nums[i]-1]</span> &mdash; ` +
+                    `"is my home slot already holding my value?" Writing <span class="k">i != nums[i]-1</span> ` +
+                    `instead loops forever on duplicates.`;
+
+  /* ---- a real cyclic sort, one frame per meaningful step ---- */
+  function buildFrames(input){
+    const a = input.slice(), n = a.length, F = [];
+    const snap = () => a.slice();
+    const st = o => Object.assign({arr:snap(), i:-1, dest:-1, read:-1, missing:[], guard:false, phase:'scan'}, o);
+
+    if(n === 0){
+      F.push(st({phase:'done', code:9, done:true, res:[], cmp:'',
+        msg:`Empty array &mdash; nothing to place and nothing to report.`}));
+      return F;
+    }
+
+    F.push(st({code:1, cmp:'',
+      msg:`<b>n = ${n}</b>, and every value is promised to be in <span class="k">1..${n}</span>. So each slot
+           has a name: index <b>k</b> wants value <b>k+1</b>, printed dim under every cell. Any slot still
+           wearing the wrong number after pass one names a missing value.`}));
+
+    /* ---------- pass 1: place every value in its home slot ---------- */
+    for(let i = 0; i < n; i++){
+      F.push(st({i, code:2, cmp:`<span class="i">i = ${i}</span> &nbsp; nums[${i}] = <b>${a[i]}</b>`,
+        msg:`Take index <span class="i">${i}</span>. It is holding <b>${a[i]}</b>, whose home is index
+             <span class="r">${a[i]-1}</span>. The question is never "is this value sorted?" but
+             "is it <em>home</em>?"`}));
+
+      let swaps = 0;
+      while(true){
+        const v = a[i], dest = v - 1;
+        if(a[i] === a[dest]){
+          const already = (dest === i);
+          F.push(st({i, dest, code:3, guard:true,
+            cmp:`nums[${i}] = <b>${v}</b> &nbsp; nums[${dest}] = <b>${a[dest]}</b> ` +
+                `<span class="advtag ${already ? 'ok' : 'warn'}">equal &rarr; while exits</span>`,
+            msg: already
+              ? `<span class="m">nums[${i}] == ${i+1}</span> &mdash; the value is already home, so the test
+                 compares <span class="k">nums[${i}]</span> with itself and is instantly false. The while
+                 loop costs one comparison and stops.`
+              : `<span class="i">Guard fires.</span> Index <span class="r">${dest}</span> already holds
+                 <b>${v}</b>, so this copy is a <b>duplicate</b> and has nowhere to go. Swapping would put
+                 ${v} back where it came from and we would test the same thing again &mdash; forever. Note
+                 the test compares <em>values</em>: <span class="k">i != nums[i]-1</span> would still be
+                 true here (${i} &ne; ${dest}) and would spin.`}));
+          break;
+        }
+
+        F.push(st({i, dest, code:3,
+          cmp:`nums[${i}] = <b>${v}</b> &nbsp; nums[${dest}] = <b>${a[dest]}</b> ` +
+              `<span class="advtag go">different &rarr; swap</span>`,
+          msg:`<b>${v}</b> is not home: index <span class="r">${dest}</span> is holding
+               <b>${a[dest]}</b>, not ${v}. Send it home.`}));
+
+        const tmp = a[i]; a[i] = a[dest]; a[dest] = tmp;
+        swaps++;
+
+        F.push(st({i, dest, code:4, moved:dest,
+          cmp:`<span class="m">${v} &rarr; index ${dest}</span> &nbsp;&middot;&nbsp; ` +
+              `<span class="i">${a[i]} arrived at index ${i}</span>`,
+          msg:`Swapped. <span class="m">${v}</span> is parked at index <span class="m">${dest}</span> for
+               good &mdash; nothing will ever move it again. But index <span class="i">${i}</span> now holds
+               <b>${a[i]}</b>, which arrived by accident. ` +
+               (swaps > 1
+                 ? `This is swap <b>#${swaps}</b> at the same <span class="i">i</span>: proof the inner
+                    loop must be a <span class="k">while</span>, not an <span class="k">if</span>.`
+                 : `That is why the inner loop is a <span class="k">while</span> &mdash; re-test the same
+                    index with its new occupant.`)}));
+      }
+    }
+
+    F.push(st({code:6, cmp:`<span class="advtag ok">pass 1 complete</span>`,
+      msg:`Every value that <em>could</em> reach its home is home &mdash; each green cell holds exactly
+           index+1. At most ${n} swaps happened in total, because each one parks a value permanently.
+           Now simply read the array.`}));
+
+    /* ---------- pass 2: read off the slots that never got their value ---------- */
+    const missing = [];
+    for(let i = 0; i < n; i++){
+      const ok = (a[i] === i + 1);
+      if(!ok) missing.push(i + 1);
+      F.push(st({read:i, code:8, missing:missing.slice(), phase: ok ? 'scan' : 'found',
+        cmp:`nums[${i}] = <b>${a[i]}</b> &nbsp; wants <b>${i+1}</b> ` +
+            (ok ? `<span class="advtag ok">present</span>` : `<span class="advtag stop">${i+1} is missing</span>`),
+        msg: ok
+          ? `Index ${i} holds <span class="m">${i+1}</span>. The number ${i+1} exists somewhere in the
+             input, so it is not missing.`
+          : `Index ${i} holds <b>${a[i]}</b>, not <b>${i+1}</b>. Nothing ever claimed this slot, which can
+             only mean <span class="x">${i+1} never appears in the input</span>. Record it.`}));
+    }
+
+    F.push(st({code:9, done:true, missing:missing.slice(), res:missing.slice(), phase:'done', read:-1, cmp:'',
+      msg: missing.length
+        ? `<span class="m">return [${missing.join(', ')}]</span> &mdash; ${missing.length}
+           number${missing.length>1?'s':''} of 1..${n} never showed up. Each missing value is mirrored by a
+           duplicate somewhere, which is exactly what the guard kept bumping into.`
+        : `<span class="m">return []</span> &mdash; the input was a true permutation of 1..${n}, so every
+           slot ended up holding index+1 and nothing is missing.`}));
+    return F;
+  }
+
+  /* ---------------------------- wiring ---------------------------- */
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
+        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'), cmpEl=$('cmpLine'),
+        verdictEl=$('verdict'), ruleEl=$('ruleBar'), guardEl=$('guardBar');
+  let frames=[], idx=0, playing=false, timer=null, N=0;
+
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  /* values are clamped into 1..n so the page always shows a legal LC 448 instance */
+  function parseArr(str){
+    let v = String(str).split(',').map(s=>s.trim()).filter(s=>s!=='')
+             .map(Number).filter(x=>!isNaN(x)).map(x=>Math.round(x)).slice(0,8);
+    const n = v.length;
+    return v.map(x => Math.min(n, Math.max(1, x)));
+  }
+
+  function buildTape(len){
+    tapeEl.innerHTML='';
+    for(let k=0;k<len;k++){
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
+        `<div class="cell" data-cell="${k}"></div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`+
+        `<div class="want" data-want="${k}">&rarr;${k+1}</div>`;
+      tapeEl.appendChild(col);
+    }
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+
+    for(let k=0;k<N;k++){
+      const cell=tapeEl.querySelector(`[data-cell="${k}"]`);
+      const caret=tapeEl.querySelector(`[data-caret="${k}"]`);
+      const lbl=tapeEl.querySelector(`[data-idx="${k}"]`);
+      const want=tapeEl.querySelector(`[data-want="${k}"]`);
+      const home = f.arr[k] === k + 1;
+      cell.textContent = f.arr[k];
+      let cls='cell';
+      if(home) cls+=' home';
+      if(k === f.dest) cls+=' dest';
+      if(k === f.i || k === f.read) cls+=' cur';
+      if(f.done && !home) cls='cell gone';
+      cell.className=cls;
+      let cr='';
+      if(k === f.i) cr='<span class="p pI">i</span>';
+      else if(k === f.read) cr='<span class="p pI">read</span>';
+      else if(k === f.dest) cr='<span class="p pH">home</span>';
+      caret.innerHTML=cr; caret.style.opacity = cr ? '1' : '0';
+      lbl.classList.toggle('on', k === f.i || k === f.read || k === f.dest);
+      want.className = 'want' + (home ? ' ok' : '');
+    }
+
+    ruleEl.innerHTML = RULE;
+    guardEl.className = 'guardbar' + (f.guard ? ' hot' : '');
+    guardEl.innerHTML = GUARD_OFF;
+    cmpEl.innerHTML = f.cmp || '';
+    msgEl.innerHTML = f.msg;
+
+    verdictEl.innerHTML = f.done
+      ? (f.res.length
+          ? `<span class="trip">return [${f.res.join(', ')}]</span>`
+          : `<span class="trip no">return [] &mdash; nothing is missing</span>`)
+      : (f.missing.length
+          ? f.missing.map(v=>`<span class="trip">${v} missing</span>`).join('')
+          : `<span class="trip neutral">${f.arr.filter((v,k)=>v===k+1).length} / ${N} values are home</span>`);
+
+    const pmap={scan:['scan','&#9679; placing'],found:['found','&#10003; missing found'],
+                done:['done','&#9632; complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.innerHTML=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec','guard'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`);
+    if(line){ line.classList.add('exec'); if(f.guard) line.classList.add('guard'); }
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(str){
+    stop();
+    const arr = parseArr(str);
+    N = arr.length;
+    buildTape(N);
+    frames = buildFrames(arr);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').innerHTML='&#10074;&#10074;'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').innerHTML='&#9654;'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['4, 3, 2, 7, 8, 2, 3, 1', 'LeetCode example — 5 and 6 missing'],
+    ['1, 2, 3, 4, 5',          'already home — every while exits on test 1'],
+    ['2, 3, 1',                'a true permutation — nothing missing'],
+    ['2, 2, 2, 2',             'duplicates — the guard stops the spin'],
+    ['3, 1, 3, 4, 3',          'guard fires at i=0, before any swap'],
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(([w,note])=>{
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`[${w.replace(/\s/g,'')}]<b>${note}</b>`;
+      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(inputEl.value);
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===inputEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(inputEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 986 &middot; Interval List Intersections &mdash; visual guide</title>
+<meta name="description" content="Two-sequence advance on intervals: overlap is [max(start), min(end)], and you always retire the interval that ends first. Step through it with a running Java trace.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ============================================================
+   two-sequence advance, interval flavour — page-local additions
+   Two stacked tracks (one per list) plus a result track, all on
+   ONE shared numeric axis, so "which one ends first" is a thing
+   you can see rather than compute. Colours are the shared roles:
+   --r-left = list A, --r-right = list B, --r-hit = intersection,
+   retired intervals go hue-less (dim + dashed).
+   ============================================================ */
+.axiswrap { width: 100%; max-width: 620px; display: flex; flex-direction: column; gap: 8px; }
+.ivrow { display: flex; align-items: center; gap: 10px; }
+
+.ivtag {
+  width: 58px; flex-shrink: 0; text-align: right;
+  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--fg-dim); line-height: 1.25;
+}
+.ivtag.a { color: var(--r-left); }
+.ivtag.b { color: var(--r-right); }
+.ivtag.m { color: var(--r-hit); }
+.ivtag small { display: block; font-family: var(--mono); font-size: 10px;
+  font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fg-dim); }
+
+.ivtrack {
+  position: relative; flex: 1; height: 34px; border-radius: 8px;
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+}
+.ivtrack.result { background: transparent; border-style: dashed; border-color: var(--rule); }
+
+.iv {
+  position: absolute; top: 4px; bottom: 4px; min-width: 4px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  font-family: var(--mono); font-size: 10px; letter-spacing: -.01em; white-space: nowrap;
+  transition: opacity .18s, background .18s, border-color .18s, color .18s;
+}
+.iv.a    { background: var(--r-left-wash);  border: 1.5px solid var(--r-left-line);  color: var(--r-left); }
+.iv.b    { background: var(--r-right-wash); border: 1.5px solid var(--r-right-line); color: var(--r-right); }
+.iv.m    { background: var(--r-hit-wash);   border: 1.5px solid var(--r-hit-line);   color: var(--r-hit); }
+.iv.a.cur { border-color: var(--r-left);  border-width: 2px; }
+.iv.b.cur { border-color: var(--r-right); border-width: 2px; }
+/* retired — consumed and discarded, hue-less on purpose */
+.iv.gone { background: transparent; border: 1.5px dashed var(--rule); color: var(--fg-dim); opacity: .42; }
+/* the empty candidate window: lo > hi, i.e. a gap, not an overlap */
+.iv.void { background: transparent; border: 1.5px dashed var(--rule-hard); color: var(--fg-dim); }
+
+/* the whole point: a thick cap on the right edge of whichever
+   interval ends first — that is the one about to be retired. */
+.iv.endsfirst::after {
+  content: ""; position: absolute; right: 0; top: -2px; bottom: -2px;
+  width: 3px; border-radius: 2px; background: currentColor;
+}
+
+.ivaxis { position: relative; flex: 1; height: 16px; }
+.ivaxis .tk {
+  position: absolute; top: 4px; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 9.5px; color: var(--fg-dim); white-space: nowrap;
+}
+.ivaxis .tm { position: absolute; top: 0; width: 1px; height: 4px; background: var(--rule-hard); }
+
+.ivempty {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+}
+
+/* the advance rule, spelled out on every frame */
+.rulebar {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 580px; text-align: center;
+}
+.rulebar b { color: var(--fg-mid); font-weight: 600; }
+.rulebar .l { color: var(--r-left);  font-weight: 600; }
+.rulebar .r { color: var(--r-right); font-weight: 600; }
+.rulebar .m { color: var(--r-hit);   font-weight: 600; }
+.rulebar .x { color: var(--fg-dim);  font-weight: 600; }
+
+.trip.no {
+  color: var(--fg-dim); background: var(--bg-sunk);
+  border-color: var(--rule-hard); border-style: dashed;
+}
+.trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
+
+.sum-line .l { color: var(--r-left); }
+.sum-line .r { color: var(--r-right); }
+.sum-line .m { color: var(--r-hit); }
+.sum-line .x { color: var(--fg-dim); }
+
+.code .cm { color: var(--t-com); font-style: italic; }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+  <div class="eyebrow">Two Pointers &middot; two-sequence advance <span class="tag">LeetCode 986</span></div>
+  <h1>Interval List Intersections <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    Same machine as the string version &mdash; one pointer per sequence, both starting at the left,
+    both only moving right &mdash; except the cells are <em>intervals</em> on a shared number line.
+    The overlap of <span class="l">A[i]</span> and <span class="r">B[j]</span> is always
+    <span class="k">[max(startA, startB), min(endA, endB)]</span>, and it is a real interval only
+    when that <code>lo &le; hi</code>. Then comes the only decision in the problem:
+    <b>retire whichever interval ends first</b>. It is finished &mdash; every remaining interval in the
+    other list starts at or after the one you just compared, so a bar that has already ended can
+    never meet any of them.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="aInput">List A &mdash; sorted, disjoint (start-end, &hellip;)</label>
+      <div class="input-shell">
+        <input id="aInput" type="text" value="0-2, 5-10, 13-23, 24-25" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="bInput">List B &mdash; sorted, disjoint (start-end, &hellip;)</label>
+      <div class="input-shell">
+        <input id="bInput" type="text" value="1-5, 8-12, 15-24, 25-26" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="axiswrap">
+          <div class="ivrow">
+            <div class="ivtag a">A<small>ptr i</small></div>
+            <div class="ivtrack" id="trackA"></div>
+          </div>
+          <div class="ivrow">
+            <div class="ivtag b">B<small>ptr j</small></div>
+            <div class="ivtrack" id="trackB"></div>
+          </div>
+          <div class="ivrow">
+            <div class="ivtag m">&cap;<small>result</small></div>
+            <div class="ivtrack result" id="trackR"></div>
+          </div>
+          <div class="ivrow">
+            <div class="ivtag"></div>
+            <div class="ivaxis" id="axis"></div>
+          </div>
+        </div>
+        <div class="rulebar" id="ruleBar"></div>
+        <div class="sum-line" id="cmpLine"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets" id="resList"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot l"></i>A[i] &mdash; live interval</span>
+        <span><i class="dot r"></i>B[j] &mdash; live interval</span>
+        <span><i class="dot m"></i>recorded intersection</span>
+        <span><i class="dot x"></i>retired / empty overlap</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">O(m + n) time &middot; O(1) extra space beyond the output &nbsp;&middot;&nbsp; each step retires exactly one interval, so the loop runs at most <code>m + n</code> times. The rule to remember: <code>lo = max(starts)</code>, <code>hi = min(ends)</code>, then advance the pointer whose interval ends first.</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['ty','int'],['tx','[][] '],['fn','intervalIntersection'],['tx','('],['kw','int'],['tx','[][] A, '],['kw','int'],['tx','[][] B) {']],
+    [['tx','    '],['ty','List<int[]> '],['tx','res = '],['kw','new '],['tx','ArrayList<>();']],
+    [['tx','    '],['kw','int '],['tx','i = 0, j = 0;']],
+    [['tx','    '],['kw','while '],['tx','(i < A.length && j < B.length) {']],
+    [['tx','        '],['kw','int '],['tx','lo = Math.max(A[i][0], B[j][0]);']],
+    [['tx','        '],['kw','int '],['tx','hi = Math.min(A[i][1], B[j][1]);']],
+    [['tx','        '],['kw','if '],['tx','(lo <= hi) res.add('],['kw','new '],['kw','int'],['tx','[]{lo, hi});']],
+    [['tx','        '],['kw','if '],['tx','(A[i][1] < B[j][1]) i++;   '],['cm','// A ends first -> retire A[i]']],
+    [['tx','        '],['kw','else '],['tx','                 j++;   '],['cm','// B ends first (or ties) -> retire B[j]']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','res.toArray('],['kw','new '],['kw','int'],['tx','[0][]);']],
+    [['tx','}']]
+  ];
+
+  const RULE = `<b>advance rule:</b> retire whichever interval <span class="x">ends first</span> &mdash; it can never meet anything later`;
+
+  const fmt = iv => `[${iv[0]}, ${iv[1]}]`;
+
+  /* ---- the simulation: a real intervalIntersection, one frame per step ---- */
+  function buildFrames(A, B){
+    const F = [], m = A.length, n = B.length, res = [];
+    const snap = () => res.map(r => r.slice());
+
+    F.push({i:0, j:0, res:snap(), phase:'scan', code:2, cmpHtml:'',
+      msg:`Both lists are sorted and internally disjoint &mdash; that is the whole licence for this
+           algorithm. Two pointers, both at <b>0</b>, both only ever moving right.`});
+
+    if(m === 0 || n === 0){
+      F.push({i:0, j:0, res:snap(), phase:'done', code:10, done:true, cmpHtml:'',
+        msg:`${m===0 ? 'List <span class="l">A</span>' : 'List <span class="r">B</span>'} is empty, so the
+             loop never runs. The intersection of anything with nothing is <span class="x">nothing</span>
+             &mdash; return an empty array.`});
+      return F;
+    }
+
+    let i = 0, j = 0;
+
+    while(i < m && j < n){
+      const a = A[i], b = B[j];
+      const lo = Math.max(a[0], b[0]);
+      const hi = Math.min(a[1], b[1]);
+      const aFirst = a[1] < b[1];
+
+      F.push({i, j, res:snap(), lo, hi, show:true, phase:'scan', code:5,
+        cmpHtml:`lo = max(${a[0]}, ${b[0]}) = <b>${lo}</b> &nbsp;&middot;&nbsp; hi = min(${a[1]}, ${b[1]}) = <b>${hi}</b>`,
+        msg:`Compare <span class="l">A[${i}] = ${fmt(a)}</span> against <span class="r">B[${j}] = ${fmt(b)}</span>.
+             The candidate overlap is the <em>later</em> of the two starts up to the <em>earlier</em> of the
+             two ends: <span class="k">[${lo}, ${hi}]</span>.`});
+
+      if(lo <= hi){
+        res.push([lo, hi]);
+        F.push({i, j, res:snap(), lo, hi, show:true, hit:true, phase:'hit', code:6,
+          cmpHtml:`<span class="m">lo &le; hi &rarr; record [${lo}, ${hi}]</span>`,
+          msg:`<b>${lo} &le; ${hi}</b>, so the window is non-empty &mdash; a real intersection.
+               Record <span class="m">[${lo}, ${hi}]</span>. That is result #${res.length}.`});
+      } else {
+        F.push({i, j, res:snap(), lo, hi, show:true, hit:false, phase:'miss', code:6,
+          cmpHtml:`<span class="x">lo = ${lo} &gt; hi = ${hi} &rarr; empty</span>`,
+          msg:`<b>${lo} &gt; ${hi}</b> &mdash; the "overlap" runs backwards, which means these two intervals
+               do not touch at all. The dashed band is the <span class="x">gap</span> between them, not an
+               intersection. Record nothing.`});
+      }
+
+      F.push({i, j, res:snap(), lo, hi, show:true, ends: aFirst ? 'A' : 'B', phase:'advance', code: aFirst ? 7 : 8,
+        cmpHtml: aFirst
+          ? `<span class="l">A end ${a[1]}</span> &lt; <span class="r">B end ${b[1]}</span> &rarr; <span class="l">i++</span>`
+          : `<span class="r">B end ${b[1]}</span> &le; <span class="l">A end ${a[1]}</span> &rarr; <span class="r">j++</span>`,
+        msg: aFirst
+          ? `<span class="l">A[${i}]</span> ends at <b>${a[1]}</b>, before <span class="r">B[${j}]</span>'s
+             <b>${b[1]}</b>. So <span class="l">A[${i}]</span> is finished: every interval after
+             <span class="r">B[${j}]</span> starts at or after ${b[0]}&hellip; and certainly ends later, so none of
+             them can reach back past ${a[1]}. <span class="l">i++</span>. Retiring
+             <span class="r">B[${j}]</span> instead would be a bug &mdash; it may still overlap
+             <span class="l">A[${i+1}]</span>.`
+          : `<span class="r">B[${j}]</span> ends at <b>${b[1]}</b>, at or before <span class="l">A[${i}]</span>'s
+             <b>${a[1]}</b>. So <span class="r">B[${j}]</span> is finished and nothing later in
+             <span class="l">A</span> can reach back to it. <span class="r">j++</span>.
+             <span class="l">A[${i}]</span> stays live &mdash; it may still overlap
+             <span class="r">B[${j+1}]</span>.`});
+
+      if(aFirst) i++; else j++;
+    }
+
+    F.push({i, j, res:snap(), phase:'done', code:10, done:true,
+      cmpHtml: res.length
+        ? `<span class="m">${res.length} intersection${res.length===1?'':'s'}</span>`
+        : `<span class="x">no intersections</span>`,
+      msg: res.length
+        ? `One of the lists ran out (<span class="l">i = ${i}/${m}</span>,
+           <span class="r">j = ${j}/${n}</span>), so nothing further can overlap. Return
+           <span class="m">[${res.map(fmt).join(', ')}]</span>. Every step retired exactly one interval,
+           which is why the whole thing is O(m + n).`
+        : `One of the lists ran out with nothing ever recorded. The two lists never overlap anywhere &mdash;
+           return an <span class="x">empty</span> array.`});
+    return F;
+  }
+
+  /* ---------------------------- wiring ---------------------------- */
+  const $ = id => document.getElementById(id);
+  const trA=$('trackA'), trB=$('trackB'), trR=$('trackR'), axisEl=$('axis'),
+        msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'), countEl=$('stepCount'),
+        codeEl=$('code'), aEl=$('aInput'), bEl=$('bInput'), cmpEl=$('cmpLine'),
+        resEl=$('resList'), ruleEl=$('ruleBar');
+  let frames=[], idx=0, playing=false, timer=null, A=[], B=[], LO=0, HI=1;
+
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  /* pull out every non-negative integer and pair them up; drop
+     malformed / inverted pairs, keep the list sorted and disjoint. */
+  function parseIntervals(str){
+    const nums = (String(str).match(/\d+/g) || []).map(Number);
+    const out = [];
+    for(let k=0;k+1<nums.length;k+=2){
+      const s = nums[k], e = nums[k+1];
+      if(e < s) continue;
+      if(out.length && s <= out[out.length-1][1]) continue;  // must be disjoint & increasing
+      out.push([s, e]);
+      if(out.length === 5) break;
+    }
+    return out;
+  }
+
+  const pct = v => HI === LO ? 0 : ((v - LO) / (HI - LO)) * 100;
+
+  function setScale(){
+    const all = A.concat(B);
+    if(!all.length){ LO = 0; HI = 1; return; }
+    LO = Math.min.apply(null, all.map(x=>x[0]));
+    HI = Math.max.apply(null, all.map(x=>x[1]));
+    const pad = Math.max(1, (HI - LO) * 0.04);
+    LO -= pad; HI += pad;
+  }
+
+  function niceStep(raw){
+    if(!(raw > 0)) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+  }
+
+  function drawAxis(){
+    const step = niceStep((HI - LO) / 6);
+    let html = '';
+    for(let v = Math.ceil(LO / step) * step; v <= HI + 1e-9; v += step){
+      const x = pct(v);
+      html += `<div class="tm" style="left:${x}%"></div><div class="tk" style="left:${x}%">${Math.round(v)}</div>`;
+    }
+    axisEl.innerHTML = html;
+  }
+
+  function barHtml(iv, cls, label){
+    const l = pct(iv[0]), w = Math.max(pct(iv[1]) - l, 0);
+    return `<div class="iv ${cls}" style="left:${l}%;width:${w}%">${label}</div>`;
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+
+    // list A
+    trA.innerHTML = A.length
+      ? A.map((iv,k)=>{
+          let cls = 'a';
+          if(k < f.i) cls = 'gone';
+          else if(k === f.i){ cls = 'a cur'; if(f.ends === 'A') cls += ' endsfirst'; }
+          return barHtml(iv, cls, fmt(iv));
+        }).join('')
+      : `<div class="ivempty">A is empty</div>`;
+
+    // list B
+    trB.innerHTML = B.length
+      ? B.map((iv,k)=>{
+          let cls = 'b';
+          if(k < f.j) cls = 'gone';
+          else if(k === f.j){ cls = 'b cur'; if(f.ends === 'B') cls += ' endsfirst'; }
+          return barHtml(iv, cls, fmt(iv));
+        }).join('')
+      : `<div class="ivempty">B is empty</div>`;
+
+    // result track: everything recorded, plus the live candidate window
+    let r = f.res.map(iv => barHtml(iv, 'm', fmt(iv))).join('');
+    if(f.show && f.lo > f.hi){
+      r += barHtml([f.hi, f.lo], 'void', '&empty;');
+    }
+    trR.innerHTML = r || `<div class="ivempty">nothing recorded yet</div>`;
+
+    ruleEl.innerHTML = RULE;
+    cmpEl.innerHTML = f.cmpHtml || '';
+    msgEl.innerHTML = f.msg;
+    resEl.innerHTML = f.res.length
+      ? `<span class="trip">res = [${f.res.map(fmt).join(', ')}]</span>`
+      : `<span class="trip no">res = [] &nbsp;&middot;&nbsp; nothing recorded yet</span>`;
+
+    const pmap={scan:['scan','&#9679; comparing'],hit:['found','&#10003; overlap'],
+                miss:['sort','&#8709; empty'],advance:['scan','&#8594; retire'],done:['done','&#9632; complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.innerHTML=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(aRaw, bRaw){
+    stop();
+    A = parseIntervals(aRaw); B = parseIntervals(bRaw);
+    setScale(); drawAxis();
+    frames = buildFrames(A, B);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').innerHTML='&#10074;&#10074;'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').innerHTML='&#9654;'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['0-2, 5-10, 13-23, 24-25', '1-5, 8-12, 15-24, 25-26', 'LeetCode example, 6 hits'],
+    ['0-5',                     '6-10',                    'disjoint, empty result'],
+    ['1-7',                     '2-3, 4-5, 6-8',           'one long A swallows three B'],
+    ['1-3, 5-9',                '',                        'B empty, empty result'],
+    ['0-2, 5-10',               '2-5',                     'touching ends, [2,2] and [5,5]'],
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(([a,b,note])=>{
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`A=${esc(a.replace(/\s/g,''))||'∅'} B=${esc(b.replace(/\s/g,''))||'∅'}<b>${note}</b>`;
+      c.onclick=()=>{ aEl.value=a; bEl.value=b; run(a,b); }; box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(aEl.value, bEl.value);
+  aEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(aEl.value, bEl.value); });
+  bEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(aEl.value, bEl.value); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===aEl || document.activeElement===bEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(aEl.value, bEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>560 &middot; Subarray Sum Equals K &mdash; visual guide</title>
+<meta name="description" content="A sliding window has no legal move when the array contains negatives. Watch it undercount, then watch prefix sums plus a hash map get it right.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ============================================================
+   Anti-pattern pages (LC 862 / 560 / 395): two acts on one
+   timeline. Act 1 runs the naive sliding window and lets it be
+   wrong; Act 2 runs the real algorithm. Built only from the
+   house tokens, plus --r-window (the live span) which the base
+   palette does not carry.
+   ============================================================ */
+:root {
+  --r-window: #12666e; --r-window-wash: rgba(18, 102, 110, 0.10); --r-window-line: rgba(18, 102, 110, 0.42);
+}
+html[data-theme="dark"] {
+  --r-window: #63c6d4; --r-window-wash: rgba(99, 198, 212, 0.14); --r-window-line: rgba(99, 198, 212, 0.46);
+}
+
+/* ---- act pills ---- */
+.phase-pill.act1  { color: var(--accent);    border-color: var(--accent-line);   background: var(--accent-wash); }
+.phase-pill.act2  { color: var(--r-window);  border-color: var(--r-window-line); background: var(--r-window-wash); }
+.phase-pill.hit   { color: var(--r-hit);     border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+.phase-pill.broke { color: var(--accent-fg); border-color: var(--accent);        background: var(--accent); font-weight: 600; }
+
+/* ---- extra cell states ---- */
+.cell.win  { background: var(--r-window-wash); border-color: var(--r-window); color: var(--r-window); }
+.cell.win.gh { border-style: dashed; background: transparent; }
+.cell.miss { border-style: dashed; border-color: var(--fg-dim); color: var(--fg-dim); background: var(--bg-sunk); opacity: .72; }
+.cell.lost {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim); color: var(--fg-dim);
+  text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+.cell.sm { font-size: 14px; }
+.caret .pW { color: var(--accent-fg); background: var(--r-window); }
+.caret .pK { color: var(--accent-fg); background: var(--r-hit); }
+
+/* ---- tapes ---- */
+.taperow { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.taperow.off { display: none; }
+.tapelab {
+  font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--fg-dim);
+}
+.tapelab em { font-style: normal; font-family: var(--mono); text-transform: none; letter-spacing: 0; color: var(--fg-mid); }
+.tape.narrow .col { width: 42px; }
+@media (max-width: 560px) { .tape.narrow .col { width: 31px; } }
+.tape.narrow .cell { font-size: 15px; }
+.tape.tiny .col { width: 36px; }
+@media (max-width: 560px) { .tape.tiny .col { width: 27px; } }
+.tape.tiny .cell { font-size: 13px; }
+
+/* ---- the governing rule, restated on every frame ---- */
+.rulebar {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 620px; text-align: center;
+}
+.rulebar b { color: var(--fg-mid); font-weight: 600; }
+.rulebar .i { color: var(--r-anchor); font-weight: 600; }
+.rulebar .l { color: var(--r-left);   font-weight: 600; }
+.rulebar .r { color: var(--r-right);  font-weight: 600; }
+.rulebar .w { color: var(--r-window); font-weight: 600; }
+.rulebar .m { color: var(--r-hit);    font-weight: 600; }
+.rulebar .x { color: var(--fg-dim);   font-weight: 600; }
+
+/* ---- the moment the invariant breaks: loudest thing on the page ---- */
+.breakcard {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.6; color: var(--accent);
+  background: var(--accent-wash); border: 2px solid var(--accent);
+  border-radius: 10px; padding: 11px 18px; max-width: 640px; text-align: center;
+}
+.breakcard.off { display: none; }
+.breakcard b { color: var(--accent); font-weight: 700; }
+.breakcard .hdr {
+  display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; margin-bottom: 5px; opacity: .85;
+}
+.breakcard .k {
+  font-family: var(--mono); font-size: .88em; background: var(--bg-sunk);
+  border: 1px solid var(--accent-line); padding: 1px 5px; border-radius: 4px;
+}
+
+/* ---- the two answers, side by side, permanently ---- */
+.verdicts { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.vcard {
+  border: 1.5px solid var(--rule-hard); border-radius: 10px; padding: 8px 16px; min-width: 150px;
+  background: var(--bg-sunk); font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); text-align: center;
+}
+.vcard .val {
+  display: block; font-family: var(--mono); font-size: 21px; font-weight: 500;
+  letter-spacing: 0; text-transform: none; margin-top: 3px; color: var(--fg-mid);
+}
+.vcard.pending .val { opacity: .3; }
+.vcard.live  { border-color: var(--r-window); background: var(--r-window-wash); color: var(--r-window); }
+.vcard.live .val { color: var(--r-window); }
+.vcard.wrong { border-style: dashed; border-color: var(--fg-dim); }
+.vcard.wrong .val { color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.vcard.right { border-color: var(--r-hit); background: var(--r-hit-wash); color: var(--r-hit); }
+.vcard.right .val { color: var(--r-hit); }
+
+/* ---- monotonic deque strip (862) ---- */
+.dq { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; min-height: 32px; }
+.dqi {
+  font-family: var(--mono); font-size: 12.5px; padding: 4px 10px; border-radius: 8px;
+  border: 1.5px solid var(--r-window-line); background: var(--r-window-wash); color: var(--r-window);
+}
+.dqi small { font-size: 10px; opacity: .8; }
+.dqi.front { border-color: var(--r-anchor); background: var(--r-anchor-wash); color: var(--r-anchor); font-weight: 600; }
+.dqi.gone {
+  border-style: dashed; border-color: var(--fg-dim); background: var(--bg-sunk); color: var(--fg-dim);
+  text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+.dqi.newp { border-color: var(--r-hit); background: var(--r-hit-wash); color: var(--r-hit); }
+.dqempty { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); opacity: .65; }
+
+/* ---- live hash map / counter panel (560, 395) ---- */
+.panel { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 640px; min-height: 30px; }
+.prow {
+  font-family: var(--mono); font-size: 12.5px; padding: 3px 10px; border-radius: 8px;
+  border: 1.5px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-mid);
+}
+.prow.look { border-color: var(--r-anchor); background: var(--r-anchor-wash); color: var(--r-anchor); font-weight: 600; }
+.prow.ins  { border-color: var(--r-window); background: var(--r-window-wash); color: var(--r-window); }
+.prow.ok   { border-color: var(--r-hit);    background: var(--r-hit-wash);    color: var(--r-hit); }
+.prow.low  { border-style: dashed; border-color: var(--fg-dim); color: var(--fg-dim); }
+.prow.seed { border-color: var(--r-hit); background: var(--r-hit-wash); color: var(--r-hit); border-style: dashed; }
+
+/* ---- result pills: a found span, or one the window never saw ---- */
+.trip small { font-size: 10.5px; opacity: .75; }
+.trip.no {
+  color: var(--fg-dim); background: var(--bg-sunk);
+  border-color: var(--fg-dim); border-style: dashed;
+}
+
+/* ---- scoreboard line ---- */
+.statline {
+  font-family: var(--mono); font-size: 13px; color: var(--fg-dim);
+  display: flex; gap: 8px 18px; flex-wrap: wrap; justify-content: center; align-items: center;
+}
+.statline b { color: var(--fg); font-weight: 500; }
+.statline .w { color: var(--r-window); font-weight: 500; }
+.statline .m { color: var(--r-hit);    font-weight: 500; }
+.statline .i { color: var(--r-anchor); font-weight: 500; }
+.statline .x { color: var(--fg-dim); }
+
+.message .w { color: var(--r-window); font-weight: 600; }
+.lede .w    { color: var(--r-window); font-weight: 600; }
+.lede .m    { color: var(--r-hit);    font-weight: 600; }
+.lede em    { font-style: italic; }
+
+/* ---- act switch, inside the transport ---- */
+.btn.small { height: 34px; font-size: 12.5px; padding: 0 13px; border-radius: 8px; }
+.btn.small.on { border-color: var(--accent); color: var(--accent); background: var(--accent-wash); font-weight: 600; }
+.actsep { width: 1px; align-self: stretch; background: var(--rule); margin: 0 2px; }
+
+.code .cm { color: var(--t-com); font-style: italic; }
+.code .st { color: var(--t-str); }
+.code .nu { color: var(--t-num); }
+
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+  <div class="eyebrow">Sliding Window &middot; anti-pattern <span class="tag">LeetCode 560</span></div>
+  <h1>Subarray Sum Equals K <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    A sliding window needs a <em>direction</em>: extending right must push the sum one way, shrinking
+    left must push it the other, so that &ldquo;too big&rdquo; and &ldquo;too small&rdquo; each have exactly one
+    legal move. With negative values in the array, adding an element can <em>lower</em> the sum, and the
+    window is left with no rule for when to shrink &mdash; it has no legal move at all.
+    <b>Act 1</b> runs the window anyway and undercounts.
+    <b>Act 2</b> drops the window for prefix sums and a <span class="w">hash map of counts</span>:
+    <code>count += seen[P − k]</code>, then <code>seen[P]++</code>. Two details do all the work &mdash;
+    the map is seeded with <code>seen[0] = 1</code> for the empty prefix, and the lookup happens
+    <em>before</em> the insert.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Array (comma-separated, negatives allowed)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="3, 4, -7, 1, 3, 3, 1, -4" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <div class="field" style="flex:0 0 150px; min-width:150px">
+      <label for="kInput">k &mdash; target sum</label>
+      <div class="input-shell">
+        <input id="kInput" type="text" value="7" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="taperow">
+          <div class="tapelab"><em>a</em> &nbsp;the array</div>
+          <div class="tape narrow" id="tape"></div>
+        </div>
+        <div class="taperow off" id="prow">
+          <div class="tapelab"><em>P</em> &nbsp;running prefix &middot; sum(a[x…y]) = <em>P[y+1] − P[x]</em></div>
+          <div class="tape tiny" id="ptape"></div>
+        </div>
+        <div class="taperow off" id="mrow">
+          <div class="tapelab">seen &nbsp;<em>prefix value &rarr; how many times</em></div>
+          <div class="panel" id="hmap"></div>
+        </div>
+        <div class="rulebar" id="ruleBar"></div>
+        <div class="statline" id="statLine"></div>
+        <div class="breakcard off" id="breakCard"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets" id="found"></div>
+        <div class="verdicts" id="verdicts"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <span class="actsep"></span>
+        <button class="btn small" id="act1Btn" title="Jump to Act 1">Act 1</button>
+        <button class="btn small" id="act2Btn" title="Jump to Act 2">Act 2</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2><span class="phase-pill" id="codeTag">act 1</span></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot l"></i>left / window start</span>
+        <span><i class="dot r"></i>right / current index</span>
+        <span><i class="dot i"></i>the key being looked up</span>
+        <span><i class="dot m"></i>subarray counted</span>
+        <span><i class="dot x"></i>missed by the window</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Act 1 O(n) and wrong &middot; Act 2 O(n) time, O(n) space
+    &nbsp;&middot;&nbsp; when the predicate is not monotone in the window, stop looking for a shrink rule &mdash;
+    reach for <code>prefix[j] = prefix[i] − k</code> and let a hash map hold every start index at once.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE1 = [
+    [['cm','// the window — assumes “extend right ⇒ sum goes up”. It does not.']],
+    [['kw','int '],['fn','naiveWindow'],['tx','('],['kw','int'],['tx','[] a, '],['kw','int'],['tx',' k) {']],
+    [['tx','    '],['kw','int '],['tx','left = 0, sum = 0, count = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < a.length; r++) {']],
+    [['tx','        sum += a[r];']],
+    [['tx','        '],['kw','while '],['tx','(sum > k && left <= r) sum -= a[left++];  '],['cm','// “too big”']],
+    [['tx','        '],['kw','if '],['tx','(sum == k) count++;                       '],['cm','// “just right”']],
+    [['tx','    }                              '],['cm','// and “too small”? no move exists.']],
+    [['tx','    '],['kw','return '],['tx','count;']],
+    [['tx','}']]
+  ];
+
+  const CODE2 = [
+    [['kw','int '],['fn','subarraySum'],['tx','('],['kw','int'],['tx','[] a, '],['kw','int'],['tx',' k) {']],
+    [['tx','    '],['ty','Map<Integer,Integer> '],['tx','seen = '],['kw','new '],['tx','HashMap<>();']],
+    [['tx','    seen.put(0, 1);           '],['cm','// the EMPTY prefix — seed it or lose']],
+    [['tx','                              '],['cm','// every subarray that starts at index 0']],
+    [['tx','    '],['kw','int '],['tx','prefix = 0, count = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','x : a) {']],
+    [['tx','        prefix += x;']],
+    [['tx','        count += seen.getOrDefault(prefix - k, 0);  '],['cm','// LOOK UP first']],
+    [['tx','        seen.merge(prefix, 1, Integer::sum);        '],['cm','// …THEN insert']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','count;']],
+    [['tx','}']]
+  ];
+
+  const RULE1 = '<b>act 1 rule:</b> <span class="r">r++</span> always &middot; <span class="l">shrink while sum &gt; k</span> &middot; count when <span class="m">sum == k</span> &mdash; needs sum monotone in the window';
+  const RULE2 = '<b>act 2 rule:</b> a[x…y] = k &hArr; <span class="w">P[y+1] &minus; P[x] = k</span> &hArr; <span class="i">P[x] = P[i] &minus; k</span> &middot; look up, <em>then</em> insert';
+
+  function pill(i,j,arr){
+    return '<span class="trip">a[' + i + '…' + j + '] = [' + arr.slice(i,j+1).join(', ') + ']</span>';
+  }
+  function pillX(i,j,arr){
+    return '<span class="trip no">a[' + i + '…' + j + '] = [' + arr.slice(i,j+1).join(', ') + ']</span>';
+  }
+
+  function buildFrames(a, k){
+    const n = a.length, F = [];
+
+    /* ground truth by brute force — only used to prove Act 1 wrong */
+    const truthList = [];
+    for(let i=0;i<n;i++){ let s=0; for(let j=i;j<n;j++){ s+=a[j]; if(s===k) truthList.push([i,j]); } }
+    const truth = truthList.length;
+
+    if(n===0){
+      F.push({act:1, code:8, phase:'done', rule:RULE1, l:-1, r:-1, v1:0, v2:0, v0:0,
+        stat:'', found:[], msg:'Empty array — nothing to count.'});
+      return {F, truth};
+    }
+
+    /* ============ ACT 1 : the window ============ */
+    let left=0, sum=0, count=0, brokeOnce=false, overshotOnce=false;
+    const got = [];          // spans the window actually counted
+    const foundPills = [];
+
+    F.push({act:1, code:2, phase:'act1', rule:RULE1, l:0, r:-1, v1:null, v2:null, v0:null,
+      stat:'sum = <b>0</b> &middot; count = <b>0</b>', found:[],
+      msg:'<b>Act 1.</b> One <span class="l">left</span>, one running <span class="k">sum</span>, one counter. ' +
+          'The window can only be in one place at a time — remember that.'});
+
+    for(let r=0;r<n;r++){
+      const before = sum;
+      sum += a[r];
+      const dropped = a[r] < 0;
+      if(dropped && !brokeOnce){
+        brokeOnce = true;
+        F.push({act:1, code:4, phase:'broke', rule:RULE1, l:left, r:r, v1:null, v2:null, v0:null,
+          stat:'sum ' + before + ' &rarr; <b>' + sum + '</b> &middot; the window got <em>bigger</em>', found:foundPills.slice(),
+          brk:'<span class="hdr">the invariant just broke</span>' +
+              'We extended the window by one element and the sum went <b>down</b>, from ' + before + ' to ' + sum + ', ' +
+              'because <span class="k">a[' + r + '] = ' + a[r] + '</span> is negative. ' +
+              'A window algorithm needs &ldquo;bigger window &rArr; bigger sum&rdquo;. Without it, ' +
+              '&ldquo;sum too small&rdquo; has <b>no legal move</b>: growing right might not help and shrinking left might not either.',
+          msg:'Growing the window <em>lowered</em> the sum. Every shrink rule you could write from here is a guess.'});
+      }
+      F.push({act:1, code:4, phase:'act1', rule:RULE1, l:left, r:r, v1:null, v2:null, v0:null,
+        stat:'sum(<span class="l">' + left + '</span>…<span class="r">' + r + '</span>) = <b>' + sum + '</b> &middot; k = <b>' + k + '</b> &middot; count = <b>' + count + '</b>',
+        found:foundPills.slice(),
+        msg:'Extend to <span class="r">r=' + r + '</span>: add <b>' + a[r] + '</b>. sum = <b>' + sum + '</b>.'});
+
+      let shrank=false, sumBeforeShrink=sum;
+      while(sum > k && left <= r){
+        const d = a[left]; sum -= d; left++;
+        shrank = true;
+        F.push({act:1, code:5, phase:'act1', rule:RULE1, l:left, r:r, v1:null, v2:null, v0:null, dropped:left-1,
+          stat:'sum &gt; k &rarr; drop a[' + (left-1) + '] = <b>' + d + '</b> &rarr; sum = <b>' + sum + '</b>',
+          found:foundPills.slice(),
+          msg:'sum was too big, so shrink: drop <span class="x">a[' + (left-1) + '] = ' + d + '</span>, <span class="l">left</span> &rarr; ' + left + '.'});
+      }
+      if(shrank && sum < k && !overshotOnce){
+        overshotOnce = true;
+        F.push({act:1, code:5, phase:'broke', rule:RULE1, l:left, r:r, v1:null, v2:null, v0:null,
+          stat:'shrank past it: ' + sumBeforeShrink + ' &rarr; <b>' + sum + '</b>, straight over k = ' + k,
+          found:foundPills.slice(),
+          brk:'<span class="hdr">the window overshot</span>' +
+              'The sum jumped from <b>' + sumBeforeShrink + '</b> (above k) to <b>' + sum + '</b> (below k) with no stop at ' + k + '. ' +
+              'The window is a single contiguous span, so it can only test <em>one</em> start index per right end. ' +
+              'Every other start that ends at ' + r + ' is now unreachable.',
+          msg:'One right end has up to ' + (r+1) + ' possible starts. The window looked at exactly one of them.'});
+      }
+      if(sum === k){
+        count++; got.push([left, r]);
+        foundPills.push(pill(left, r, a));
+        F.push({act:1, code:6, phase:'hit', rule:RULE1, l:left, r:r, v1:null, v2:null, v0:null, rec:true,
+          stat:'sum == k &middot; count = <span class="m">' + count + '</span>', found:foundPills.slice(),
+          msg:'<span class="m">sum == ' + k + '</span> — count <span class="k">a[' + left + '…' + r + ']</span>. count = <b>' + count + '</b>.'});
+      }
+    }
+
+    /* which true subarrays did the window never even look at? */
+    const missed = truthList.filter(function(t){
+      return !got.some(function(g){ return g[0]===t[0] && g[1]===t[1]; });
+    });
+    const wrong = count !== truth;
+
+    if(wrong){
+      F.push({act:1, code:8, phase:'broke', rule:RULE1, l:-1, r:-1, v1:null, v2:null, v0:null,
+        miss: missed.length ? missed[0] : null,
+        stat:'window counted <span class="x">' + count + '</span> &middot; there are <span class="m">' + truth + '</span>',
+        found: foundPills.slice().concat(missed.map(function(t){ return pillX(t[0],t[1],a); })),
+        brk:'<span class="hdr">act 1 verdict</span>' +
+            'The window counted <b>' + count + '</b>. The true answer is <b>' + truth + '</b>. ' +
+            'The dashed pills are the ' + missed.length + ' subarray' + (missed.length>1?'s':'') + ' it never had in view — ' +
+            'each one needed a start index the single left pointer had already walked past, or had not reached yet.',
+        msg:'The window is not slightly wrong. It is structurally incapable of seeing more than one start per right end.'});
+    }
+
+    F.push({act:1, code:8, phase: wrong ? 'broke' : 'done', rule:RULE1, l:-1, r:-1,
+      v1:count, v2:null, v0:null,
+      stat:'act 1 returns <b>' + count + '</b>',
+      found: foundPills.slice().concat(missed.map(function(t){ return pillX(t[0],t[1],a); })),
+      msg: wrong
+        ? 'Act 1 returns <span class="x">' + count + '</span>. Now the algorithm that keeps every start index alive at once.'
+        : 'Act 1 returns <span class="m">' + count + '</span> — right, because nothing here broke the monotonicity it assumes. Act 2 confirms it.'});
+
+    /* ============ ACT 2 : prefix sums + hash map ============ */
+    const P = new Array(n+1).fill(0);
+    for(let i=0;i<n;i++) P[i+1] = P[i] + a[i];
+
+    const seen = new Map();       // prefix value -> array of prefix indices
+    const seen2 = new Map();      // the same run WITHOUT the seed
+    let prefix = 0, c = 0, c2 = 0;
+    const pills = [];
+    const mapSnap = function(look, ins, seedFlag){
+      const rows = [];
+      Array.from(seen.keys()).sort(function(x,y){ return x-y; }).forEach(function(key){
+        let cls='prow';
+        if(look!==undefined && key===look) cls+=' look';
+        else if(ins!==undefined && key===ins) cls+=' ins';
+        else if(seedFlag && key===0) cls+=' seed';
+        rows.push('<span class="'+cls+'">P=' + key + ' <b>&times;' + seen.get(key).length + '</b></span>');
+      });
+      return rows;
+    };
+
+    seen.set(0,[0]);
+    F.push({act:2, code:2, phase:'act2', rule:RULE2, P, i:0, v1:count, v2:null, v0:null,
+      map: mapSnap(undefined, undefined, true), found:[],
+      stat:'seen = { 0 &rarr; 1 } &middot; count = <b>0</b> &middot; <span class="x">no-seed count = 0</span>',
+      msg:'<b>Act 2.</b> Seed <span class="k">seen[0] = 1</span> before the loop. That entry is the <em>empty prefix</em>, ' +
+          'P[0] = 0, standing for &ldquo;the subarray starts at index 0&rdquo;. Skip it and every answer that begins at ' +
+          'index 0 becomes invisible — we will run a shadow copy without it and count the damage.'});
+
+    for(let i=0;i<n;i++){
+      prefix += a[i];
+      F.push({act:2, code:6, phase:'act2', rule:RULE2, P, i:i+1, v1:count, v2:null, v0:null,
+        map: mapSnap(), found:pills.slice(),
+        stat:'i = <span class="r">' + i + '</span> &middot; prefix = P[' + (i+1) + '] = <b>' + prefix + '</b>',
+        msg:'Absorb <b>' + a[i] + '</b>. Running prefix = <b>' + prefix + '</b> — the sum of everything up to and including index ' + i + '.'});
+
+      const need = prefix - k;
+      const hitsArr = seen.get(need) || [];
+      const hits = hitsArr.length;
+      const hits2 = (seen2.get(need) || []).length;
+      c += hits; c2 += hits2;
+      hitsArr.forEach(function(j){ pills.push(pill(j, i, a)); });
+
+      F.push({act:2, code:7, phase: hits ? 'hit' : 'act2', rule:RULE2, P, i:i+1,
+        v1:count, v2:null, v0:null, look:need, hitStarts:hitsArr.slice(),
+        map: mapSnap(need), found:pills.slice(),
+        stat:'need P[x] = prefix &minus; k = ' + prefix + ' &minus; ' + k + ' = <span class="i">' + need + '</span> &middot; seen has <b>' + hits + '</b> &middot; count = <b>' + c + '</b>' +
+             ' &middot; <span class="x">no-seed = ' + c2 + '</span>',
+        msg: hits
+          ? '<span class="m">' + hits + ' hit' + (hits>1?'s':'') + '.</span> Prefix <span class="i">' + need + '</span> occurred at index' + (hits>1?'es':'') + ' ' +
+            hitsArr.join(', ') + ', so a[' + hitsArr.join('…' + i + '], a[') + '…' + i + '] each sum to ' + k + '. count = <b>' + c + '</b>.' +
+            (hits2 < hits ? ' <span class="x">The shadow map without the seed found only ' + hits2 + '.</span>' : '')
+          : 'Prefix <span class="i">' + need + '</span> has never been seen, so no subarray ending at index ' + i + ' sums to ' + k + '.'});
+
+      const before = (seen.get(prefix)||[]).length;
+      if(!seen.has(prefix)) seen.set(prefix, []);
+      seen.get(prefix).push(i+1);
+      if(!seen2.has(prefix)) seen2.set(prefix, []);
+      seen2.get(prefix).push(i+1);
+
+      F.push({act:2, code:8, phase:'act2', rule:RULE2, P, i:i+1, v1:count, v2:null, v0:null, ins:prefix,
+        map: mapSnap(undefined, prefix), found:pills.slice(),
+        stat:'seen[' + prefix + '] : ' + before + ' &rarr; <b>' + (before+1) + '</b> &middot; count = <b>' + c + '</b>',
+        msg:'Only <em>now</em> insert P[' + (i+1) + '] = <b>' + prefix + '</b>. ' +
+            (k===0
+              ? 'Order matters most exactly here: with <span class="k">k = 0</span> the key we look up <em>is</em> the key we insert, so inserting first would let every prefix match itself and count the empty subarray.'
+              : 'Inserting before the lookup would let a prefix match itself whenever k = 0, and more generally lets index i pair with itself. Look up the past, then join it.')});
+    }
+
+    F.push({act:2, code:10, phase:'done', rule:RULE2, P, i:-1, v1:count, v2:c, v0:c2,
+      map: mapSnap(), found:pills.slice(),
+      stat:'act 2 returns <b>' + c + '</b> &middot; <span class="x">without seen[0]=1 it returns ' + c2 + '</span>',
+      msg:'<span class="m">' + c + '</span> subarrays sum to ' + k + '. ' +
+          (wrong ? 'The window said <span class="x">' + count + '</span>. ' : 'The window agreed here. ') +
+          (c2 < c
+            ? 'And the shadow run without <span class="k">seen[0] = 1</span> returns <span class="x">' + c2 + '</span> — it lost the ' +
+              (c-c2) + ' subarray' + (c-c2>1?'s':'') + ' that start at index 0, because nothing ever recorded &ldquo;prefix 0, seen once, before we began&rdquo;.'
+            : 'Here the seed happens to cost nothing — no answer starts at index 0 — which is exactly why the bug survives testing.')});
+
+    return {F, truth};
+  }
+
+  /* ---------------- wiring ---------------- */
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), ptapeEl=$('ptape'), prowEl=$('prow'), mrowEl=$('mrow'), hmapEl=$('hmap'),
+        msgEl=$('message'), pillEl=$('phasePill'), codeTagEl=$('codeTag'), barEl=$('bar'),
+        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'), kEl=$('kInput'),
+        ruleEl=$('ruleBar'), statEl=$('statLine'), brkEl=$('breakCard'), verdEl=$('verdicts'),
+        foundEl=$('found');
+  let frames=[], idx=0, playing=false, timer=null, arr=[], K=0, renderedAct=0, act2Start=0;
+
+  function esc(x){ return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderCode(which){
+    const C = which===1 ? CODE1 : CODE2;
+    codeEl.innerHTML = C.map(function(line,i){
+      const tx = line.map(function(p){ return '<span class="'+p[0]+'">'+esc(p[1])+'</span>'; }).join('');
+      return '<div class="ln" data-line="'+i+'"><span class="no">'+(i+1)+'</span>'+tx+'</div>';
+    }).join('');
+    renderedAct = which;
+    codeTagEl.textContent = which===1 ? 'act 1 · the window' : 'act 2 · prefix + map';
+    codeTagEl.className = 'phase-pill ' + (which===1 ? 'act1' : 'act2');
+  }
+  function parseArr(s){
+    return s.split(',').map(function(x){return x.trim();}).filter(function(x){return x!=='';})
+            .map(Number).filter(function(x){return !isNaN(x);}).slice(0,10);
+  }
+  function parseK(s){ const v=Number(String(s).trim()); return isNaN(v)?0:v; }
+
+  function buildTape(el, len){
+    el.innerHTML='';
+    for(let q=0;q<len;q++){
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML='<div class="caret" data-caret="'+q+'"></div>'+
+                    '<div class="cell" data-cell="'+q+'"></div>'+
+                    '<div class="idx" data-idx="'+q+'">'+q+'</div>';
+      el.appendChild(col);
+    }
+  }
+
+  function render(){
+    const f=frames[idx]; if(!f) return;
+    if(renderedAct!==f.act) renderCode(f.act);
+
+    for(let q=0;q<arr.length;q++){
+      const cell=tapeEl.querySelector('[data-cell="'+q+'"]');
+      const car =tapeEl.querySelector('[data-caret="'+q+'"]');
+      const lab =tapeEl.querySelector('[data-idx="'+q+'"]');
+      cell.textContent=arr[q];
+      let cls='cell';
+      if(f.act===1){
+        if(f.l>=0 && f.r>=0 && q>=f.l && q<=f.r) cls += f.rec ? ' found' : ' win';
+        if(f.dropped===q) cls += ' lost';
+        if(f.miss && q>=f.miss[0] && q<=f.miss[1]) cls += ' miss';
+      } else {
+        if(f.hitStarts && f.hitStarts.length && f.i>0){
+          const lo = Math.min.apply(null, f.hitStarts);
+          if(q>=lo && q<=f.i-1) cls += ' win';
+          if(q===f.i-1) cls += ' found';
+        } else if(f.i>0 && q===f.i-1) cls += ' right';
+      }
+      cell.className=cls;
+      car.innerHTML='';
+      if(f.act===1){
+        if(q===f.l) car.innerHTML+='<span class="p pL">L</span>';
+        if(q===f.r) car.innerHTML+='<span class="p pR">R</span>';
+      } else if(f.i>0 && q===f.i-1){
+        car.innerHTML='<span class="p pR">i</span>';
+      }
+      car.style.opacity = car.innerHTML ? '1' : '0';
+      lab.classList.toggle('on', f.act===1 ? (q===f.l||q===f.r) : (q===f.i-1));
+    }
+
+    prowEl.classList.toggle('off', f.act!==2);
+    mrowEl.classList.toggle('off', f.act!==2);
+    if(f.act===2 && f.P){
+      for(let q=0;q<f.P.length;q++){
+        const cell=ptapeEl.querySelector('[data-cell="'+q+'"]');
+        const car =ptapeEl.querySelector('[data-caret="'+q+'"]');
+        const lab =ptapeEl.querySelector('[data-idx="'+q+'"]');
+        if(!cell) continue;
+        cell.textContent=f.P[q];
+        let cls='cell sm';
+        if(f.i>=0 && q<f.i) cls+=' skipped';
+        if(f.hitStarts && f.hitStarts.indexOf(q)>=0) cls+=' found';
+        if(q===f.i) cls+=' right';
+        if(f.ins!==undefined && q===f.i) cls+=' win';
+        cell.className=cls;
+        car.innerHTML = (q===f.i) ? '<span class="p pR">P</span>' : '';
+        car.style.opacity = car.innerHTML ? '1':'0';
+        lab.classList.toggle('on', q===f.i);
+      }
+      hmapEl.innerHTML = (f.map && f.map.length) ? f.map.join('') : '<span class="dqempty">( empty )</span>';
+    }
+
+    ruleEl.innerHTML=f.rule||'';
+    statEl.innerHTML=f.stat||'';
+    msgEl.innerHTML=f.msg||'';
+    foundEl.innerHTML=(f.found||[]).join('');
+    if(f.brk){ brkEl.innerHTML=f.brk; brkEl.classList.remove('off'); } else brkEl.classList.add('off');
+
+    const v1=f.v1, v2=f.v2, v0=f.v0;
+    const wrong1=(v1!==null && v2!==null && v1!==v2);
+    verdEl.innerHTML =
+      '<div class="vcard '+(v1===null?'pending':(wrong1?'wrong':(v2!==null?'right':'live')))+'">Act 1 &middot; the window<span class="val">'+(v1===null?'…':v1)+'</span></div>'+
+      '<div class="vcard '+(v0===null?'pending':(v2!==null&&v0!==v2?'wrong':'right'))+'">Act 2 &middot; no seen[0]=1<span class="val">'+(v0===null?'…':v0)+'</span></div>'+
+      '<div class="vcard '+(v2===null?'pending':'right')+'">Act 2 &middot; prefix + map<span class="val">'+(v2===null?'…':v2)+'</span></div>';
+
+    const pmap={act1:['act1','● act 1 · naive window'], act2:['act2','● act 2 · prefix + map'],
+                hit:['hit','✓ counted'], broke:['broke','⚠ invariant broken'], done:['done','■ complete']};
+    const pm=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pm[0]; pillEl.textContent=pm[1];
+
+    codeEl.querySelectorAll('.ln').forEach(function(l){ l.classList.remove('exec'); });
+    const line=codeEl.querySelector('[data-line="'+f.code+'"]'); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=(idx+1)+' / '+frames.length;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+    $('act1Btn').classList.toggle('on', f.act===1);
+    $('act2Btn').classList.toggle('on', f.act===2);
+  }
+
+  function run(str,kstr){
+    stop();
+    arr=parseArr(str); K=parseK(kstr);
+    buildTape(tapeEl, arr.length);
+    buildTape(ptapeEl, arr.length+1);
+    const out=buildFrames(arr,K);
+    frames=out.F;
+    act2Start=frames.findIndex(function(f){ return f.act===2; });
+    if(act2Start<0) act2Start=frames.length-1;
+    renderedAct=0; idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){ idx++; render(); } else stop(); }
+  function prev(){ if(idx>0){ idx--; render(); } }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){ stop(); return; } timer=setTimeout(function(){ idx++; tick(); }, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['3, 4, -7, 1, 3, 3, 1, -4','7','window counts 2 · truth 4'],
+    ['1, -1, 1, -1, 1','1','window 3 · truth 6'],
+    ['-1, -1, 1','0','k = 0 — window finds nothing'],
+    ['2, 0, 2','2','the seed seen[0]=1 earns 2 of the 4'],
+    ['1, 2, 3','3','all positive — the window is correct']
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(function(e){
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML='['+e[0].replace(/\s/g,'')+'] k='+e[1]+'<b>'+e[2]+'</b>';
+      c.onclick=function(){ inputEl.value=e[0]; kEl.value=e[1]; run(e[0],e[1]); };
+      box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=function(){ run(inputEl.value,kEl.value); };
+  inputEl.addEventListener('keydown',function(e){ if(e.key==='Enter') run(inputEl.value,kEl.value); });
+  kEl.addEventListener('keydown',function(e){ if(e.key==='Enter') run(inputEl.value,kEl.value); });
+  $('nextBtn').onclick=function(){ stop(); next(); };
+  $('prevBtn').onclick=function(){ stop(); prev(); };
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=function(){ stop(); idx=0; render(); };
+  $('act1Btn').onclick=function(){ stop(); idx=0; render(); };
+  $('act2Btn').onclick=function(){ stop(); idx=act2Start; render(); };
+  document.addEventListener('keydown',function(e){
+    if(document.activeElement===inputEl || document.activeElement===kEl) return;
+    if(e.key==='ArrowRight'){ stop(); next(); }
+    if(e.key==='ArrowLeft'){ stop(); prev(); }
+    if(e.key===' '){ e.preventDefault(); togglePlay(); }
+  });
+
+  run(inputEl.value,kEl.value);
+})();
+</script>
+
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

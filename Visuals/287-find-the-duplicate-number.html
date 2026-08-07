@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LC 287 &middot; Find the Duplicate Number &mdash; visual guide</title>
+<meta name="description" content="Interactive walkthrough of LeetCode 287: reading the array as a linked list and running two-phase Floyd to find the duplicate in O(1) space.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ---------- LC 287: an array drawn as the linked list it secretly is ---------- */
+.svg-wrap { width: 100%; overflow-x: auto; }
+.svg-wrap svg { width: 100%; height: auto; max-height: 400px; display: block; }
+
+.qcell { fill: var(--bg-sunk); stroke: var(--rule-hard); stroke-width: 1.5; transition: fill .2s, stroke .2s; }
+.qcell.dup { fill: var(--r-hit-wash); stroke: var(--r-hit); stroke-width: 3; }
+.qval { fill: var(--fg); font-family: var(--mono); font-size: 18px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+.qval.dup { fill: var(--r-hit); }
+.qidx { fill: var(--fg-dim); font-family: var(--mono); font-size: 11px; text-anchor: middle; }
+.qidx.on { fill: var(--accent); }
+
+.arc { fill: none; stroke: var(--rule-hard); stroke-width: 1.5; opacity: .5; transition: stroke .2s, opacity .2s, stroke-width .2s; }
+.arc.slowArc { stroke: var(--r-left);  opacity: 1; stroke-width: 2.6; }
+.arc.fastArc { stroke: var(--r-right); opacity: 1; stroke-width: 2.6; stroke-dasharray: 6 4; }
+.arc.pArc    { stroke: var(--r-anchor); opacity: 1; stroke-width: 2.6; }
+.ahead { fill: var(--fg-dim); }
+
+.ring-r { fill: none; stroke-width: 2.6; transition: x .3s cubic-bezier(.34,1.56,.64,1), y .3s, opacity .2s; }
+.ring-slow { stroke: var(--r-left); }
+.ring-fast { stroke: var(--r-right); stroke-dasharray: 5 4; }
+.ring-p    { stroke: var(--r-anchor); }
+.ring-r.off { opacity: 0; }
+
+.phase-pill.ph1 { color: var(--r-left);   border-color: var(--r-left-line);   background: var(--r-left-wash); }
+.phase-pill.ph2 { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+
+.dot.a { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.field.narrow { flex: 0 1 200px; min-width: 160px; }
+.ptr-read {
+  font-family: var(--mono); font-size: 13px; display: flex; gap: 16px;
+  flex-wrap: wrap; justify-content: center; color: var(--fg-dim);
+}
+.ptr-read .pl { color: var(--r-left);   font-weight: 500; }
+.ptr-read .pr { color: var(--r-right);  font-weight: 500; }
+.ptr-read .pa { color: var(--r-anchor); font-weight: 500; }
+.ptr-read b { color: var(--fg); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .ring-r { transition: none !important; } }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+  <div class="eyebrow">Two Pointers &middot; Fast &amp; slow on an array <span class="tag">LeetCode 287</span></div>
+  <h1>Find the Duplicate Number <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    The constraints do all the work: <b>you may not modify the array</b> and you may use only
+    <b>O(1) extra space</b>. That bans sorting, bans a <code>seen[]</code> set, and bans the
+    negative-marking trick. What is left is a reframing &mdash; read the array as a linked list where
+    index <code>i</code> points to <code>nums[i]</code>. Values live in <code>[1, n]</code>, so nothing
+    ever points at index 0, which means the walk from 0 must eventually repeat: a
+    <span class="r">cycle</span>. Two indices holding the same value are two nodes with the same
+    successor, so the duplicate <em>is</em> the cycle entrance. From there it is LeetCode 142 verbatim.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Array (n+1 values, each in 1..n)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="1, 3, 4, 2, 2" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="svg-wrap"><svg id="svg" viewBox="0 0 700 240" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="ptr-read" id="ptrRead"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10227;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot l"></i>slow &mdash; 1 hop</span>
+        <span><i class="dot r"></i>fast &mdash; 2 hops</span>
+        <span><i class="dot a"></i>p &mdash; restarted at index 0</span>
+        <span><i class="dot m"></i>entrance = the duplicate</span>
+        <span><i class="dot x"></i>unvisited successor edge</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    O(n) time &middot; O(1) space, and the input is never written to &nbsp;&middot;&nbsp;
+    the answer is the <em>index</em> the two pointers land on, and that index equals the repeated
+    <em>value</em> &mdash; because the only way two arrows can converge on one node is for two cells to
+    hold the same number.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['kw','public '],['ty','int '],['fn','findDuplicate'],['tx','('],['kw','int'],['tx','[] nums) {']],
+    [['tx','    '],['kw','int '],['tx','slow = 0, fast = 0;']],
+    [['tx','    '],['kw','do '],['tx','{                          '],['fn','// PHASE 1 — Floyd']],
+    [['tx','        slow = nums[slow];             '],['fn','// 1 hop']],
+    [['tx','        fast = nums[nums[fast]];       '],['fn','// 2 hops']],
+    [['tx','    } '],['kw','while '],['tx','(slow != fast);']],
+    [['tx','    '],['kw','int '],['tx','p = 0;                     '],['fn','// PHASE 2 — restart at index 0']],
+    [['tx','    '],['kw','while '],['tx','(p != slow) {']],
+    [['tx','        p = nums[p];                   '],['fn','// 1 hop']],
+    [['tx','        slow = nums[slow];             '],['fn','// 1 hop']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','p;                      '],['fn','// entrance index == duplicate value']],
+    [['tx','}']]
+  ];
+
+  function buildFrames(a){
+    const n = a.length, frames = [];
+    if(n < 2){
+      frames.push({slow:-1,fast:-1,p:-1,dup:-1,phase:'none',code:0,
+        msg:`Need at least two values for a duplicate to exist.`});
+      return frames;
+    }
+
+    let slow = 0, fast = 0, p = -1;
+    frames.push({slow,fast,p,dup:-1,phase:'ph1',code:1,
+      msg:`Every faint arrow below is one "next pointer": <span class="k">i &rarr; nums[i]</span>.
+           Start <span class="l">slow</span> and <span class="r">fast</span> both at index 0.`});
+
+    let guard = 0, cap = 4*n + 16, met = -1;
+    while(guard++ < cap){
+      const s0 = slow;
+      slow = a[s0];
+      frames.push({slow,fast,p,dup:-1,phase:'ph1',code:3,
+        msg:`<span class="l">slow</span> takes <b>one</b> hop:
+             <span class="k">nums[${s0}] = ${slow}</span> &rarr; index <b>${slow}</b>.`});
+      const f0 = fast, f1 = a[f0];
+      fast = a[f1];
+      frames.push({slow,fast,p,dup:-1,phase:'ph1',code:4,
+        msg:`<span class="r">fast</span> takes <b>two</b> hops:
+             ${f0} &rarr; ${f1} &rarr; index <b>${fast}</b>.`});
+      if(slow === fast){ met = slow;
+        frames.push({slow,fast,p,dup:-1,phase:'ph1',code:5,meet:true,
+          msg:`<span class="l">slow</span> == <span class="r">fast</span> at index <b>${met}</b>.
+               Phase 1 is done &mdash; but this is only <em>a</em> point inside the cycle, not the
+               entrance, so <b>${met}</b> is not yet the answer.`});
+        break;
+      }
+      frames.push({slow,fast,p,dup:-1,phase:'ph1',code:5,
+        msg:`<span class="l">slow</span>(${slow}) &ne; <span class="r">fast</span>(${fast}) &mdash; go round again.`});
+    }
+
+    p = 0;
+    frames.push({slow,fast:-1,p,dup:-1,phase:'ph2',code:6,
+      msg:`<b>Phase 2.</b> Retire <span class="r">fast</span>. Put <span class="i">p</span> back at
+           index 0 and move <span class="i">p</span> and <span class="l">slow</span>
+           <b>one hop each</b>. The head-to-entrance distance and the meeting-to-entrance distance are
+           congruent mod the cycle length, so they collide exactly at the entrance.`});
+
+    let g2 = 0;
+    while(g2++ < cap){
+      if(p === slow){
+        frames.push({slow,fast:-1,p,dup:-1,phase:'ph2',code:7,
+          msg:`<span class="i">p</span> == <span class="l">slow</span> at index ${p} &mdash; loop ends.`});
+        break;
+      }
+      frames.push({slow,fast:-1,p,dup:-1,phase:'ph2',code:7,
+        msg:`<span class="i">p</span>(${p}) &ne; <span class="l">slow</span>(${slow}) &mdash; hop both once.`});
+      p = a[p]; slow = a[slow];
+      frames.push({slow,fast:-1,p,dup:-1,phase:'ph2',code:9,
+        msg:`<span class="i">p</span> &rarr; ${p}, <span class="l">slow</span> &rarr; ${slow}.`});
+    }
+
+    const hits = [];
+    for(let k=0;k<n;k++) if(a[k] === p) hits.push(k);
+    frames.push({slow,fast:-1,p,dup:p,phase:'done',code:11,
+      msg:`<span class="m">Entrance = index ${p}</span>, so the duplicated value is
+           <span class="m">${p}</span> &mdash; held at ${hits.length} indices
+           (${hits.join(', ')}), which is precisely why ${hits.length} arrows converge there.
+           The array was never modified.`});
+    return frames;
+  }
+
+  const SVGNS='http://www.w3.org/2000/svg';
+  const el=(t,at)=>{const e=document.createElementNS(SVGNS,t);for(const k in at)e.setAttribute(k,at[k]);return e;};
+  function txt(x,y,s,cls){const t=el('text',{x:x,y:y,class:cls});t.textContent=s;return t;}
+
+  const CW=52, PITCH=64, CTOP=30, CH=48, IDXY=CTOP+CH+16, ARCY=CTOP+CH+26;
+  const cxOf = k => k*PITCH + CW/2;
+
+  const $ = id => document.getElementById(id);
+  const svgEl=$('svg'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
+        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'), readEl=$('ptrRead');
+  let frames=[], idx=0, playing=false, timer=null, ARR=[];
+
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+
+  function buildSVG(a){
+    const n = a.length;
+    svgEl.innerHTML='';
+    const defs = el('defs');
+    const m = el('marker',{id:'ahd',markerWidth:8,markerHeight:8,refX:6,refY:2.5,orient:'auto',markerUnits:'strokeWidth'});
+    m.appendChild(el('path',{class:'ahead',d:'M0,0 L6,2.5 L0,5 Z'}));
+    defs.appendChild(m); svgEl.appendChild(defs);
+
+    const gArc = el('g'), gCell = el('g'), gRing = el('g');
+    let maxApex = ARCY + 40;
+
+    for(let k=0;k<n;k++){
+      const t = a[k];
+      const x0 = cxOf(k), x1 = cxOf(t);
+      let d, apex;
+      if(t === k){
+        d = `M ${x0-11} ${ARCY} C ${x0-34} ${ARCY+62}, ${x0+34} ${ARCY+62}, ${x0+9} ${ARCY+2}`;
+        apex = ARCY + 48;
+      } else {
+        const span = Math.abs(t-k);
+        const dip = Math.min(30 + span*26, 150);
+        const sx = x0 + (t>k ? 8 : -8), ex = x1 + (t>k ? -8 : 8);
+        d = `M ${sx} ${ARCY} Q ${(x0+x1)/2} ${ARCY+dip} ${ex} ${ARCY+2}`;
+        apex = ARCY + dip/2;
+      }
+      if(apex > maxApex) maxApex = apex;
+      gArc.appendChild(el('path',{class:'arc','data-arc':k,d:d,'marker-end':'url(#ahd)'}));
+    }
+
+    for(let k=0;k<n;k++){
+      gCell.appendChild(el('rect',{class:'qcell','data-cell':k,x:k*PITCH,y:CTOP,width:CW,height:CH,rx:9}));
+      const tv = txt(cxOf(k), CTOP+CH/2, a[k], 'qval'); tv.setAttribute('data-val',k);
+      gCell.appendChild(tv);
+      const ti = txt(cxOf(k), IDXY, String(k), 'qidx'); ti.setAttribute('data-idx',k);
+      gCell.appendChild(ti);
+    }
+
+    const ring = (id, cls, inset) => el('rect',{
+      class:'ring-r '+cls, id:id, x:-inset, y:CTOP-inset,
+      width:CW+2*inset, height:CH+2*inset, rx:9+inset});
+    gRing.appendChild(ring('ringSlow','ring-slow',3));
+    gRing.appendChild(ring('ringFast','ring-fast',8));
+    gRing.appendChild(ring('ringP','ring-p',13));
+
+    svgEl.appendChild(gArc); svgEl.appendChild(gCell); svgEl.appendChild(gRing);
+    const W = (n-1)*PITCH + CW;
+    svgEl.setAttribute('viewBox', `-22 0 ${W+44} ${maxApex+30}`);
+  }
+
+  function placeRing(id, k, inset){
+    const r = document.getElementById(id);
+    if(!r) return;
+    if(k < 0){ r.classList.add('off'); return; }
+    r.classList.remove('off');
+    r.setAttribute('x', k*PITCH - inset);
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+    svgEl.querySelectorAll('.qcell').forEach(c=>c.classList.remove('dup'));
+    svgEl.querySelectorAll('.qval').forEach(c=>c.classList.remove('dup'));
+    svgEl.querySelectorAll('.qidx').forEach(c=>c.classList.remove('on'));
+    svgEl.querySelectorAll('.arc').forEach(c=>{c.classList.remove('slowArc','fastArc','pArc');});
+
+    if(f.dup >= 0){
+      svgEl.querySelectorAll('.qcell').forEach(c=>{
+        if(ARR[+c.getAttribute('data-cell')] === f.dup) c.classList.add('dup');
+      });
+      svgEl.querySelectorAll('.qval').forEach(c=>{
+        if(ARR[+c.getAttribute('data-val')] === f.dup) c.classList.add('dup');
+      });
+      const ec = svgEl.querySelector(`[data-cell="${f.dup}"]`);
+      if(ec) ec.classList.add('dup');
+    }
+    const mark = (k, cls) => { if(k>=0){ const p=svgEl.querySelector(`[data-arc="${k}"]`); if(p) p.classList.add(cls); } };
+    mark(f.slow,'slowArc');
+    if(f.p >= 0) mark(f.p,'pArc'); else mark(f.fast,'fastArc');
+    [f.slow,f.fast,f.p].forEach(k=>{
+      if(k>=0){ const t=svgEl.querySelector(`[data-idx="${k}"]`); if(t) t.classList.add('on'); }
+    });
+
+    placeRing('ringSlow', f.slow, 3);
+    placeRing('ringFast', f.fast, 8);
+    placeRing('ringP', f.p, 13);
+
+    const bits = [];
+    if(f.slow>=0) bits.push(`<span><span class="pl">slow</span> @ <b>${f.slow}</b> &rarr; nums[${f.slow}] = <b>${ARR[f.slow]}</b></span>`);
+    if(f.fast>=0) bits.push(`<span><span class="pr">fast</span> @ <b>${f.fast}</b> &rarr; nums[${f.fast}] = <b>${ARR[f.fast]}</b></span>`);
+    if(f.p>=0)    bits.push(`<span><span class="pa">p</span> @ <b>${f.p}</b> &rarr; nums[${f.p}] = <b>${ARR[f.p]}</b></span>`);
+    readEl.innerHTML = bits.join('');
+
+    msgEl.innerHTML=f.msg;
+
+    const pmap={ph1:['ph1','① floyd — find a meeting'],
+                ph2:['ph2','② restart — find the entrance'],
+                done:['done','■ duplicate found'],
+                none:['','○ invalid input']};
+    const pv=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pv[0]; pillEl.textContent=pv[1];
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  /* LC 287 guarantees n+1 values each in [1, n]. Clamp defensively so a
+     hand-typed array can never index out of bounds; with n values all in
+     [1, n-1], the pigeonhole principle guarantees a duplicate exists. */
+  function sanitize(str){
+    let a = str.split(',').map(s=>s.trim()).filter(s=>s!=='')
+               .map(Number).filter(x=>!isNaN(x)).map(x=>Math.round(x)).slice(0,10);
+    const n = a.length;
+    if(n < 2) return a;
+    return a.map(v => Math.min(Math.max(v,1), n-1));
+  }
+
+  function run(str){
+    stop();
+    ARR = sanitize(str);
+    buildSVG(ARR);
+    frames = buildFrames(ARR);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').innerHTML='&#10074;&#10074;'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').innerHTML='&#9654;'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['1, 3, 4, 2, 2','the classic — duplicate 2'],
+    ['3, 1, 3, 4, 2','duplicate 3 &mdash; entrance is index 3'],
+    ['1, 1','smallest legal input, n = 1'],
+    ['2, 2, 2, 2, 2','one value everywhere &mdash; a tight self-loop'],
+    ['2, 5, 9, 6, 9, 3, 8, 9, 7, 1','7-node cycle, three copies of 9']
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(function(e){
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`[${e[0].replace(/\s/g,'')}]<b>${e[1]}</b>`;
+      c.onclick=function(){ inputEl.value=e[0]; run(e[0]); };
+      box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(inputEl.value);
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===inputEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(inputEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

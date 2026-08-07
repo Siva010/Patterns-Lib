@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSA Patterns — Study Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>
+(function(){try{var t=localStorage.getItem("tpswbs.v1.theme")||localStorage.getItem("treepat.v1.theme");
+t=t?JSON.parse(t):"auto";
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);}catch(e){}})();
+</script>
+<style>
+:root{
+  --serif:"Source Serif 4","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#fbfaf8; --bg-sunk:#f4f2ed; --fg:#17171a; --fg-mid:#4a4842; --fg-dim:#6d6b64;
+  --rule:#e3dfd7; --rule-hard:#cbc5b8; --accent:#9c3a1c; --accent-fg:#fff;
+  --accent-wash:rgba(156,58,28,.07); --accent-line:rgba(156,58,28,.30);
+}
+html[data-theme="dark"]{
+  --bg:#121213; --bg-sunk:#1a1a1c; --fg:#e9e7e2; --fg-mid:#b8b4ac; --fg-dim:#93908a;
+  --rule:#2b2b2e; --rule-hard:#3d3d41; --accent:#e3865f; --accent-fg:#16120f;
+  --accent-wash:rgba(227,134,95,.10); --accent-line:rgba(227,134,95,.34);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--serif);
+     font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74ch;margin:0 auto;padding:56px 28px 96px}
+header.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-size:31px;line-height:1.2;margin:0 0 6px;letter-spacing:-.012em;font-weight:600}
+.sub{font-family:var(--sans);font-size:13.5px;color:var(--fg-dim);margin:0 0 34px}
+.themebtn{font-family:var(--sans);font-size:12.5px;color:var(--fg-mid);background:transparent;
+  border:1px solid var(--rule-hard);border-radius:7px;padding:5px 11px;cursor:pointer}
+.themebtn:hover{border-color:var(--accent-line);color:var(--accent)}
+.lede{color:var(--fg-mid);margin:0 0 34px}
+.rule{border:0;border-top:1px solid var(--rule);margin:38px 0}
+h2.sec{font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--fg-dim);margin:0 0 16px}
+.cards{display:grid;gap:16px;grid-template-columns:1fr}
+.card{display:block;text-decoration:none;color:inherit;border:1px solid var(--rule-hard);
+  border-radius:12px;padding:22px 24px;transition:background .13s,border-color .13s}
+.card:hover{background:var(--bg-sunk);border-color:var(--accent-line)}
+.cardnum{font-family:var(--mono);font-size:11.5px;color:var(--fg-dim);letter-spacing:.06em}
+.card h3{font-size:21px;margin:5px 0 7px;font-weight:600;letter-spacing:-.008em}
+.card:hover h3{color:var(--accent)}
+.cardstat{font-family:var(--sans);font-size:13px;color:var(--fg-dim);margin:0 0 14px}
+.cardstat b{color:var(--fg-mid);font-weight:600}
+.meter{height:5px;border-radius:3px;background:var(--bg-sunk);
+  border:1px solid var(--rule);overflow:hidden;margin:0 0 8px}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.cardprog{font-family:var(--sans);font-size:12.5px;color:var(--fg-dim);margin:0 0 15px}
+.chips{display:grid;gap:5px;font-family:var(--sans);font-size:12.5px;color:var(--fg-mid);margin:0 0 16px}
+.chips span{display:flex;gap:9px;line-height:1.4}
+.chips b{font-family:var(--mono);font-size:11px;color:var(--accent);
+  min-width:2.4em;font-weight:500;padding-top:1px}
+.cardgo{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--accent)}
+.note{font-family:var(--sans);font-size:13.5px;color:var(--fg-mid);
+  background:var(--accent-wash);border-left:2px solid var(--accent-line);
+  padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 22px}
+.note p{margin:0 0 9px}.note p:last-child{margin:0}
+figure{margin:0}
+figure img{width:100%;height:auto;border:1px solid var(--rule-hard);border-radius:10px;display:block}
+figcaption{font-family:var(--sans);font-size:12.5px;color:var(--fg-dim);margin-top:9px}
+.files{font-family:var(--mono);font-size:12.5px;color:var(--fg-mid);
+  background:var(--bg-sunk);border:1px solid var(--rule);border-radius:9px;
+  padding:16px 18px;overflow-x:auto;line-height:1.75;margin:0}
+footer{margin-top:52px;font-family:var(--sans);font-size:12.5px;color:var(--fg-dim)}
+a{color:var(--accent)}
+@media(min-width:820px){.cards{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>DSA Patterns — Study Library</h1>
+    <p class="sub">Java 21 · LeetCode-numbered · 130 core problems across 63 sub-variants</p>
+  </div>
+  <button class="themebtn" id="theme" type="button">Theme</button>
+</header>
+
+<p class="lede">Two pattern bundles, same structure: a breakdown of every sub-variant, a
+prerequisite-ordered problem table, compiled Java templates, and a failure-mode table — then a
+cross-pattern recognition guide and spaced-repetition checkpoints.</p>
+
+<hr class="rule">
+
+<h2 class="sec">Bundles</h2>
+<section class="cards">
+
+  <a class="card" href="three-patterns/index.html">
+    <span class="cardnum">BUNDLE 01</span>
+    <h3>Three Patterns, No Gaps</h3>
+    <p class="cardstat">35 sub-variants <span aria-hidden="true">·</span> <b>78</b> core
+      <span aria-hidden="true">·</span> 34 optional
+      <span aria-hidden="true">·</span> 5 anti-pattern</p>
+    <div class="meter" role="img" aria-label="Core progress"><i data-meter="tpswbs"></i></div>
+    <p class="cardprog"><span data-count="tpswbs">0</span> / 78 core solved</p>
+    <div class="chips">
+      <span><b>01</b> Two Pointers — 11 sub-variants, 28 core</span>
+      <span><b>02</b> Sliding Window — 11 sub-variants, 26 core</span>
+      <span><b>03</b> Binary Search — 13 sub-variants, 24 core</span>
+    </div>
+    <span class="cardgo">Open <span aria-hidden="true">→</span></span>
+  </a>
+
+  <a class="card" href="trees/index.html">
+    <span class="cardnum">BUNDLE 02</span>
+    <h3>Trees, No Gaps</h3>
+    <p class="cardstat">28 sub-variants <span aria-hidden="true">·</span> <b>52</b> core
+      <span aria-hidden="true">·</span> 35 optional
+      <span aria-hidden="true">·</span> 6 anti-pattern</p>
+    <div class="meter" role="img" aria-label="Core progress"><i data-meter="treepat"></i></div>
+    <p class="cardprog"><span data-count="treepat">0</span> / 52 core solved</p>
+    <div class="chips">
+      <span><b>01</b> Traversal — 8 sub-variants, 14 core</span>
+      <span><b>02</b> Tree Recursion — 12 sub-variants, 24 core</span>
+      <span><b>03</b> Binary Search Trees — 8 sub-variants, 14 core</span>
+    </div>
+    <span class="cardgo">Open <span aria-hidden="true">→</span></span>
+  </a>
+
+</section>
+
+<hr class="rule">
+
+<h2 class="sec">How the bundles connect</h2>
+<div class="note">
+  <p>LC 437 is LC 560 on a root path. LC 653 is LC 167 on two iterators. LC 220 is an
+  ordered-multiset sliding window that happens to use a BST. LC 230 and LC 2476 are binary
+  search with pointers instead of indices.</p>
+  <p>If those four sentences read as obvious, the patterns have transferred; if any of them
+  reads as a surprise, that is the next thing to study.</p>
+</div>
+
+<h2 class="sec">Study order</h2>
+<figure>
+  <img src="assets/dsa_pattern_priority_order.png" alt="DSA pattern priority order reference chart">
+  <figcaption>Pattern priority reference — which patterns to work through first.</figcaption>
+</figure>
+
+<hr class="rule">
+
+<h2 class="sec">Interactive visualizers</h2>
+<section class="cards">
+  <a class="card" href="Visuals/index.html">
+    <span class="cardnum">VISUALS</span>
+    <h3>Step through the algorithms</h3>
+    <p class="cardstat"><b>107</b> pages <span aria-hidden="true">·</span> across all five patterns</p>
+    <div class="chips">
+      <span><b>P1</b> Traversal — 22 pages, level order to Morris</span>
+      <span><b>P2</b> Tree Recursion — 30 pages, all 12 sub-variants</span>
+      <span><b>P3</b> Two Pointers — 33 pages, all 11 sub-variants</span>
+      <span><b>P4</b> Sliding Window — 8 pages, 5 sub-variants</span>
+      <span><b>P5</b> Binary Search — 9 pages, 5 sub-variants</span>
+    </div>
+    <span class="cardgo">Open <span aria-hidden="true">→</span></span>
+  </a>
+</section>
+
+<div class="note">
+  <p>Each visualizer is driven by a real instrumented implementation — step with the arrow keys and
+  the code pane highlights the line running at that frame. They pair with the tables above: the
+  markdown tells you what to know, the visualizer shows you the failure the table is warning about.</p>
+  <p>The array and string pages go one further — type your own input and the trace rebuilds against
+  it, so you can drive the algorithm into the edge case you are trying to understand. Look for the
+  visualizer icon next to a problem in any table to jump straight to its page.</p>
+</div>
+
+<hr class="rule">
+
+<h2 class="sec">Folder layout</h2>
+<pre class="files">.
+├─ index.html                 ← you are here
+├─ three-patterns/
+│  ├─ index.html              hub: recognition guide, checkpoints
+│  ├─ two-pointers.html
+│  ├─ sliding-window.html
+│  ├─ binary-search.html
+│  └─ src/                    markdown sources
+├─ trees/
+│  ├─ index.html              hub: recognition guide, checkpoints
+│  ├─ traversal.html
+│  ├─ tree-recursion.html
+│  ├─ bst.html
+│  └─ src/trees.md
+├─ Visuals/
+│  ├─ index.html              107 interactive visualizers
+│  └─ &lt;lc-number&gt;-&lt;slug&gt;.html  one self-contained page each
+├─ assets/
+└─ mdfiles/                   archived notes, not part of the site</pre>
+
+<footer>Progress is stored in your browser and is shared with the bundle pages.</footer>
+
+</div>
+<script>
+(function(){
+var CORE={tpswbs:["p1","p10","p100","p101","p102","p103","p105","p106","p13","p14","p15","p18","p19","p2","p20","p22","p23","p24","p25","p26","p27","p3","p31","p32","p34","p35","p36","p37","p4","p40","p41","p42","p43","p45","p46","p47","p48","p49","p50","p51","p52","p53","p54","p57","p58","p59","p6","p60","p61","p62","p63","p64","p65","p66","p67","p7","p70","p71","p72","p73","p74","p75","p76","p79","p8","p80","p81","p83","p85","p86","p87","p88","p89","p9","p90","p93","p96","p97"],treepat:["p1","p12","p13","p17","p2","p21","p23","p24","p25","p27","p28","p3","p31","p32","p33","p37","p40","p41","p43","p44","p45","p47","p48","p49","p5","p51","p52","p55","p58","p59","p6","p60","p63","p64","p65","p67","p69","p7","p70","p74","p75","p76","p79","p81","p82","p83","p84","p88","p89","p9","p90","p91"]};
+function read(ns){try{var v=localStorage.getItem(ns+".v1.solved");
+  return v?JSON.parse(v):[];}catch(e){return [];}}
+Object.keys(CORE).forEach(function(ns){
+  var core=CORE[ns], solved=read(ns), set={};
+  solved.forEach(function(p){set[p]=1;});
+  var n=0; core.forEach(function(p){if(set[p])n++;});
+  var pct=core.length?Math.round(n/core.length*100):0;
+  var c=document.querySelector('[data-count="'+ns+'"]');
+  var m=document.querySelector('[data-meter="'+ns+'"]');
+  if(c)c.textContent=n;
+  if(m)m.style.width=pct+"%";
+});
+var order=["auto","light","dark"];
+function cur(){try{var t=localStorage.getItem("tpswbs.v1.theme");
+  return t?JSON.parse(t):"auto";}catch(e){return "auto";}}
+function apply(t){
+  var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+  var b=document.getElementById("theme");
+  if(b)b.textContent="Theme: "+t;
+}
+apply(cur());
+var btn=document.getElementById("theme");
+if(btn)btn.addEventListener("click",function(){
+  var t=order[(order.indexOf(cur())+1)%order.length];
+  try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));
+      localStorage.setItem("treepat.v1.theme",JSON.stringify(t));}catch(e){}
+  apply(t);
+});
+})();
+</script>
+</body>
+</html>

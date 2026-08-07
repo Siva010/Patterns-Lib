@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sliding Window Maximum · Monotonic Deque Visualizer</title>
+<style>
+  
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8; --bg-sunk: #f4f2ed; --bg-code: #f6f4ef;
+  --fg: #17171a; --fg-mid: #4a4842; --fg-dim: #6d6b64;
+  --rule: #e3dfd7; --rule-hard: #cbc5b8;
+  --accent: #9c3a1c; --accent-fg: #ffffff;
+  --accent-wash: rgba(156,58,28,.07); --accent-line: rgba(156,58,28,.30);
+
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles ------------------------------------
+     anchor  fixed pointer (i, mid, pivot)     anchor2  second fixed (j)
+     left    left / lo                         right    right / hi
+     window  the live span between pointers    hit      found / recorded best
+     A discarded cell gets no hue at all: dim + dashed, not alarm-red.
+     Every role clears 4.5:1 on both --bg and --bg-sunk, both themes.
+     ---------------------------------------------------------------- */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
+
+  /* recursion-depth ramp (generalized kSum): sequential, not categorical */
+  --lvl0: #9c3a1c; --lvl1: #b05c33; --lvl2: #c07d54; --lvl3: #cc9c7c;
+  --lvl0-deep: rgba(156,58,28,.12); --lvl1-deep: rgba(176,92,51,.12);
+  --lvl2-deep: rgba(192,125,84,.12); --lvl3-deep: rgba(204,156,124,.12);
+
+  /* ---- aliases: old token names -> new roles --------------------- */
+  --ink: var(--bg); --ink-2: var(--bg-sunk); --panel: var(--bg); --panel-2: var(--bg-sunk);
+  --line: var(--rule); --line-soft: var(--rule);
+  --txt: var(--fg); --muted: var(--fg-mid); --muted-2: var(--fg-dim);
+  --display: var(--sans);
+
+  --gold:   var(--r-anchor);  --gold-deep:   var(--r-anchor-wash);
+  --amber:  var(--r-anchor);  --amber-deep:  var(--r-anchor-wash);
+  --rose:   var(--r-anchor2); --rose-deep:   var(--r-anchor2-wash);
+  --blue:   var(--r-left);    --blue-deep:   var(--r-left-wash);
+  --violet: var(--r-right);   --violet-deep: var(--r-right-wash);
+  --mint:   var(--r-hit);     --mint-deep:   var(--r-hit-wash);
+  --lime:   var(--r-window);  --lime-deep:   var(--r-window-wash);
+  --sky:    var(--r-window);  --sky-deep:    var(--r-window-wash);
+  --slate:  var(--r-window-wash);
+  --coral:  var(--fg-dim);    --coral-deep:  var(--bg-sunk);
+
+  /* structural, not semantic */
+  --node: var(--bg-sunk); --node-line: var(--rule-hard); --dummy: var(--fg-dim);
+  --bar: var(--rule-hard); --bar-line: var(--rule-hard);
+  --water: var(--r-left); --water-soft: var(--r-left-wash);
+  /* Dutch national flag buckets map onto the lo / mid / hi pointers */
+  --red: var(--r-left);  --red-deep: var(--r-left-wash);
+  --white: var(--fg-dim); --white-deep: var(--bg-sunk);
+  --navy: var(--r-right); --navy-deep: var(--r-right-wash);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213; --bg-sunk: #1a1a1c; --bg-code: #1a1a1c;
+  --fg: #e9e7e2; --fg-mid: #b8b4ac; --fg-dim: #93908a;
+  --rule: #2b2b2e; --rule-hard: #3d3d41;
+  --accent: #e3865f; --accent-fg: #16120f;
+  --accent-wash: rgba(227,134,95,.10); --accent-line: rgba(227,134,95,.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
+
+  --lvl0: #e3865f; --lvl1: #d9a184; --lvl2: #c9b3a0; --lvl3: #b8bdbb;
+  --lvl0-deep: rgba(227,134,95,.16); --lvl1-deep: rgba(217,161,132,.16);
+  --lvl2-deep: rgba(201,179,160,.16); --lvl3-deep: rgba(184,189,187,.16);
+}
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background: var(--bg);
+    color:var(--txt);font-family:var(--display);-webkit-font-smoothing:antialiased;min-height:100%}
+  body{padding:28px 20px 64px;max-width:1400px;margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--sky);display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .eyebrow .tag{color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px;letter-spacing:.12em;font-size:11px}
+  h1{font-size:clamp(28px,5vw,46px);font-weight:700;line-height:1.05;letter-spacing:-.02em}
+  h1 .thin{color:var(--muted);font-weight:400}
+  .lede{color:var(--muted);max-width:720px;margin-top:14px;font-size:15.5px;line-height:1.55}
+  .lede code{font-family:var(--mono);color:var(--gold);background:var(--gold-deep);padding:1px 6px;border-radius:6px;font-size:.9em}
+  .controls-top{margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  .field{flex:1;min-width:260px}
+  .field.small{flex:0 0 110px;min-width:90px}
+  .field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-2);margin-bottom:8px}
+  input[type=text],input[type=number]{width:100%;background:var(--ink-2);border:1px solid var(--line);color:var(--txt);
+    font-family:var(--mono);font-size:16px;letter-spacing:.05em;padding:14px 16px;border-radius:12px;outline:none;transition:border-color .2s, box-shadow .2s}
+  input:focus{border-color:var(--sky);}
+  .btn{font-family:var(--display);font-weight:600;font-size:15px;border:1px solid var(--line);
+    background:var(--panel);color:var(--txt);border-radius:12px;padding:0 20px;height:52px;cursor:pointer;
+    transition:transform .12s, background .2s, border-color .2s;white-space:nowrap;display:inline-flex;align-items:center;gap:9px}
+  .btn:hover{background:var(--panel-2)} .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);color:var(--accent-fg);border:none;font-weight:700}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .examples{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chip{font-family:var(--mono);font-size:13px;letter-spacing:.03em;color:var(--muted);
+    background:var(--ink-2);border:1px solid var(--line-soft);border-radius:999px;padding:6px 13px;cursor:pointer;transition:.18s}
+  .chip:hover{color:var(--txt);border-color:var(--sky);background:var(--sky-deep)}
+  .chip b{color:var(--muted-2);font-weight:400;margin-left:7px}
+  .grid{display:grid;grid-template-columns:1fr 1.4fr;gap:20px;margin-top:26px;align-items:start}
+  @media (max-width:880px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;
+    border-bottom:1px solid var(--line);background:rgba(255,255,255,.012)}
+  .card-head h2{font-size:13px;font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .phase-pill{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .phase-pill.evict{color:var(--coral);border-color:var(--rule-hard);background:var(--coral-deep)}
+  .phase-pill.pop{color:var(--gold);border-color:var(--r-anchor-line);background:var(--gold-deep)}
+  .phase-pill.push{color:var(--sky);border-color:var(--r-window-line);background:var(--sky-deep)}
+  .phase-pill.record{color:var(--mint);border-color:var(--r-hit-line);background:var(--mint-deep)}
+  .phase-pill.done{color:var(--mint);border-color:var(--r-hit-line);background:var(--mint-deep)}
+  .stage{padding:22px 18px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+
+  .tape{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;position:relative}
+  .col{display:flex;flex-direction:column;align-items:center;gap:6px;width:46px}
+  @media (max-width:560px){.col{width:34px}}
+  .win-tag{height:16px;font-family:var(--mono);font-size:9px;color:var(--sky);letter-spacing:.05em;text-align:center}
+  .cell{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:16px;font-weight:600;border-radius:10px;background:var(--ink-2);border:1.5px solid var(--line);
+    color:var(--txt);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s,color .25s,box-shadow .25s;position:relative}
+  @media (max-width:560px){.cell{font-size:13px}}
+  .idx{font-family:var(--mono);font-size:9.5px;color:var(--muted-2)}
+  .cell.inwin{background:var(--sky-deep);border-color:var(--sky);color:var(--sky)}
+  .cell.entering{transform:translateY(-6px) scale(1.08);}
+  .cell.indeque{border-color:var(--gold)}
+  .cell.frontmax{background:var(--mint-deep);border-color:var(--mint);color:var(--mint);}
+  .cell.popping{background:var(--gold-deep);border-color:var(--gold);color:var(--gold)}
+  .cell.evicting{background:var(--coral-deep);border-color:var(--coral);color:var(--coral)}
+  .cell.outwin{opacity:.35}
+
+  .deque-wrap{width:100%;max-width:600px;display:flex;flex-direction:column;gap:8px}
+  .deque-frame{border:1.5px dashed var(--line);border-radius:14px;padding:14px;min-height:76px;
+    display:flex;align-items:center;gap:10px;position:relative;background:rgba(94,200,240,.03)}
+  .deque-ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);padding:0 4px}
+  .dq-items{display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap}
+  .dq-item{display:flex;flex-direction:column;align-items:center;gap:3px;animation:pop .3s cubic-bezier(.34,1.56,.64,1)}
+  .dq-item .dqval{width:44px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:9px;
+    font-family:var(--mono);font-size:16px;font-weight:700;background:var(--gold-deep);border:1.5px solid var(--gold);color:var(--gold)}
+  .dq-item .dqidx{font-family:var(--mono);font-size:9.5px;color:var(--muted-2)}
+  .dq-item.front .dqval{background:var(--mint-deep);border-color:var(--mint);color:var(--mint)}
+  .dq-item.popping .dqval{background:var(--coral-deep);border-color:var(--coral);color:var(--coral);opacity:.6}
+  .dq-empty{font-family:var(--mono);font-size:12px;color:var(--muted-2);margin:0 auto}
+  @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .dq-note{font-family:var(--mono);font-size:10.5px;color:var(--muted-2);text-align:center}
+
+  .result-row{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;min-height:30px;align-items:center}
+  .result-row .rlabel{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);margin-right:4px}
+  .rval{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--mint);background:var(--mint-deep);border:1px solid var(--r-hit-line);
+    border-radius:8px;padding:4px 11px;animation:pop .3s cubic-bezier(.34,1.56,.64,1)}
+
+  .message{font-family:var(--mono);font-size:13.5px;line-height:1.6;color:var(--txt);text-align:center;max-width:720px;min-height:44px;padding:0 6px}
+  .message .s{color:var(--sky)} .message .x{color:var(--coral)} .message .m{color:var(--mint)} .message .k{color:var(--gold)}
+  .result-banner{display:none;align-items:center;gap:12px;justify-content:center;font-family:var(--display);
+    font-weight:700;font-size:18px;padding:12px 22px;border-radius:14px;animation:pop2 .4s cubic-bezier(.34,1.56,.64,1)}
+  .result-banner.ok{display:flex;color:var(--mint);background:var(--mint-deep);border:1px solid var(--r-hit-line)}
+  @keyframes pop2{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .transport{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid var(--line);flex-wrap:wrap;background:rgba(255,255,255,.012)}
+  .icon-btn{width:44px;height:44px;padding:0;justify-content:center;font-size:16px}
+  .progress-wrap{flex:1;min-width:150px;display:flex;align-items:center;gap:12px}
+  .progress{flex:1;height:6px;background:var(--ink-2);border-radius:999px;overflow:hidden;border:1px solid var(--line-soft)}
+  .progress .bar{height:100%;width:0;background:var(--accent);transition:width .2s}
+  .step-count{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+  .speed{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
+  .speed input{accent-color:var(--sky);width:96px}
+  .code{padding:16px 4px 16px 0;font-family:var(--mono);font-size:12.4px;line-height:1.7;overflow-x:auto}
+  .code .ln{display:flex;padding:1px 18px 1px 0;white-space:pre;position:relative;transition:background .18s}
+  .code .ln .no{width:32px;text-align:right;padding-right:14px;color:var(--fg-dim);user-select:none;flex-shrink:0}
+  .code .kw{color:var(--t-key)} .code .ty{color:var(--t-typ)} .code .fn{color:var(--t-ann)} .code .tx{color:var(--fg-mid)} .code .cm{color:#5f7196;font-style:italic}
+  .code .ln.exec{background:var(--accent)}
+  .code .ln.exec .no{color:var(--sky)}
+  .code .ln.exec::before{content:"";position:absolute;left:0;width:3px;height:18px;background:var(--sky);border-radius:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:14px 18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:4px;border:1.5px solid}
+  .dot.s{background:var(--sky-deep);border-color:var(--sky)} .dot.g{background:var(--gold-deep);border-color:var(--gold)}
+  .dot.x{background:var(--coral-deep);border-color:var(--coral)} .dot.m{background:var(--mint-deep);border-color:var(--mint)}
+  .foot{margin-top:24px;font-family:var(--mono);font-size:12px;color:var(--muted-2);text-align:center;line-height:1.7}
+
+/* ============================================================
+   house corrections — these win over whatever the page set
+   locally, so the chrome matches the study documents.
+   ============================================================ */
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--serif); font-size: 17px; line-height: 1.6; max-width: 1180px; padding: 0 24px 72px; }
+h1 { font-family: var(--serif); font-weight: 600; letter-spacing: -.012em; }
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { font-family: var(--serif); color: var(--fg-mid); font-size: 17px; }
+
+.appbar { display:flex; align-items:center; gap:14px; padding:14px 0 13px; margin-bottom:30px;
+  border-bottom:1px solid var(--rule); font-family:var(--sans); font-size:13px; }
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn { font-family:var(--sans); font-size:12.5px; color:var(--fg-mid); background:transparent;
+  border:1px solid var(--rule-hard); border-radius:7px; padding:5px 11px; cursor:pointer; }
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+.eyebrow { font-family:var(--sans); font-size:11.5px; font-weight:600; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--fg-dim); }
+.eyebrow .tag { font-family:var(--mono); font-weight:500; letter-spacing:.04em; text-transform:none;
+  color:var(--accent); background:var(--accent-wash); border:1px solid var(--accent-line); }
+
+input[type=text] { background:var(--bg-sunk); border:1px solid var(--rule-hard); color:var(--fg);
+  border-radius:9px; font-size:15px; }
+input[type=text]:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-wash); }
+
+.btn { font-family:var(--sans); font-weight:500; border:1px solid var(--rule-hard);
+  background:var(--bg-sunk); color:var(--fg); border-radius:9px; height:46px; }
+.btn:hover { background:var(--bg-sunk); border-color:var(--accent-line); color:var(--accent); }
+.btn.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:600; }
+.btn.primary:hover { filter:brightness(1.08); color:var(--accent-fg); }
+.btn:disabled:hover { border-color:var(--rule-hard); color:var(--fg); }
+
+.chip { background:var(--bg-sunk); border:1px solid var(--rule); color:var(--fg-mid); }
+.chip:hover { color:var(--accent); border-color:var(--accent-line); background:var(--accent-wash); }
+.chip b { font-family:var(--sans); color:var(--fg-dim); }
+
+.card { background:var(--bg); border:1px solid var(--rule-hard); border-radius:12px; }
+.card-head { background:var(--bg-sunk); border-bottom:1px solid var(--rule); }
+.card-head h2 { font-family:var(--sans); font-size:11.5px; font-weight:600; letter-spacing:.09em; color:var(--fg-dim); }
+.transport { background:var(--bg-sunk); border-top:1px solid var(--rule); }
+.legend { border-top:1px solid var(--rule); font-family:var(--sans); color:var(--fg-dim); }
+.foot { font-family:var(--sans); color:var(--fg-dim); border-top:1px solid var(--rule);
+  margin-top:24px; padding-top:18px; }
+
+.message { font-family:var(--sans); font-size:14px; color:var(--fg-mid); }
+.message b { color:var(--fg); }
+.message .x, .lede .x { color:var(--fg-dim); }
+
+.progress { background:var(--bg); border:1px solid var(--rule); }
+.progress .bar { background:var(--accent); }
+.step-count { color:var(--fg-dim); }
+.speed { font-family:var(--sans); font-weight:600; letter-spacing:.09em; color:var(--fg-dim); }
+.speed input { accent-color:var(--accent); }
+
+.code { background:var(--bg-code); }
+.code .tx { color:var(--fg-mid); }
+.code .ln .no { color:var(--fg-dim); opacity:.65; }
+.code .ln.exec { background:var(--accent-wash); }
+.code .ln.exec .no { color:var(--accent); opacity:1; }
+.code .ln.exec::before { background:var(--accent); width:2.5px; top:1px; bottom:1px; height:auto; }
+
+/* a discarded cell recedes; it does not shout */
+.cell.skipped, .cell.dupskip, .cell.mismatch, .cell.bad {
+  border-style:dashed; border-color:var(--fg-dim); color:var(--fg-dim); background:var(--bg-sunk); }
+.cell.skipped { opacity:.38; border-color:var(--rule); }
+
+@media (prefers-reduced-motion: reduce) { .cell, .progress .bar { transition:none !important; } }
+</style>
+<script>
+/* set the theme before first paint. shares tpswbs.v1.theme with the
+   three-patterns bundle so the setting carries across the doc -> viz seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+
+<body>
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+
+  <div class="eyebrow">Sliding Window — Monotonic Deque <span class="tag">LeetCode 239</span></div>
+  <h1>Sliding Window Maximum <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    The max of every length-<code>k</code> window, in O(n). A <b>monotonic deque</b> holds candidate
+    indices with values in <b>decreasing</b> order — so the front is always the current window's max.
+    Each element is pushed and popped at most once, which is what beats the naïve O(n·k).
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Array (comma-separated)</label>
+      <input id="arrInput" type="text" value="1, 3, -1, -3, 5, 3, 6, 7" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field small">
+      <label for="kInput">k</label>
+      <input id="kInput" type="number" value="3" min="1">
+    </div>
+    <button class="btn primary" id="runBtn">▶ Run</button>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="tape" id="tape"></div>
+        <div class="deque-wrap">
+          <div class="deque-ends"><span>← front (max)</span><span>back →</span></div>
+          <div class="deque-frame"><div class="dq-items" id="dqItems"></div></div>
+          <div class="dq-note">stores <b>indices</b>; values shown for clarity · always decreasing front → back</div>
+        </div>
+        <div class="result-row" id="resultRow"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="result-banner" id="banner"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">⏴</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">▶</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">⏵</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">⟲</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="6"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java · running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot s"></i>in window</span>
+        <span><i class="dot g"></i>in deque</span>
+        <span><i class="dot m"></i>front = max</span>
+        <span><i class="dot x"></i>evicted / popped</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">O(n) time · O(k) space &nbsp;·&nbsp; each index enters the deque once and leaves once — amortized O(1) per element despite the inner while loop.</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['kw','public '],['ty','int'],['tx','[] '],['fn','maxSlidingWindow'],['tx','('],['kw','int'],['tx','[] nums, '],['kw','int '],['tx','k) {']],
+    [['tx','    '],['ty','Deque<Integer> '],['tx','dq = '],['kw','new '],['tx','ArrayDeque<>();  '],['cm','// holds indices']],
+    [['tx','    '],['kw','int'],['tx','[] res = '],['kw','new '],['tx','int[nums.length - k + 1];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < nums.length; i++) {']],
+    [['tx','        '],['cm','// 1. drop front index that fell out of the window']],
+    [['tx','        '],['kw','if '],['tx','(!dq.isEmpty() && dq.peekFirst() <= i - k)']],
+    [['tx','            dq.pollFirst();']],
+    [['tx','        '],['cm','// 2. pop smaller values from the back — they can\x27t be max']],
+    [['tx','        '],['kw','while '],['tx','(!dq.isEmpty() && nums[dq.peekLast()] < nums[i])']],
+    [['tx','            dq.pollLast();']],
+    [['tx','        dq.offerLast(i);              '],['cm','// 3. add current index']],
+    [['tx','        '],['kw','if '],['tx','(i >= k - 1)                 '],['cm','// 4. window formed']],
+    [['tx','            res[i - k + 1] = nums[dq.peekFirst()];']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','res;']],
+    [['tx','}']]
+  ];
+
+  function buildFrames(nums, k){
+    const n = nums.length, frames = [];
+    if(k<1 || k>n){
+      frames.push({arr:nums.slice(), i:-1, dq:[], res:[], left:-1,right:-1, phase:'done', code:14, done:true,
+        msg:`Invalid k for this array length.`});
+      return frames;
+    }
+
+    const dq = [];   // indices
+    const res = [];
+
+    function dqSnapshot(popping, front){
+      return dq.map((idx,pos)=>({idx, val:nums[idx], isFront: pos===0, popping: idx===popping}));
+    }
+    function winBounds(i){ return {left:Math.max(0,i-k+1), right:i}; }
+
+    frames.push({arr:nums.slice(), i:-1, dq:[], res:[], left:-1,right:-1, phase:'push', code:1,
+      msg:`Empty deque. It will hold <b>indices</b> whose values stay decreasing front → back.`});
+
+    for(let i=0;i<n;i++){
+      const {left,right} = winBounds(i);
+
+      // step 1: evict front out of window
+      if(dq.length && dq[0] <= i-k){
+        const evicted = dq[0];
+        frames.push({arr:nums.slice(), i, dq:dqSnapshot(evicted), res:res.slice(), left,right, phase:'evict', code:5, entering:i, evicting:evicted,
+          msg:`<span class="x">Front index ${evicted} is now outside the window</span> (${evicted} ≤ ${i}−${k}). Remove it from the front.`});
+        dq.shift();
+        frames.push({arr:nums.slice(), i, dq:dqSnapshot(), res:res.slice(), left,right, phase:'evict', code:6, entering:i,
+          msg:`Front dropped. Deque front is valid again.`});
+      }
+
+      // step 2: pop smaller from back
+      while(dq.length && nums[dq[dq.length-1]] < nums[i]){
+        const popped = dq[dq.length-1];
+        frames.push({arr:nums.slice(), i, dq:dqSnapshot(popped), res:res.slice(), left,right, phase:'pop', code:8, entering:i, popping:popped,
+          msg:`<span class="k">nums[${popped}]=${nums[popped]} &lt; nums[${i}]=${nums[i]}</span> — index ${popped} can never be a max while ${i} is around. Pop it.`});
+        dq.pop();
+      }
+
+      // step 3: push current
+      dq.push(i);
+      frames.push({arr:nums.slice(), i, dq:dqSnapshot(), res:res.slice(), left,right, phase:'push', code:10, entering:i, justPushed:i,
+        msg:`<span class="s">Push index ${i}</span> (value ${nums[i]}) to the back. Deque stays decreasing.`});
+
+      // step 4: record
+      if(i>=k-1){
+        res.push(nums[dq[0]]);
+        frames.push({arr:nums.slice(), i, dq:dqSnapshot(), res:res.slice(), left,right, phase:'record', code:12, recordFront:true,
+          msg:`<span class="m">Window [${left}..${right}] complete</span> — front index ${dq[0]} holds the max: <b>${nums[dq[0]]}</b>.`});
+      }
+    }
+
+    frames.push({arr:nums.slice(), i:-1, dq:[], res:res.slice(), left:-1,right:-1, phase:'done', code:14, done:true,
+      msg:`<span class="m">Done. Window maxima = [${res.join(', ')}].</span>`});
+    return frames;
+  }
+
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), dqItemsEl=$('dqItems'), resultRowEl=$('resultRow'), msgEl=$('message'),
+        bannerEl=$('banner'), pillEl=$('phasePill'), barEl=$('bar'), countEl=$('stepCount'),
+        codeEl=$('code'), arrEl=$('arrInput'), kEl=$('kInput');
+  let frames=[], idx=0, playing=false, timer=null;
+
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function parseArr(str){ return str.split(',').map(s=>s.trim()).filter(s=>s!=='').map(Number).filter(x=>!isNaN(x)).slice(0,14); }
+
+  function buildTape(len){
+    tapeEl.innerHTML='';
+    for(let k=0;k<len;k++){
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML = `<div class="win-tag" data-wintag="${k}"></div>`+
+        `<div class="cell" data-cell="${k}"></div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`;
+      tapeEl.appendChild(col);
+    }
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+    const dqIndices = new Set(f.dq.map(d=>d.idx));
+    const frontIdx = f.dq.length ? f.dq[0].idx : -1;
+    const poppingIdx = f.dq.find(d=>d.popping);
+
+    for(let c=0;c<f.arr.length;c++){
+      const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
+      const wintag=tapeEl.querySelector(`[data-wintag="${c}"]`);
+      cell.textContent = f.arr[c];
+      let cls='cell';
+      const inWin = f.left>=0 && f.right>=0 && c>=f.left && c<=f.right;
+      if(inWin) cls+=' inwin'; else cls+=' outwin';
+      if(dqIndices.has(c)) cls+=' indeque';
+      if(c===frontIdx && (f.recordFront||f.phase==='record')) cls+=' frontmax';
+      if(c===f.entering) cls+=' entering';
+      if(c===f.popping) cls+=' popping';
+      if(c===f.evicting) cls+=' evicting';
+      cell.className=cls;
+      wintag.textContent = (c===f.left && f.left>=0 && f.right>=0) ? 'L' : (c===f.right && f.right>=0 ? 'R' : '');
+    }
+
+    if(f.dq.length){
+      dqItemsEl.innerHTML = f.dq.map(d=>`
+        <div class="dq-item ${d.isFront?'front':''} ${d.popping?'popping':''}">
+          <div class="dqval">${d.val}</div>
+          <div class="dqidx">i=${d.idx}</div>
+        </div>`).join('');
+    } else {
+      dqItemsEl.innerHTML = '<div class="dq-empty">— empty —</div>';
+    }
+
+    resultRowEl.innerHTML = `<span class="rlabel">result</span>` +
+      (f.res.length ? f.res.map(r=>`<span class="rval">${r}</span>`).join('') : '<span class="dq-empty">— none yet —</span>');
+
+    msgEl.innerHTML = f.msg;
+
+    const pmap={evict:['evict','− evict front'],pop:['pop','↑ pop back'],push:['push','+ push'],record:['record','★ record max'],done:['done','■ complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.textContent=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    bannerEl.className='result-banner';
+    if(idx===frames.length-1 && f.done){
+      bannerEl.className='result-banner ok'; bannerEl.innerHTML=`✓ [${f.res.join(', ')}]`;
+    }
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(){
+    stop();
+    const arr = parseArr(arrEl.value);
+    let k = parseInt(kEl.value)||1;
+    k = Math.max(1, Math.min(k, arr.length||1));
+    kEl.value = k;
+    buildTape(arr.length);
+    frames = buildFrames(arr, k);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 950 - $('speed').value*80; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    {v:'1, 3, -1, -3, 5, 3, 6, 7', k:3, note:'classic, [3,3,5,5,6,7]'},
+    {v:'1', k:1, note:'single element'},
+    {v:'7, 2, 4', k:2, note:'[7, 4]'},
+    {v:'1, 3, 1, 2, 0, 5', k:3, note:'[3, 3, 2, 5]'},
+    {v:'9, 8, 7, 6, 5', k:2, note:'strictly decreasing'},
+    {v:'1, 2, 3, 4, 5', k:2, note:'strictly increasing'},
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(ex=>{
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`[${ex.v.replace(/\s/g,'')}], k=${ex.k}<b>${ex.note}</b>`;
+      c.onclick=()=>{ arrEl.value=ex.v; kEl.value=ex.k; run(); };
+      box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=run;
+  arrEl.addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+  kEl.addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===arrEl||document.activeElement===kEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run();
+})();
+</script>
+
+<script>
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

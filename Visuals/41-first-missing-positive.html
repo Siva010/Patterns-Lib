@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 41 &middot; First Missing Positive &mdash; visual guide</title>
+<meta name="description" content="Interactive cyclic-sort visualizer for First Missing Positive (LeetCode 41): out-of-range values ignored, a while loop that keeps swapping, and the value-comparison guard that stops duplicates from cycling forever.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+
+/* ---------- cyclic sort tape (sub-variant J) ---------- */
+.cycwrap {
+  --colw: 46px; --gapw: 7px;
+  display: flex; flex-direction: column; gap: 8px;
+  align-items: center; max-width: 100%; overflow-x: auto; padding-bottom: 2px;
+}
+.tape.cyc { gap: var(--gapw); flex-wrap: nowrap; }
+.tape.cyc .col { width: var(--colw); gap: 4px; }
+.tape.cyc .cell { font-size: 17px; }
+.tape.cyc .caret { height: 19px; font-size: 10px; }
+.tape.cyc .caret .p { padding: 1px 5px; }
+
+/* "this slot wants k+1" — makes v -> index v-1 legible without reading the code */
+.want {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .02em;
+  color: var(--fg-dim); opacity: .8;
+}
+.want.ok { color: var(--r-hit); opacity: 1; }
+
+.cell.home { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+.cell.dest { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right); transform: translateY(-3px); }
+.cell.cur  { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+/* out of 1..n, or a slot that never received its number: hue-less, just receded */
+.cell.gone { background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim); color: var(--fg-dim); opacity: .5; transform: none; }
+.caret .pH { color: var(--accent-fg); background: var(--r-right); }
+
+/* the governing rule, restated under the stage on every frame */
+.rulebar {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 620px; text-align: center;
+}
+.rulebar b { color: var(--fg-mid); font-weight: 600; }
+.rulebar .i { color: var(--r-anchor); font-weight: 600; }
+.rulebar .r { color: var(--r-right);  font-weight: 600; }
+.rulebar .m { color: var(--r-hit);    font-weight: 600; }
+.rulebar .x { color: var(--fg-dim);   font-weight: 600; }
+
+/* the hardest line in the problem, called out whenever it fires */
+.guardbar {
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 640px; text-align: center;
+}
+.guardbar b { color: var(--fg-mid); font-weight: 600; }
+.guardbar.hot { color: var(--r-anchor); border: 1px solid var(--r-anchor-line); background: var(--r-anchor-wash); }
+.guardbar.hot b { color: var(--r-anchor); }
+
+.advtag {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em;
+  padding: 2px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
+}
+.advtag.go   { color: var(--r-right);  border-color: var(--r-right-line);  background: var(--r-right-wash); }
+.advtag.ok   { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+.advtag.stop { color: var(--fg-dim);   border-color: var(--rule-hard);     background: var(--bg-sunk); border-style: dashed; }
+.advtag.warn { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+
+.trip.no { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
+.trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
+
+.sum-line .i { color: var(--r-anchor); }
+.sum-line .r { color: var(--r-right); }
+.sum-line .m { color: var(--r-hit); }
+.sum-line .x { color: var(--fg-dim); }
+
+.code .cm { color: var(--t-com); font-style: italic; }
+.code .ln.guard::after {
+  content: "guard fires"; margin-left: 16px;
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--r-anchor); background: var(--r-anchor-wash);
+  border: 1px solid var(--r-anchor-line); border-radius: 999px; padding: 0 8px;
+}
+.code .ln.range::after {
+  content: "out of range"; margin-left: 16px;
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--fg-dim); background: var(--bg-sunk);
+  border: 1px dashed var(--rule-hard); border-radius: 999px; padding: 0 8px;
+}
+
+@media (max-width: 620px) {
+  .cycwrap { --colw: 34px; --gapw: 6px; }
+  .tape.cyc .cell { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .cell.cur, .cell.dest { transform: none; } }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+  <div class="eyebrow">Two Pointers &middot; cyclic sort <span class="tag">LeetCode 41</span></div>
+  <h1>First Missing Positive <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    O(n) time <em>and</em> O(1) space, on an array of arbitrary integers &mdash; which rules out sorting and
+    rules out a hash set, so the array has to become its own hash table. The key observation is that the
+    answer is always in <code>1..n+1</code>, so only values in <code>1..n</code> can possibly matter and
+    value <span class="i">v</span> gets exactly one home: index <span class="r">v&minus;1</span>. Three
+    things go wrong when people write this from memory, and this page lights all three up: values
+    <span class="x">&le; 0 or &gt; n</span> must be left alone rather than indexed with; the inner loop must
+    be a <b>while</b>, because one swap drops a <em>new</em> stray value into the slot you just vacated; and
+    the exit test must be <span class="k">nums[nums[i]-1] != nums[i]</span> &mdash; comparing values, not
+    <span class="k">i != nums[i]-1</span> comparing indices, or a duplicate swaps back and forth until the
+    clock runs out. Then one linear read: the first index not holding <code>index+1</code> gives the
+    answer, and if every index is satisfied the answer is <code>n+1</code>.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Array (any integers, comma-separated, up to 8)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="3, 4, -1, 1" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="cycwrap"><div class="tape cyc" id="tape"></div></div>
+        <div class="rulebar" id="ruleBar"></div>
+        <div class="guardbar" id="guardBar"></div>
+        <div class="sum-line" id="cmpLine"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets" id="verdict"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot i"></i>i &mdash; index being processed</span>
+        <span><i class="dot r"></i>home slot of the value in hand</span>
+        <span><i class="dot m"></i>value sitting at its home index</span>
+        <span><i class="dot x"></i>ignored: outside 1..n, or an unclaimed slot</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    O(n) time &middot; O(1) extra space &nbsp;&middot;&nbsp; the nested <code>while</code> is not quadratic:
+    every swap parks one value at its permanent home, so there are at most <code>n</code> swaps in the whole
+    run. &nbsp;The answer lives in <code>1..n+1</code>, which is why anything outside that window can be
+    ignored outright.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['kw','int '],['fn','firstMissingPositive'],['tx','('],['kw','int'],['tx','[] nums) {']],
+    [['tx','    '],['kw','int '],['tx','n = nums.length;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < n; i++) {']],
+    [['tx','        '],['kw','while '],['tx','(nums[i] > 0 && nums[i] <= n            '],['cm','// only 1..n can be a home']],
+    [['tx','               && nums[nums[i] - 1] != nums[i])   '],['cm','// VALUES, not indices']],
+    [['tx','            swap(nums, i, nums[i] - 1);           '],['cm','// while, not if: a swap brings in a new stray']],
+    [['tx','    }']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < n; i++)']],
+    [['tx','        '],['kw','if '],['tx','(nums[i] != i + 1) '],['kw','return '],['tx','i + 1;    '],['cm','// first unsatisfied slot']],
+    [['tx','    '],['kw','return '],['tx','n + 1;                                 '],['cm','// 1..n all present']],
+    [['tx','}']]
+  ];
+
+  const RULE = `<b>cyclic sort:</b> value <span class="i">v</span> in <span class="i">1..n</span> belongs at ` +
+               `index <span class="r">v&minus;1</span> &middot; anything <span class="x">&le;0 or &gt;n</span> ` +
+               `is ignored &middot; answer = first index <span class="m">not</span> holding index+1, else n+1`;
+  const GUARD = `<b>the guard:</b> <span class="k">nums[nums[i]-1] != nums[i]</span> &mdash; ` +
+                `"is my home slot already holding my value?" ` +
+                `<span class="k">i != nums[i]-1</span> looks equivalent and is not: on a duplicate it stays ` +
+                `true and the swap repeats forever.`;
+
+  /* ---- a real firstMissingPositive, one frame per meaningful step ---- */
+  function buildFrames(input){
+    const a = input.slice(), n = a.length, F = [];
+    const st = o => Object.assign({arr:a.slice(), i:-1, dest:-1, read:-1, guard:false,
+                                   range:false, phase:'scan'}, o);
+
+    if(n === 0){
+      F.push(st({phase:'done', code:9, done:true, ans:1, cmp:'',
+        msg:`Empty array &mdash; nothing can be present, so the first missing positive is
+             <span class="m">1</span> (which is also n+1 for n = 0).`}));
+      return F;
+    }
+
+    F.push(st({code:1, cmp:`<span class="advtag ok">answer must be in 1..${n+1}</span>`,
+      msg:`<b>n = ${n}</b>. Even in the worst case the array can only hold the ${n} values
+           1..${n}, so the first gap is somewhere in <span class="k">1..${n+1}</span>. That bound is what
+           makes the array usable as storage: index <b>k</b> is the designated home of value <b>k+1</b>,
+           printed dim under each cell. Everything outside 1..${n} is noise &mdash; it is shown dashed and
+           never indexed with.`}));
+
+    /* ---------- pass 1: cyclic placement ---------- */
+    for(let i = 0; i < n; i++){
+      F.push(st({i, code:2,
+        cmp:`<span class="i">i = ${i}</span> &nbsp; nums[${i}] = <b>${a[i]}</b>`,
+        msg:`Take index <span class="i">${i}</span>, holding <b>${a[i]}</b>.`}));
+
+      let swaps = 0;
+      while(true){
+        const v = a[i];
+
+        if(v <= 0 || v > n){
+          F.push(st({i, code:3, range:true, phase:'skip',
+            cmp:`nums[${i}] = <b>${v}</b> <span class="advtag stop">${v <= 0 ? 'not positive' : 'greater than n = ' + n}</span>`,
+            msg:`<span class="x">${v}</span> is outside <span class="k">1..${n}</span>, so it has no home in
+                 this array and it can never be the answer either &mdash; the answer is at most ${n+1}, and
+                 ${v} ${v <= 0 ? 'is not a positive integer at all' : 'would need an array at least ' + v + ' long to be missing'}.
+                 Leave it exactly where it is. Two reasons the range test comes <em>first</em>:
+                 <span class="k">nums[${v} - 1]</span> would be an out-of-bounds read, and we would be
+                 wasting swaps on values that cannot matter.`}));
+          break;
+        }
+
+        const dest = v - 1;
+        if(a[dest] === v){
+          const already = (dest === i);
+          F.push(st({i, dest, code:4, guard:true, phase: already ? 'scan' : 'skip',
+            cmp:`nums[${dest}] = <b>${a[dest]}</b> &nbsp;==&nbsp; nums[${i}] = <b>${v}</b> ` +
+                `<span class="advtag ${already ? 'ok' : 'warn'}">equal &rarr; while exits</span>`,
+            msg: already
+              ? `<span class="m">${v} is already at index ${dest}</span>, which is its own home. The guard
+                 compares <span class="k">nums[${dest}]</span> with <span class="k">nums[${i}]</span> &mdash;
+                 the same cell &mdash; so it is false immediately and the loop costs one comparison.`
+              : `<span class="i">The guard earns its keep.</span> Index <span class="r">${dest}</span>
+                 already holds <b>${v}</b>, so this second copy at index ${i} is a <b>duplicate</b> with
+                 nowhere to go. Swapping would exchange ${v} with ${v}: the array would be unchanged, the
+                 test would pass again, and the loop would never terminate. Written the tempting way,
+                 <span class="k">i != nums[i]-1</span> is <b>${i} &ne; ${dest}</b> &mdash; still true &mdash;
+                 and that version hangs right here. Comparing <em>values</em> catches it.`}));
+          break;
+        }
+
+        F.push(st({i, dest, code:4,
+          cmp:`nums[${dest}] = <b>${a[dest]}</b> &nbsp;&ne;&nbsp; nums[${i}] = <b>${v}</b> ` +
+              `<span class="advtag go">swap ${i} &harr; ${dest}</span>`,
+          msg:`<b>${v}</b> is in range and not home: index <span class="r">${dest}</span> is holding
+               <b>${a[dest]}</b>. Send ${v} home.`}));
+
+        const tmp = a[i]; a[i] = a[dest]; a[dest] = tmp;
+        swaps++;
+
+        F.push(st({i, dest, code:5,
+          cmp:`<span class="m">${v} parked at index ${dest}</span> &nbsp;&middot;&nbsp; ` +
+              `<span class="i">index ${i} now holds ${a[i]}</span>`,
+          msg:`Swapped. <span class="m">${v}</span> is home at index <span class="m">${dest}</span> and will
+               never move again. Index <span class="i">${i}</span> received <b>${a[i]}</b> in exchange &mdash;
+               a value that has not been examined yet. ` +
+               (swaps > 1
+                 ? `That is swap <b>#${swaps}</b> at this same <span class="i">i</span>. An
+                    <span class="k">if</span> here would move on and abandon <b>${a[i]}</b> forever; the
+                    <span class="k">while</span> re-tests index ${i} with its new occupant.`
+                 : `Precisely why the inner loop is a <span class="k">while</span> and not an
+                    <span class="k">if</span> &mdash; re-test index ${i} before advancing.`)}));
+      }
+    }
+
+    F.push(st({code:7, phase:'scan', cmp:`<span class="advtag ok">pass 1 complete</span>`,
+      msg:`Placement is done. Every value in <span class="k">1..${n}</span> that appears in the input is now
+           sitting at its own index; the dashed cells hold values that could never belong anywhere. Total
+           swaps: at most ${n} for the entire outer loop, because each one is permanent &mdash; that is why
+           this is O(n) and not O(n&sup2;).`}));
+
+    /* ---------- pass 2: first slot that is not satisfied ---------- */
+    for(let i = 0; i < n; i++){
+      const ok = (a[i] === i + 1);
+      if(!ok){
+        F.push(st({read:i, code:8, phase:'found', done:true, ans:i+1,
+          cmp:`nums[${i}] = <b>${a[i]}</b> &nbsp;&ne;&nbsp; <b>${i+1}</b> ` +
+              `<span class="advtag warn">answer = ${i+1}</span>`,
+          msg:`Index ${i} is not holding <b>${i+1}</b>. Nothing in the input ever claimed this slot, so
+               <span class="m">${i+1}</span> is absent &mdash; and because every earlier index <em>was</em>
+               satisfied, 1..${i} are all present. <span class="m">return ${i+1}</span>. Return on the
+               <em>first</em> failure; later gaps are irrelevant.`}));
+        return F;
+      }
+      F.push(st({read:i, code:8, phase:'scan',
+        cmp:`nums[${i}] = <b>${a[i]}</b> &nbsp;==&nbsp; <b>${i+1}</b> <span class="advtag ok">present</span>`,
+        msg:`Index ${i} holds <span class="m">${i+1}</span>, so ${i+1} is present. Keep reading.`}));
+    }
+
+    F.push(st({code:9, phase:'done', done:true, ans:n+1, read:-1,
+      cmp:`<span class="advtag ok">every index satisfied</span>`,
+      msg:`Every slot from 0 to ${n-1} holds index+1, so <b>1</b> through <b>${n}</b> are all present. The
+           array is a full permutation and the first gap is one past the end:
+           <span class="m">return n + 1 = ${n+1}</span>. This is the case people forget to handle.`}));
+    return F;
+  }
+
+  /* ---------------------------- wiring ---------------------------- */
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
+        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'), cmpEl=$('cmpLine'),
+        verdictEl=$('verdict'), ruleEl=$('ruleBar'), guardEl=$('guardBar');
+  let frames=[], idx=0, playing=false, timer=null, N=0;
+
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function parseArr(str){
+    return String(str).split(',').map(s=>s.trim()).filter(s=>s!=='')
+      .map(Number).filter(x=>!isNaN(x)).map(x=>Math.max(-99, Math.min(99, Math.round(x)))).slice(0,8);
+  }
+
+  function buildTape(len){
+    tapeEl.innerHTML='';
+    for(let k=0;k<len;k++){
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
+        `<div class="cell" data-cell="${k}"></div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`+
+        `<div class="want" data-want="${k}">&rarr;${k+1}</div>`;
+      tapeEl.appendChild(col);
+    }
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+
+    for(let k=0;k<N;k++){
+      const cell=tapeEl.querySelector(`[data-cell="${k}"]`);
+      const caret=tapeEl.querySelector(`[data-caret="${k}"]`);
+      const lbl=tapeEl.querySelector(`[data-idx="${k}"]`);
+      const want=tapeEl.querySelector(`[data-want="${k}"]`);
+      const v = f.arr[k];
+      const home = (v === k + 1);
+      const outside = (v <= 0 || v > N);
+      cell.textContent = v;
+      let cls='cell';
+      if(home) cls+=' home';
+      if(k === f.dest) cls+=' dest';
+      if(k === f.i || k === f.read) cls+=' cur';
+      if(outside) cls+=' gone';
+      cell.className=cls;
+      let cr='';
+      if(k === f.i) cr='<span class="p pI">i</span>';
+      else if(k === f.read) cr='<span class="p pI">read</span>';
+      else if(k === f.dest) cr='<span class="p pH">home</span>';
+      caret.innerHTML=cr; caret.style.opacity = cr ? '1' : '0';
+      lbl.classList.toggle('on', k === f.i || k === f.read || k === f.dest);
+      want.className = 'want' + (home ? ' ok' : '');
+    }
+
+    ruleEl.innerHTML = RULE;
+    guardEl.className = 'guardbar' + (f.guard ? ' hot' : '');
+    guardEl.innerHTML = GUARD;
+    cmpEl.innerHTML = f.cmp || '';
+    msgEl.innerHTML = f.msg;
+
+    if(f.done){
+      verdictEl.innerHTML = `<span class="trip">return ${f.ans}</span>` +
+        (f.ans === N + 1 ? `<span class="trip neutral">n + 1 &mdash; 1..${N} all present</span>` : '');
+    } else {
+      const homed = f.arr.filter((v,k)=>v===k+1).length;
+      const dead  = f.arr.filter(v=>v<=0||v>N).length;
+      verdictEl.innerHTML = `<span class="trip neutral">${homed} / ${N} slots satisfied</span>` +
+        (dead ? `<span class="trip no">${dead} value${dead>1?'s':''} outside 1..${N}</span>` : '');
+    }
+
+    const pmap={scan:['scan','&#9679; placing'],skip:['sort','&#8212; left alone'],
+                found:['found','&#10003; gap found'],done:['done','&#9632; complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.innerHTML=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec','guard','range'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`);
+    if(line){
+      line.classList.add('exec');
+      if(f.guard) line.classList.add('guard');
+      if(f.range) line.classList.add('range');
+    }
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(str){
+    stop();
+    const arr = parseArr(str);
+    N = arr.length;
+    buildTape(N);
+    frames = buildFrames(arr);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').innerHTML='&#10074;&#10074;'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').innerHTML='&#9654;'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['1, 2, 0',        'LeetCode example — 0 ignored, answer 3'],
+    ['3, 4, -1, 1',    'negatives ride along, answer 2'],
+    ['7, 8, 9, 11, 12','every value > n — nothing moves, answer 1'],
+    ['1, 2, 3, 4',     'already home — the n+1 case, answer 5'],
+    ['2, 2, 1, 1',     'duplicates — the guard fires three times'],
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(([w,note])=>{
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`[${w.replace(/\s/g,'')}]<b>${note}</b>`;
+      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(inputEl.value);
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===inputEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(inputEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>107 interactive visualizers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<style>
+:root {
+  --serif: "Source Serif 4", Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --bg: #fbfaf8; --bg-sunk: #f4f2ed; --fg: #17171a; --fg-mid: #4a4842; --fg-dim: #6d6b64;
+  --rule: #e3dfd7; --rule-hard: #cbc5b8; --accent: #9c3a1c; --accent-fg: #ffffff;
+  --accent-wash: rgba(156,58,28,0.07); --accent-line: rgba(156,58,28,0.30);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme="auto"] { --bg:#121213; --bg-sunk:#1a1a1c; --fg:#e9e7e2; --fg-mid:#b8b4ac; --fg-dim:#93908a;
+    --rule:#2b2b2e; --rule-hard:#3d3d41; --accent:#e3865f; --accent-fg:#16120f;
+    --accent-wash: rgba(227,134,95,0.10); --accent-line: rgba(227,134,95,0.34); }
+}
+html[data-theme="dark"] { --bg:#121213; --bg-sunk:#1a1a1c; --fg:#e9e7e2; --fg-mid:#b8b4ac; --fg-dim:#93908a;
+  --rule:#2b2b2e; --rule-hard:#3d3d41; --accent:#e3865f; --accent-fg:#16120f;
+  --accent-wash: rgba(227,134,95,0.10); --accent-line: rgba(227,134,95,0.34); }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--serif); line-height:1.6; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 56px 28px 100px; }
+h1 { font-family:var(--sans); font-weight:650; letter-spacing:-0.02em; font-size: clamp(28px,4vw,40px); margin:0 0 10px; }
+p.lede { font-size:1.08em; color:var(--fg-mid); max-width:64ch; margin:0 0 34px; }
+.topnav { font-family:var(--sans); font-size:13px; color:var(--fg-dim); margin:0 0 40px;
+  padding-bottom:16px; border-bottom:1px solid var(--rule); }
+.topnav a { color:var(--accent); text-decoration:none; }
+.topnav a:hover { text-decoration:underline; }
+.topnav span { margin:0 8px; color:var(--rule-hard); }
+h2.part { font-family:var(--sans); font-weight:650; font-size:23px; letter-spacing:-0.015em;
+  color:var(--fg); text-transform:none; margin:64px 0 6px; padding-top:26px;
+  border-top:2px solid var(--fg); }
+h2.part:first-of-type { margin-top:16px; }
+p.partsub { font-family:var(--sans); font-size:13.5px; color:var(--fg-dim); margin:0 0 26px; max-width:62ch; }
+h3 { font-family:var(--sans); font-weight:620; font-size:15px; text-transform:uppercase; letter-spacing:.09em;
+     color:var(--fg-dim); margin: 40px 0 14px; padding-bottom:10px; border-bottom:1px solid var(--rule);
+     display:flex; align-items:baseline; gap:12px; }
+h3 .sv { font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-wash);
+  padding:2px 7px; border-radius:4px; letter-spacing:.04em; text-transform:none; flex:none; }
+h3 .note { margin-left:auto; font-size:11.5px; font-weight:400; letter-spacing:0; text-transform:none;
+  color:var(--fg-dim); }
+@media (max-width:620px){ h3 .note { display:none; } }
+.grid { display:grid; grid-template-columns: 1fr; gap: 10px; }
+a.card {
+  display:flex; align-items:baseline; gap:14px; text-decoration:none; color:var(--fg);
+  padding:14px 16px; border:1px solid var(--rule); border-radius:8px; background:var(--bg-sunk);
+  transition: border-color .14s ease, background .14s ease;
+}
+a.card:hover { border-color: var(--accent-line); background: var(--accent-wash); }
+a.card .num { font-family:var(--mono); font-size:13px; color:var(--accent); flex:none; min-width:52px; }
+a.card .t { font-family:var(--sans); font-weight:600; font-size:15px; }
+a.card .diff { font-family:var(--sans); font-size:10px; font-weight:650; letter-spacing:.06em; text-transform:uppercase;
+  padding:2px 8px; border-radius:100px; border:1px solid var(--rule-hard); flex:none; white-space:nowrap; }
+a.card .diff-easy { color:var(--fg-dim); border-color:var(--rule); }
+a.card .diff-medium { color:var(--fg-mid); border-color:var(--rule-hard); }
+a.card .diff-hard { color:var(--accent); border-color:var(--accent-line); background:var(--accent-wash); }
+a.card .diff-trap { color:var(--accent); border-color:var(--accent); background:var(--accent-wash); }
+a.card .d { font-family:var(--sans); font-size:12.5px; color:var(--fg-dim); margin-left:auto; text-align:right; white-space:nowrap; }
+@media (max-width:600px){ a.card .d { display:none; } }
+.foot { margin-top:56px; padding-top:20px; border-top:1px solid var(--rule); font-family:var(--sans); font-size:12.5px; color:var(--fg-dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Interactive visualizers</h1>
+<p class="lede">107 pages, one house style. Every diagram is driven by a real,
+instrumented implementation of the algorithm it&rsquo;s showing &mdash; step through with the
+controls or the arrow keys, and the code pane highlights the exact line running at each frame.</p>
+
+<p class="topnav"><a href="../index.html">&larr; Study library</a><span>&middot;</span><a href="#p1">Pattern 1 &mdash; Traversal</a><span>&middot;</span><a href="#p2">Pattern 2 &mdash; Tree Recursion</a><span>&middot;</span><a href="#p3">3 &mdash; Two Pointers</a><span>&middot;</span><a href="#p4">4 &mdash; Sliding Window</a><span>&middot;</span><a href="#p5">5 &mdash; Binary Search</a></p>
+
+<h2 class="part" id="p1">Pattern 1 &mdash; Traversal</h2>
+<p class="partsub">Order of visitation is the whole subject: what you see, when you see it, and
+what you are allowed to remember. Twenty-two pages.</p>
+
+<h3><span class="sv">&#9670;</span> Depth-first traversals, compared</h3>
+<div class="grid">
+<a class="card" href="Pre-In-Post%20Order%20Traversals%20comparision.html"><span class="num">&#9670;</span><span class="t">Recursive vs. Iterative &mdash; all eight ways</span><span class="diff diff-easy">Easy</span><span class="d">preorder, inorder &amp; postorder &times; 2, plus 3 postorder tricks</span></a>
+</div>
+
+<h3><span class="sv">A</span> Traversal fundamentals</h3>
+<div class="grid">
+<a class="card" href="102-binary-tree-level-order-traversal.html"><span class="num">102</span><span class="t">Binary Tree Level Order Traversal</span><span class="diff diff-medium">Medium</span><span class="d">BFS &amp; DFS, side by side</span></a>
+<a class="card" href="94-binary-tree-inorder-traversal-morris.html"><span class="num">94</span><span class="t">Binary Tree Inorder Traversal</span><span class="diff diff-easy">Easy</span><span class="d">Morris threading, O(1) space</span></a>
+<a class="card" href="173-binary-search-tree-iterator.html"><span class="num">173</span><span class="t">Binary Search Tree Iterator</span><span class="diff diff-medium">Medium</span><span class="d">controlled recursion</span></a>
+</div>
+
+<h3><span class="sv">B</span> The level-order family</h3>
+<div class="grid">
+<a class="card" href="199-binary-tree-right-side-view.html"><span class="num">199</span><span class="t">Binary Tree Right Side View</span><span class="diff diff-medium">Medium</span><span class="d">last node per level</span></a>
+<a class="card" href="103-binary-tree-zigzag-level-order-traversal.html"><span class="num">103</span><span class="t">Zigzag Level Order Traversal</span><span class="diff diff-medium">Medium</span><span class="d">reverse alternate levels</span></a>
+<a class="card" href="662-maximum-width-of-binary-tree.html"><span class="num">662</span><span class="t">Maximum Width of Binary Tree</span><span class="diff diff-medium">Medium</span><span class="d">null gaps count too</span></a>
+<a class="card" href="987-vertical-order-traversal-of-a-binary-tree.html"><span class="num">987</span><span class="t">Vertical Order Traversal</span><span class="diff diff-hard">Hard</span><span class="d">row, col, then value</span></a>
+<a class="card" href="111-minimum-depth-of-binary-tree.html"><span class="num">111</span><span class="t">Minimum Depth of Binary Tree</span><span class="diff diff-easy">Easy</span><span class="d">BFS stops at the first leaf</span></a>
+<a class="card" href="level-order-accumulators-compared.html"><span class="num">&#9670;</span><span class="t">Level-Order Accumulators, Compared</span><span class="diff diff-medium">Medium</span><span class="d">107, 637, 515 &amp; 1161 &mdash; one BFS, four accumulators</span></a>
+</div>
+
+<h3><span class="sv">C</span> The tree as a graph</h3>
+<div class="grid">
+<a class="card" href="863-all-nodes-distance-k-in-binary-tree.html"><span class="num">863</span><span class="t">All Nodes Distance K in Binary Tree</span><span class="diff diff-medium">Medium</span><span class="d">parent map + graph BFS</span></a>
+<a class="card" href="2385-amount-of-time-for-binary-tree-to-be-infected.html"><span class="num">2385</span><span class="t">Amount of Time for Binary Tree to Be Infected</span><span class="diff diff-medium">Medium</span><span class="d">BFS from patient zero</span></a>
+</div>
+
+<h3><span class="sv">D</span> N-ary generalizations</h3>
+<div class="grid">
+<a class="card" href="429-n-ary-tree-level-order-traversal.html"><span class="num">429</span><span class="t">N-ary Tree Level Order Traversal</span><span class="diff diff-medium">Medium</span><span class="d">any number of children</span></a>
+<a class="card" href="559-maximum-depth-of-n-ary-tree.html"><span class="num">559</span><span class="t">Maximum Depth of N-ary Tree</span><span class="diff diff-easy">Easy</span><span class="d">max over children</span></a>
+<a class="card" href="589-n-ary-tree-preorder-traversal.html"><span class="num">589</span><span class="t">N-ary Tree Preorder Traversal</span><span class="diff diff-easy">Easy</span><span class="d">why children are pushed in reverse</span></a>
+<a class="card" href="590-n-ary-tree-postorder-traversal.html"><span class="num">590</span><span class="t">N-ary Tree Postorder Traversal</span><span class="diff diff-easy">Easy</span><span class="d">recursion, and the reverse-preorder trick</span></a>
+</div>
+
+<h3><span class="sv">E</span> Traversal without a tree</h3>
+<div class="grid">
+<a class="card" href="331-verify-preorder-serialization-of-a-binary-tree.html"><span class="num">331</span><span class="t">Verify Preorder Serialization</span><span class="diff diff-medium">Medium</span><span class="d">slot counting &mdash; no tree is ever built</span></a>
+</div>
+
+<h3><span class="sv">&#9671;</span> Extra reps</h3>
+<div class="grid">
+<a class="card" href="993-cousins-in-binary-tree.html"><span class="num">993</span><span class="t">Cousins in Binary Tree</span><span class="diff diff-easy">Easy</span><span class="d">depth and parent in one pass</span></a>
+<a class="card" href="1302-deepest-leaves-sum.html"><span class="num">1302</span><span class="t">Deepest Leaves Sum</span><span class="diff diff-medium">Medium</span><span class="d">let the last level win</span></a>
+<a class="card" href="623-add-one-row-to-tree.html"><span class="num">623</span><span class="t">Add One Row to Tree</span><span class="diff diff-medium">Medium</span><span class="d">the tree is redrawn as it grows</span></a>
+<a class="card" href="1609-even-odd-tree.html"><span class="num">1609</span><span class="t">Even Odd Tree</span><span class="diff diff-medium">Medium</span><span class="d">parity and direction, per level</span></a>
+<a class="card" href="671-second-minimum-node-in-a-binary-tree.html"><span class="num">671</span><span class="t">Second Minimum Node</span><span class="diff diff-easy">Easy</span><span class="d">the prune that skips whole subtrees</span></a>
+</div>
+
+<h2 class="part" id="p2">Pattern 2 &mdash; Tree Recursion</h2>
+<p class="partsub">One skeleton &mdash; ask both children, combine, hand the result up &mdash; and
+twelve mutations of it. What changes between sub-variants is never the traversal; it is
+<em>what</em> travels, and in which direction. All 30 pages, grouped as in the bundle.</p>
+
+<h3><span class="sv">A</span> Postorder aggregation<span class="note">identity &middot; combine &middot; own contribution</span></h3>
+<div class="grid">
+<a class="card" href="404-sum-of-left-leaves.html"><span class="num">404</span><span class="t">Sum of Left Leaves</span><span class="diff diff-easy">Easy</span><span class="d">the parent knows which child it is</span></a>
+<a class="card" href="104-maximum-depth-of-binary-tree.html"><span class="num">104</span><span class="t">Maximum Depth of Binary Tree</span><span class="diff diff-easy">Easy</span><span class="d">the atom &mdash; 1 + max(L, R)</span></a>
+<a class="card" href="110-balanced-binary-tree.html"><span class="num">110</span><span class="t">Balanced Binary Tree</span><span class="diff diff-easy">Easy</span><span class="d">&minus;1 as a sentinel abort</span></a>
+<a class="card" href="222-count-complete-tree-nodes.html"><span class="num">222</span><span class="t">Count Complete Tree Nodes</span><span class="diff diff-trap">&#9888; Trap</span><span class="d">the shape is the algorithm</span></a>
+</div>
+
+<h3><span class="sv">B</span> Two trees in lockstep<span class="note">the pairing rule is a parameter</span></h3>
+<div class="grid">
+<a class="card" href="617-merge-two-binary-trees.html"><span class="num">617</span><span class="t">Merge Two Binary Trees</span><span class="diff diff-easy">Easy</span><span class="d">the pairing rule when either side may be null</span></a>
+<a class="card" href="951-flip-equivalent-binary-trees.html"><span class="num">951</span><span class="t">Flip Equivalent Binary Trees</span><span class="diff diff-medium">Medium</span><span class="d">match children in either order</span></a>
+<a class="card" href="100-same-tree.html"><span class="num">100</span><span class="t">Same Tree</span><span class="diff diff-easy">Easy</span><span class="d">the three base cases, in order</span></a>
+<a class="card" href="101-symmetric-tree.html"><span class="num">101</span><span class="t">Symmetric Tree</span><span class="diff diff-easy">Easy</span><span class="d">the same machine, crossed</span></a>
+<a class="card" href="572-subtree-of-another-tree.html"><span class="num">572</span><span class="t">Subtree of Another Tree</span><span class="diff diff-easy">Easy</span><span class="d">a traversal inside a traversal</span></a>
+</div>
+
+<h3><span class="sv">C</span> The record / return split<span class="note">return what composes, record what does not</span></h3>
+<div class="grid">
+<a class="card" href="687-longest-univalue-path.html"><span class="num">687</span><span class="t">Longest Univalue Path</span><span class="diff diff-medium">Medium</span><span class="d">return the one-sided arm, record the join</span></a>
+<a class="card" href="543-diameter-of-binary-tree.html"><span class="num">543</span><span class="t">Diameter of Binary Tree</span><span class="diff diff-trap">&#9888; Trap</span><span class="d">the proof problem of the pattern</span></a>
+<a class="card" href="124-binary-tree-maximum-path-sum.html"><span class="num">124</span><span class="t">Binary Tree Maximum Path Sum</span><span class="diff diff-hard">Hard</span><span class="d">the clamp is the difficulty</span></a>
+</div>
+
+<h3><span class="sv">D</span> State flowing down<span class="note">the parameter <em>is</em> the state</span></h3>
+<div class="grid">
+<a class="card" href="1448-count-good-nodes-in-binary-tree.html"><span class="num">1448</span><span class="t">Count Good Nodes in Binary Tree</span><span class="diff diff-medium">Medium</span><span class="d">maxSoFar down, a count up</span></a>
+<a class="card" href="129-sum-root-to-leaf-numbers.html"><span class="num">129</span><span class="t">Sum Root to Leaf Numbers</span><span class="diff diff-medium">Medium</span><span class="d">cur &times; 10 + val, harvested at leaves</span></a>
+</div>
+
+<h3><span class="sv">E</span> Root-to-leaf paths<span class="note">add before recursing, remove after</span></h3>
+<div class="grid">
+<a class="card" href="112-path-sum.html"><span class="num">112</span><span class="t">Path Sum</span><span class="diff diff-easy">Easy</span><span class="d">null is not a leaf</span></a>
+<a class="card" href="257-binary-tree-paths.html"><span class="num">257</span><span class="t">Binary Tree Paths</span><span class="diff diff-easy">Easy</span><span class="d">the remove is the sub-variant</span></a>
+<a class="card" href="113-path-sum-ii.html"><span class="num">113</span><span class="t">Path Sum II</span><span class="diff diff-medium">Medium</span><span class="d">copy on record, or return N empty lists</span></a>
+</div>
+
+<h3><span class="sv">F</span> Prefix sums on the root path<span class="note">the bridge from arrays to trees</span></h3>
+<div class="grid">
+<a class="card" href="437-path-sum-iii.html"><span class="num">437</span><span class="t">Path Sum III</span><span class="diff diff-medium">Medium</span><span class="d">LC 560's hash map, undone on the way up</span></a>
+</div>
+
+<h3><span class="sv">G</span> Lowest common ancestor<span class="note">an overloaded return value</span></h3>
+<div class="grid">
+<a class="card" href="236-lowest-common-ancestor-of-a-binary-tree.html"><span class="num">236</span><span class="t">Lowest Common Ancestor of a Binary Tree</span><span class="diff diff-medium">Medium</span><span class="d">both sides report &rarr; split point</span></a>
+<a class="card" href="1123-lowest-common-ancestor-of-deepest-leaves.html"><span class="num">1123</span><span class="t">LCA of Deepest Leaves</span><span class="diff diff-medium">Medium</span><span class="d">(depth, node) upward &mdash; a tie wins</span></a>
+</div>
+
+<h3><span class="sv">H</span> Construction from traversals<span class="note">it is always an off-by-one</span></h3>
+<div class="grid">
+<a class="card" href="105-construct-binary-tree-from-preorder-and-inorder-traversal.html"><span class="num">105</span><span class="t">Construct from Preorder + Inorder</span><span class="diff diff-medium">Medium</span><span class="d">preorder names, inorder sizes</span></a>
+<a class="card" href="106-construct-binary-tree-from-inorder-and-postorder-traversal.html"><span class="num">106</span><span class="t">Construct from Inorder + Postorder</span><span class="diff diff-medium">Medium</span><span class="d">right subtree built first</span></a>
+</div>
+
+<h3><span class="sv">I</span> Serialization<span class="note">the null markers are the structure</span></h3>
+<div class="grid">
+<a class="card" href="297-serialize-and-deserialize-binary-tree.html"><span class="num">297</span><span class="t">Serialize and Deserialize Binary Tree</span><span class="diff diff-hard">Hard</span><span class="d">one shared cursor, never an index copy</span></a>
+</div>
+
+<h3><span class="sv">J</span> Structural rewiring<span class="note">once you mutate, order is load-bearing</span></h3>
+<div class="grid">
+<a class="card" href="226-invert-binary-tree.html"><span class="num">226</span><span class="t">Invert Binary Tree</span><span class="diff diff-easy">Easy</span><span class="d">recurse, then rewire</span></a>
+<a class="card" href="114-flatten-binary-tree-to-linked-list.html"><span class="num">114</span><span class="t">Flatten Binary Tree to Linked List</span><span class="diff diff-medium">Medium</span><span class="d">build the chain backwards &mdash; plus Morris</span></a>
+<a class="card" href="117-populating-next-right-pointers-in-each-node-ii.html"><span class="num">117</span><span class="t">Populating Next Right Pointers II</span><span class="diff diff-medium">Medium</span><span class="d">the linked level is the queue</span></a>
+</div>
+
+<h3><span class="sv">K</span> Multi-dimensional state<span class="note">return every case the parent might be in</span></h3>
+<div class="grid">
+<a class="card" href="337-house-robber-iii.html"><span class="num">337</span><span class="t">House Robber III</span><span class="diff diff-medium">Medium</span><span class="d">(rob, skip) &mdash; the model for the rest</span></a>
+<a class="card" href="979-distribute-coins-in-binary-tree.html"><span class="num">979</span><span class="t">Distribute Coins in Binary Tree</span><span class="diff diff-medium">Medium</span><span class="d">a signed surplus; count flow, not nodes</span></a>
+<a class="card" href="968-binary-tree-cameras.html"><span class="num">968</span><span class="t">Binary Tree Cameras</span><span class="diff diff-hard">Hard</span><span class="d">three states, placed as late as possible</span></a>
+</div>
+
+<h3><span class="sv">L</span> Rerooting &mdash; two passes<span class="note">when every node needs its own answer</span></h3>
+<div class="grid">
+<a class="card" href="834-sum-of-distances-in-tree.html"><span class="num">834</span><span class="t">Sum of Distances in Tree</span><span class="diff diff-hard">Hard</span><span class="d">measure up, then reroot down in O(1)</span></a>
+</div>
+
+
+<h2 class="part" id="p3">Pattern 3 &mdash; Two Pointers</h2>
+<p class="partsub">Two indices, and an argument for why moving one of them can never skip the answer. 33 pages.</p>
+
+<h3><span class="sv">A</span> Converging pointers on sorted data<span class="note">the discard argument is the whole pattern</span></h3>
+<div class="grid">
+<a class="card" href="167-two-sum-ii-sorted-array.html"><span class="num">167</span><span class="t">Two Sum II — Sorted Array</span><span class="diff diff-easy">Easy</span><span class="d">Sorted input turns the hash map into two indices&hellip;</span></a>
+<a class="card" href="1099-two-sum-less-than-k.html"><span class="num">1099</span><span class="t">Two Sum Less Than K</span><span class="diff diff-easy">Easy</span><span class="d">No early exit here — every sum under k is a candidate, not&hellip;</span></a>
+<a class="card" href="125-valid-palindrome.html"><span class="num">125</span><span class="t">Valid Palindrome</span><span class="diff diff-easy">Easy</span><span class="d">Skip non-alphanumeric characters, compare&hellip;</span></a>
+<a class="card" href="977-squares-of-a-sorted-array.html"><span class="num">977</span><span class="t">Squares of a Sorted Array</span><span class="diff diff-easy">Easy</span><span class="d">Negatives square into big positives — the largest square&hellip;</span></a>
+<a class="card" href="680-valid-palindrome-ii.html"><span class="num">680</span><span class="t">Valid Palindrome II</span><span class="diff diff-easy">Easy</span><span class="d">On a mismatch, fork: try skipping left, then try skipping&hellip;</span></a>
+<a class="card" href="344-reverse-string.html"><span class="num">344</span><span class="t">Reverse String</span><span class="diff diff-easy">Easy</span><span class="d">In-place swap, inward — the textbook two-pointer warm-up.</span></a>
+<a class="card" href="345-reverse-vowels-of-a-string.html"><span class="num">345</span><span class="t">Reverse Vowels of a String</span><span class="diff diff-easy">Easy</span><span class="d">Same inward swap as Reverse String, but skip past&hellip;</span></a>
+</div>
+
+<h3><span class="sv">B</span> Converging with a discard proof<span class="note">greedy: prove the smaller side can be dropped</span></h3>
+<div class="grid">
+<a class="card" href="11-container-with-most-water.html"><span class="num">11</span><span class="t">Container With Most Water</span><span class="diff diff-medium">Medium</span><span class="d">Always move the shorter wall — moving the taller one can&hellip;</span></a>
+<a class="card" href="42-trapping-rain-water.html"><span class="num">42</span><span class="t">Trapping Rain Water</span><span class="diff diff-hard">Hard</span><span class="d">The smaller wall’s water level is always fully determined&hellip;</span></a>
+</div>
+
+<h3><span class="sv">C</span> k-Sum reduction<span class="note">peel an index, recurse, bottom out at two pointers</span></h3>
+<div class="grid">
+<a class="card" href="15-3sum.html"><span class="num">15</span><span class="t">3Sum</span><span class="diff diff-medium">Medium</span><span class="d">Sort, fix i, then slide left/right inward — with two&hellip;</span></a>
+<a class="card" href="16-3sum-closest.html"><span class="num">16</span><span class="t">3Sum Closest</span><span class="diff diff-medium">Medium</span><span class="d">Track whichever sum has landed nearest the target — an&hellip;</span></a>
+<a class="card" href="18-4sum.html"><span class="num">18</span><span class="t">4Sum</span><span class="diff diff-medium">Medium</span><span class="d">3Sum with one more nested fixed pointer — and one more&hellip;</span></a>
+<a class="card" href="259-3sum-smaller.html"><span class="num">259</span><span class="t">3Sum Smaller</span><span class="diff diff-medium">Medium</span><span class="d">Count, don’t collect — one valid pair means every value&hellip;</span></a>
+<a class="card" href="generalized-ksum.html"><span class="num">&#9670;</span><span class="t">Generalized kSum</span><span class="diff diff-medium">Medium</span><span class="d">2Sum, 3Sum, 4Sum are one recursive pattern — fix pointers&hellip;</span></a>
+</div>
+
+<h3><span class="sv">D</span> Read/write compaction<span class="note">the prefix [0, write) is the answer so far</span></h3>
+<div class="grid">
+<a class="card" href="27-remove-element.html"><span class="num">27</span><span class="t">Remove Element</span><span class="diff diff-easy">Easy</span><span class="d">the write head keeps only what survives</span></a>
+<a class="card" href="26-remove-duplicates-from-sorted-array.html"><span class="num">26</span><span class="t">Remove Duplicates from Sorted Array</span><span class="diff diff-easy">Easy</span><span class="d">compare against the last <em>kept</em>, not the last seen</span></a>
+<a class="card" href="80-remove-duplicates-from-sorted-array-ii.html"><span class="num">80</span><span class="t">Remove Duplicates from Sorted Array II</span><span class="diff diff-medium">Medium</span><span class="d">the write&minus;2 lookback, and how it generalises to k</span></a>
+</div>
+
+<h3><span class="sv">E</span> Two-sequence advance<span class="note">the whole design question is which pointer moves</span></h3>
+<div class="grid">
+<a class="card" href="392-is-subsequence.html"><span class="num">392</span><span class="t">Is Subsequence</span><span class="diff diff-easy">Easy</span><span class="d">only <code>i</code> advances on a match</span></a>
+<a class="card" href="986-interval-list-intersections.html"><span class="num">986</span><span class="t">Interval List Intersections</span><span class="diff diff-medium">Medium</span><span class="d">retire whichever interval ends first</span></a>
+<a class="card" href="844-backspace-string-compare.html"><span class="num">844</span><span class="t">Backspace String Compare</span><span class="diff diff-easy">Easy</span><span class="d">scan right to left with a skip counter</span></a>
+</div>
+
+<h3><span class="sv">F</span> Backward-writing merge<span class="note">write from the back and you never clobber</span></h3>
+<div class="grid">
+<a class="card" href="88-merge-sorted-array.html"><span class="num">88</span><span class="t">Merge Sorted Array</span><span class="diff diff-easy">Easy</span><span class="d">w = i + j + 1 is the proof it is safe</span></a>
+</div>
+
+<h3><span class="sv">G</span> Fast &amp; slow, and gap pointers<span class="note">distance, not position</span></h3>
+<div class="grid">
+<a class="card" href="141-linked-list-cycle.html"><span class="num">141</span><span class="t">Linked List Cycle</span><span class="diff diff-easy">Easy</span><span class="d">Fast runs out of road exactly when slow lands on the middle.</span></a>
+<a class="card" href="876-middle-of-the-linked-list.html"><span class="num">876</span><span class="t">Middle of the Linked List</span><span class="diff diff-easy">Easy</span><span class="d"></span></a>
+<a class="card" href="19-remove-nth-node-from-end.html"><span class="num">19</span><span class="t">Remove Nth Node From End</span><span class="diff diff-medium">Medium</span><span class="d">A dummy node and an n-node gap turn removal into one pass.</span></a>
+
+<a class="card" href="142-linked-list-cycle-ii.html"><span class="num">142</span><span class="t">Linked List Cycle II</span><span class="diff diff-medium">Medium</span><span class="d">phase two finds the entrance</span></a>
+<a class="card" href="287-find-the-duplicate-number.html"><span class="num">287</span><span class="t">Find the Duplicate Number</span><span class="diff diff-medium">Medium</span><span class="d">the array is secretly a linked list</span></a>
+</div>
+
+<h3><span class="sv">H</span> Partitioning<span class="note">three regions, one pass</span></h3>
+<div class="grid">
+<a class="card" href="75-sort-colors.html"><span class="num">75</span><span class="t">Sort Colors</span><span class="diff diff-medium">Medium</span><span class="d">Three pointers, one pass — low / mid / high carve out&hellip;</span></a>
+
+<a class="card" href="215-kth-largest-element-in-an-array.html"><span class="num">215</span><span class="t">Kth Largest Element in an Array</span><span class="diff diff-medium">Medium</span><span class="d">quickselect &mdash; recurse into one side only</span></a>
+</div>
+
+<h3><span class="sv">I</span> Expand around center<span class="note">2n&minus;1 centers, not n</span></h3>
+<div class="grid">
+<a class="card" href="5-longest-palindromic-substring.html"><span class="num">5</span><span class="t">Longest Palindromic Substring</span><span class="diff diff-medium">Medium</span><span class="d">keep the best span</span></a>
+<a class="card" href="647-palindromic-substrings.html"><span class="num">647</span><span class="t">Palindromic Substrings</span><span class="diff diff-medium">Medium</span><span class="d">same loop, count instead of max</span></a>
+</div>
+
+<h3><span class="sv">J</span> Cyclic sort<span class="note">value v belongs at index v&minus;1</span></h3>
+<div class="grid">
+<a class="card" href="448-find-all-numbers-disappeared-in-an-array.html"><span class="num">448</span><span class="t">Find All Numbers Disappeared in an Array</span><span class="diff diff-easy">Easy</span><span class="d">swap each value home, then read the gaps</span></a>
+<a class="card" href="41-first-missing-positive.html"><span class="num">41</span><span class="t">First Missing Positive</span><span class="diff diff-hard">Hard</span><span class="d">the while-swap duplicate guard is the hard line</span></a>
+</div>
+
+<h3><span class="sv">K</span> Counting pairs on sorted data<span class="note">count the block, don't enumerate it</span></h3>
+<div class="grid">
+<a class="card" href="611-valid-triangle-number.html"><span class="num">611</span><span class="t">Valid Triangle Number</span><span class="diff diff-medium">Medium</span><span class="d">Fix the largest side; one valid pair means every value&hellip;</span></a>
+</div>
+
+
+<h2 class="part" id="p4">Pattern 4 &mdash; Sliding Window</h2>
+<p class="partsub">One pass, two boundaries, and an invariant that decides when the window has to give ground. Eight pages.</p>
+
+<h3><span class="sv">A</span> Fixed-size window<span class="note">the frame never changes size</span></h3>
+<div class="grid">
+<a class="card" href="643-maximum-average-subarray-i.html"><span class="num">643</span><span class="t">Maximum Average Subarray I</span><span class="diff diff-easy">Easy</span><span class="d">Build the first window once, then slide — track the max&hellip;</span></a>
+<a class="card" href="2841-maximum-sum-of-distinct-subarrays-with-length-k.html"><span class="num">2841</span><span class="t">Maximum Sum of Distinct Subarrays With Length K</span><span class="diff diff-medium">Medium</span><span class="d">A running sum and a frequency map — the window only counts&hellip;</span></a>
+</div>
+
+<h3><span class="sv">B</span> Variable window, maximize length<span class="note">grow greedily, shrink only when invalid</span></h3>
+<div class="grid">
+<a class="card" href="3-longest-substring-without-repeating-characters.html"><span class="num">3</span><span class="t">Longest Substring Without Repeating Characters</span><span class="diff diff-medium">Medium</span><span class="d">right always moves forward. left only moves when the&hellip;</span></a>
+<a class="card" href="1004-max-consecutive-ones-iii.html"><span class="num">1004</span><span class="t">Max Consecutive Ones III</span><span class="diff diff-medium">Medium</span><span class="d">Same shrink-when-forced shape — but a zeroCount replaces&hellip;</span></a>
+</div>
+
+<h3><span class="sv">C</span> Variable window, minimize length<span class="note">shrink as far as it will go, then record</span></h3>
+<div class="grid">
+<a class="card" href="76-minimum-window-substring.html"><span class="num">76</span><span class="t">Minimum Window Substring</span><span class="diff diff-hard">Hard</span><span class="d">Expand until valid, then contract as far as possible. A&hellip;</span></a>
+</div>
+
+<h3><span class="sv">E</span> Frequency-map matching<span class="note">a matched counter beats rescanning the map</span></h3>
+<div class="grid">
+<a class="card" href="567-permutation-in-string.html"><span class="num">567</span><span class="t">Permutation in String</span><span class="diff diff-medium">Medium</span><span class="d">A permutation is a rearrangement — so match a fixed window&hellip;</span></a>
+<a class="card" href="438-find-all-anagrams-in-a-string.html"><span class="num">438</span><span class="t">Find All Anagrams in a String</span><span class="diff diff-medium">Medium</span><span class="d">Identical machinery to Permutation in String — but collect&hellip;</span></a>
+</div>
+
+<h3><span class="sv">I</span> Monotonic deque windows<span class="note">the front is always the answer</span></h3>
+<div class="grid">
+<a class="card" href="239-sliding-window-maximum.html"><span class="num">239</span><span class="t">Sliding Window Maximum</span><span class="diff diff-hard">Hard</span><span class="d">A decreasing deque of indices — the front is always the&hellip;</span></a>
+</div>
+
+
+<h2 class="part" id="p5">Pattern 5 &mdash; Binary Search</h2>
+<p class="partsub">Halve the space each step &mdash; on an array, on a rotation, or on the answer itself. Nine pages.</p>
+
+<h3><span class="sv">A/B/C</span> Boundaries and the generic predicate<span class="note">lower bound is the one to memorise</span></h3>
+<div class="grid">
+<a class="card" href="704-binary-search.html"><span class="num">704</span><span class="t">Binary Search</span><span class="diff diff-easy">Easy</span><span class="d">The template itself — lo/hi converge, mid splits the&hellip;</span></a>
+<a class="card" href="35-search-insert-position.html"><span class="num">35</span><span class="t">Search Insert Position</span><span class="diff diff-easy">Easy</span><span class="d">Same template — but even a miss has a useful answer: the&hellip;</span></a>
+<a class="card" href="278-first-bad-version.html"><span class="num">278</span><span class="t">First Bad Version</span><span class="diff diff-easy">Easy</span><span class="d">No array at all — just an API call. The invariant is the&hellip;</span></a>
+</div>
+
+<h3><span class="sv">D</span> Rotated sorted arrays<span class="note">prove which half is still sorted</span></h3>
+<div class="grid">
+<a class="card" href="33-search-in-rotated-sorted-array.html"><span class="num">33</span><span class="t">Search in Rotated Sorted Array</span><span class="diff diff-medium">Medium</span><span class="d">Figure out which half is sorted first, then check if the&hellip;</span></a>
+<a class="card" href="153-find-minimum-in-rotated-sorted-array.html"><span class="num">153</span><span class="t">Find Minimum in Rotated Sorted Array</span><span class="diff diff-medium">Medium</span><span class="d">Compare mid against right (not left) — the half containing&hellip;</span></a>
+</div>
+
+<h3><span class="sv">E</span> Unimodal / peak<span class="note">compare against the neighbour, not a target</span></h3>
+<div class="grid">
+<a class="card" href="162-find-peak-element.html"><span class="num">162</span><span class="t">Find Peak Element</span><span class="diff diff-medium">Medium</span><span class="d">No target, no full sort — just follow the upward slope. A&hellip;</span></a>
+</div>
+
+<h3><span class="sv">G</span> Answer space, minimize the maximum<span class="note">search the answer, test with a predicate</span></h3>
+<div class="grid">
+<a class="card" href="875-koko-eating-bananas.html"><span class="num">875</span><span class="t">Koko Eating Bananas</span><span class="diff diff-medium">Medium</span><span class="d">Search eating speeds directly — feasible(speed) is&hellip;</span></a>
+<a class="card" href="1011-minimum-capacity-to-ship-packages-within-d-days.html"><span class="num">1011</span><span class="t">Minimum Capacity to Ship Packages Within D Days</span><span class="diff diff-medium">Medium</span><span class="d">Same \u201cminimize the maximum\u201d shape as Koko —&hellip;</span></a>
+</div>
+
+<h3><span class="sv">K</span> Partition binary search<span class="note">search the split, not the value</span></h3>
+<div class="grid">
+<a class="card" href="4-median-of-two-sorted-arrays.html"><span class="num">4</span><span class="t">Median of Two Sorted Arrays</span><span class="diff diff-hard">Hard</span><span class="d">Binary search the partition point on the smaller array —&hellip;</span></a>
+</div>
+
+<h2 class="part" id="alt">Also in this folder</h2>
+<p class="partsub">Earlier or alternate takes on pages that also appear above, kept because they
+are not duplicates &mdash; they use a different explanatory framing. Listed here so nothing in the
+folder is unreachable.</p>
+<div class="grid">
+<a class="card" href="balanced-binary-tree-visualizer.html"><span class="num">110</span><span class="t">Balanced Binary Tree &mdash; standalone</span><span class="diff diff-medium">Alt</span><span class="d">predates the 110 page above</span></a>
+<a class="card" href="count-complete-tree-nodes.html"><span class="num">222</span><span class="t">Count Complete Tree Nodes &mdash; standalone</span><span class="diff diff-medium">Alt</span><span class="d">predates the 222 page above</span></a>
+<a class="card" href="662-maximum-width-of-binary-tree1.html"><span class="num">662</span><span class="t">Maximum Width &mdash; &ldquo;Hotel Binaria&rdquo;</span><span class="diff diff-medium">Alt</span><span class="d">narrative framing of the same algorithm</span></a>
+<a class="card" href="987-vertical-order-traversal.html"><span class="num">987</span><span class="t">Vertical Order &mdash; &ldquo;The Treeton Post Office&rdquo;</span><span class="diff diff-medium">Alt</span><span class="d">narrative framing of the same algorithm</span></a>
+<a class="card" href="max-depth-visualizer.html"><span class="num">104</span><span class="t">maxDepth &mdash; recursion visualizer</span><span class="diff diff-easy">Alt</span><span class="d">standalone, predates the 104 page above</span></a>
+</div>
+
+<p class="foot">Each page is fully self-contained &mdash; open any one directly, no shared assets required.
+Theme (light/dark/auto) and reading progress are per page, stored locally in your browser.</p>
+</div>
+</body>
+</html>

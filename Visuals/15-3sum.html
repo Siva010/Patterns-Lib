@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>15 &middot; 3Sum &mdash; visual guide</title>
+<meta name="description" content="Interactive two-pointer visualizer for 3Sum (LeetCode 15): sort, fix i, converge left and right, and guard all three dedup sites.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+
+  <div class="eyebrow">Advanced Two Pointers <span class="tag">LeetCode 15</span></div>
+  <h1>3Sum <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    Find every triplet that sums to zero, no duplicates. Sort first, then fix
+    <span class="i">i</span> and slide <span class="l">left</span> / <span class="r">right</span>
+    inward — sorting is what turns an O(n³) brute force into O(n²).
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Array (comma-separated)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="-1, 0, 1, 2, -1, -4" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">▶ Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="tape" id="tape"></div>
+        <div class="sum-line" id="sumLine"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets" id="triplets"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">⏴</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">▶</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">⏵</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">⟲</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java · running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot i"></i>fixed i</span>
+        <span><i class="dot l"></i>left</span>
+        <span><i class="dot r"></i>right</span>
+        <span><i class="dot m"></i>triplet found</span>
+        <span><i class="dot x"></i>duplicate skip</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">O(n²) time · O(log n)–O(n) sort space &nbsp;·&nbsp; two duplicate guards matter: one for <code>i</code>, one inside the inner scan.</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['ty','List<List<Integer>> '],['fn','threeSum'],['tx','('],['kw','int'],['tx','[] nums) {']],
+    [['tx','    Arrays.sort(nums);']],
+    [['tx','    '],['ty','List<List<Integer>> '],['tx','res = '],['kw','new '],['tx','ArrayList<>();']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < nums.length-2; i++) {']],
+    [['tx','        '],['kw','if '],['tx','(i>0 && nums[i]==nums[i-1]) '],['kw','continue'],['tx',';']],
+    [['tx','        '],['kw','int '],['tx','left=i+1, right=nums.length-1;']],
+    [['tx','        '],['kw','while '],['tx','(left < right) {']],
+    [['tx','            '],['kw','int '],['tx','sum = nums[i]+nums[left]+nums[right];']],
+    [['tx','            '],['kw','if '],['tx','(sum < 0) left++;']],
+    [['tx','            '],['kw','else if '],['tx','(sum > 0) right--;']],
+    [['tx','            '],['kw','else '],['tx','{']],
+    [['tx','                res.add(List.of(nums[i], nums[left], nums[right]));']],
+    [['tx','                left++; right--;']],
+    [['tx','                '],['kw','while '],['tx','(left<right && nums[left]==nums[left-1]) left++;']],
+    [['tx','                '],['kw','while '],['tx','(left<right && nums[right]==nums[right+1]) right--;']],
+    [['tx','            }']],
+    [['tx','        }']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','res;']],
+    [['tx','}']]
+  ];
+
+  function buildFrames(rawNums){
+    const nums = [...rawNums].sort((a,b)=>a-b);
+    const n = nums.length, frames = [];
+    const triplets = [];
+
+    frames.push({arr:nums.slice(), i:-1, left:-1, right:-1, phase:'sort', code:1, triplets:[],
+      msg:`<span class="k">Arrays.sort(nums)</span> — sorted so equal sums move predictably: sum too small → move left up, too big → move right down.`});
+
+    if(n<3){
+      frames.push({arr:nums.slice(), i:-1,left:-1,right:-1, phase:'done', code:18, triplets:[],
+        msg:`Fewer than 3 elements — no triplet possible.`});
+      return frames;
+    }
+
+    for(let i=0;i<n-2;i++){
+      if(i>0 && nums[i]===nums[i-1]){
+        frames.push({arr:nums.slice(), i, left:-1, right:-1, phase:'scan', code:4, triplets:triplets.slice(), skipI:true,
+          msg:`<span class="i">i=${i}</span>: <span class="x">nums[i] == nums[i-1]</span> (${nums[i]}) — same fixed value already explored. Skip.`});
+        continue;
+      }
+      let left=i+1, right=n-1;
+      frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:5, triplets:triplets.slice(),
+        msg:`<span class="i">Fix i=${i}</span> (val ${nums[i]}). Set <span class="l">left=${left}</span>, <span class="r">right=${right}</span>.`});
+
+      while(left<right){
+        const sum = nums[i]+nums[left]+nums[right];
+        frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:7, triplets:triplets.slice(), sum,
+          msg:`sum = ${nums[i]} + ${nums[left]} + ${nums[right]} = <b>${sum}</b>`});
+        if(sum<0){
+          frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:8, triplets:triplets.slice(), sum,
+            msg:`<b>${sum} &lt; 0</b> — too small. Move <span class="l">left</span> up to increase the sum.`});
+          left++;
+        } else if(sum>0){
+          frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:9, triplets:triplets.slice(), sum,
+            msg:`<b>${sum} &gt; 0</b> — too big. Move <span class="r">right</span> down to decrease the sum.`});
+          right--;
+        } else {
+          triplets.push([nums[i],nums[left],nums[right]]);
+          frames.push({arr:nums.slice(), i, left, right, phase:'found', code:11, triplets:triplets.slice(), sum, justFound:true,
+            msg:`<span class="m">sum == 0 →</span> record [${nums[i]}, ${nums[left]}, ${nums[right]}].`});
+          left++; right--;
+          frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:12, triplets:triplets.slice(),
+            msg:`Advance both: <span class="l">left++</span>, <span class="r">right--</span>.`});
+          const oldLeft=left, oldRight=right;
+          while(left<right && nums[left]===nums[left-1]){
+            frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:13, triplets:triplets.slice(), dupL:true,
+              msg:`<span class="x">nums[left] == previous</span> (${nums[left]}) — would repeat a triplet. <span class="l">left++</span>.`});
+            left++;
+          }
+          while(left<right && nums[right]===nums[right+1]){
+            frames.push({arr:nums.slice(), i, left, right, phase:'scan', code:14, triplets:triplets.slice(), dupR:true,
+              msg:`<span class="x">nums[right] == previous</span> (${nums[right]}) — would repeat a triplet. <span class="r">right--</span>.`});
+            right--;
+          }
+        }
+      }
+      frames.push({arr:nums.slice(), i, left:-1, right:-1, phase:'scan', code:3, triplets:triplets.slice(),
+        msg:`<span class="l">left</span> and <span class="r">right</span> met — done with <span class="i">i=${i}</span>. Advance i.`});
+    }
+
+    frames.push({arr:nums.slice(), i:-1, left:-1, right:-1, phase:'done', code:18, triplets:triplets.slice(),
+      msg: triplets.length
+        ? `<span class="m">Found ${triplets.length} triplet${triplets.length>1?'s':''}.</span> Return the list.`
+        : `<span class="x">No triplet sums to zero.</span> Return an empty list.`});
+    return frames;
+  }
+
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), msgEl=$('message'), bannerEl=null, pillEl=$('phasePill'),
+        barEl=$('bar'), countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'),
+        sumLineEl=$('sumLine'), tripEl=$('triplets');
+  let frames=[], idx=0, playing=false, timer=null, curArr=[];
+
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function parseArr(str){ return str.split(',').map(s=>s.trim()).filter(s=>s!=='').map(Number).filter(x=>!isNaN(x)).slice(0,10); }
+
+  function buildTape(len){
+    tapeEl.innerHTML='';
+    for(let k=0;k<len;k++){
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
+        `<div class="cell" data-cell="${k}"></div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`;
+      tapeEl.appendChild(col);
+    }
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+    curArr = f.arr;
+    for(let k=0;k<f.arr.length;k++){
+      const cell=tapeEl.querySelector(`[data-cell="${k}"]`);
+      const caret=tapeEl.querySelector(`[data-caret="${k}"]`);
+      const idxLbl=tapeEl.querySelector(`[data-idx="${k}"]`);
+      cell.textContent = f.arr[k];
+      let cls='cell';
+      if(k<f.i) cls+=' skipped';
+      if(k===f.i) cls+=' fixed';
+      if(k===f.left) cls+= f.dupL ? ' dupskip' : ' left';
+      if(k===f.right) cls+= f.dupR ? ' dupskip' : ' right';
+      if(f.justFound && (k===f.i||k===f.left||k===f.right)) cls+=' found';
+      cell.className=cls;
+      caret.innerHTML='';
+      if(k===f.i) caret.innerHTML='<span class="p pI">i</span>';
+      if(k===f.left) caret.innerHTML='<span class="p pL">L</span>';
+      if(k===f.right) caret.innerHTML='<span class="p pR">R</span>';
+      caret.style.opacity = caret.innerHTML? '1':'0';
+      idxLbl.classList.toggle('on', k===f.i||k===f.left||k===f.right);
+    }
+    sumLineEl.innerHTML = (f.sum!==undefined) ? `sum = <b>${f.sum}</b> ${f.sum===0?'<span style="color:var(--mint)">== 0 ✓</span>':(f.sum<0?'&lt; 0':'&gt; 0')}` : '';
+    msgEl.innerHTML=f.msg;
+    tripEl.innerHTML = f.triplets.map(t=>`<span class="trip">[${t.join(', ')}]</span>`).join('');
+
+    const pmap={sort:['sort','⇅ sorted'],scan:['scan','● scanning'],found:['found','✓ match'],done:['done','■ complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.textContent=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(str){
+    stop();
+    const arr = parseArr(str);
+    buildTape(arr.length);
+    frames = buildFrames(arr);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['-1, 0, 1, 2, -1, -4','two triplets'],
+    ['0, 1, 1','no triplet'],
+    ['0, 0, 0','all zeros'],
+    ['-2, 0, 1, 1, 2','duplicate skip'],
+    ['3, 0, -2, -1, 1, 2','mixed'],
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(([w,note])=>{
+      const c=document.createElement('button'); c.className='chip'; c.innerHTML=`[${w.replace(/\s/g,'')}]<b>${note}</b>`;
+      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(inputEl.value);
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===inputEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(inputEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

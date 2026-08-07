@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vertical Order Traversal of a Binary Tree — The Treeton Post Office · LC 987</title>
+<style>
+/* ============================================================
+   TOKENS — same course identity: graphite ground, brass plaques
+   ============================================================ */
+:root{
+  --bg:#f6f7f9; --bg-2:#eef0f4; --surface:#ffffff; --surface-2:#fbfcfd;
+  --ink:#12151a; --ink-2:#39404b; --muted:#69727f; --faint:#98a1ae;
+  --line:#e3e6ec; --line-2:#d3d8e0;
+
+  --brass:#9a6b1e; --brass-2:#c08a2e; --brass-bg:#fdf6e7; --brass-line:#ecd9ab;
+  --coral:#b03434; --coral-bg:#fdf0ef; --coral-line:#f3cdc9;
+  --violet:#6142c4; --violet-bg:#f4f1fe; --violet-line:#ddd5f8;
+  --teal:#0f6f68;  --teal-bg:#eaf7f5;  --teal-line:#c3e6e1;
+  --blue:#25559c;  --blue-bg:#eef3fb;  --blue-line:#cfdcf1;
+
+  --shadow-sm:0 1px 2px rgba(16,20,28,.05), 0 1px 1px rgba(16,20,28,.03);
+  --shadow-md:0 4px 16px rgba(16,20,28,.07), 0 1px 3px rgba(16,20,28,.04);
+  --shadow-lg:0 18px 48px rgba(16,20,28,.12), 0 2px 8px rgba(16,20,28,.05);
+
+  --serif:"Iowan Old Style","Palatino Linotype","Palatino","Book Antiqua",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+
+  --sidebar-w:286px; --topbar-h:58px; --measure:73ch;
+
+  --tok-key:#8a3fa0; --tok-type:#1c6b8c; --tok-str:#0d7050; --tok-num:#a2571b;
+  --tok-com:#8b95a3; --tok-fn:#2b4fb8; --tok-punct:#5d6675;
+}
+[data-theme="dark"]{
+  --bg:#0b0d11; --bg-2:#11141a; --surface:#14181f; --surface-2:#171c24;
+  --ink:#e8ecf3; --ink-2:#c3cbd7; --muted:#8d97a6; --faint:#69737f;
+  --line:#232932; --line-2:#2f3742;
+
+  --brass:#dfae5c; --brass-2:#f0c877; --brass-bg:#221c0e; --brass-line:#463a1c;
+  --coral:#f0837b; --coral-bg:#241413; --coral-line:#4c2724;
+  --violet:#b3a0f5; --violet-bg:#1a1630; --violet-line:#332a5c;
+  --teal:#5fd0c3;  --teal-bg:#0d2422;  --teal-line:#1c463f;
+  --blue:#87b0f0;  --blue-bg:#111a29;  --blue-line:#22344f;
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 18px rgba(0,0,0,.45);
+  --shadow-lg:0 20px 50px rgba(0,0,0,.6);
+
+  --tok-key:#d295e8; --tok-type:#6fc6e8; --tok-str:#7ed3a6; --tok-num:#e8a86a;
+  --tok-com:#6b7583; --tok-fn:#8fb3f5; --tok-punct:#98a1af;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:88px; -webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16.5px;line-height:1.72;-webkit-font-smoothing:antialiased;
+  transition:background .3s ease,color .3s ease;
+}
+::selection{background:var(--brass-line);color:var(--ink)}
+
+#progressTrack{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:120}
+#progressFill{height:100%;width:0;background:linear-gradient(90deg,var(--brass),var(--brass-2));transition:width .12s linear}
+
+.topbar{
+  position:sticky;top:0;z-index:100;height:var(--topbar-h);
+  display:flex;align-items:center;gap:12px;padding:0 18px;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-key{
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;
+  color:var(--brass);border:1px solid var(--brass-line);background:var(--brass-bg);
+  padding:3px 7px;border-radius:5px;white-space:nowrap;
+}
+.brand-title{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{
+  font:inherit;font-size:13px;font-weight:500;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:6px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:background .16s,border-color .16s,color .16s,transform .1s;white-space:nowrap;
+}
+.btn:hover{background:var(--bg-2);border-color:var(--line-2);color:var(--ink)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--brass);border-color:var(--brass);color:#fff}
+[data-theme="dark"] .btn.primary{color:#17130a}
+.btn.primary:hover{background:var(--brass-2);border-color:var(--brass-2)}
+.icon-btn{width:34px;height:34px;padding:0;justify-content:center;font-size:15px}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:4px}
+#menuBtn{display:none}
+
+.layout{display:flex;align-items:flex-start;max-width:1400px;margin:0 auto}
+aside{
+  width:var(--sidebar-w);flex:none;position:sticky;top:var(--topbar-h);
+  height:calc(100vh - var(--topbar-h));overflow-y:auto;padding:26px 14px 60px 22px;
+  border-right:1px solid var(--line);
+}
+aside::-webkit-scrollbar{width:8px}
+aside::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+main{flex:1;min-width:0;padding:0 32px 140px;display:flex;justify-content:center}
+.article{width:100%;max-width:var(--measure)}
+
+.search-wrap{position:relative;margin-bottom:16px}
+#search{
+  width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:9px;padding:8px 10px 8px 31px;
+  transition:border-color .16s,box-shadow .16s;
+}
+#search::placeholder{color:var(--faint)}
+#search:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 14%,transparent)}
+.search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:12px;pointer-events:none}
+.side-meta{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--faint);margin:0 4px 10px;
+}
+.meter{height:4px;border-radius:4px;background:var(--bg-2);overflow:hidden;margin:0 4px 18px}
+.meter>i{display:block;height:100%;width:0;background:var(--brass);transition:width .3s ease}
+nav ol{list-style:none;margin:0;padding:0}
+.nav-item{
+  display:flex;align-items:baseline;gap:9px;padding:6.5px 10px;border-radius:8px;
+  text-decoration:none;color:var(--muted);font-size:13.5px;line-height:1.4;
+  transition:background .14s,color .14s;border-left:2px solid transparent;
+}
+.nav-item:hover{background:var(--bg-2);color:var(--ink)}
+.nav-item .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);flex:none;width:16px;transition:color .14s}
+.nav-item.active{background:var(--brass-bg);color:var(--ink);font-weight:600;border-left-color:var(--brass)}
+.nav-item.active .n{color:var(--brass)}
+.nav-item.done .n::after{content:"✓";margin-left:2px;color:var(--teal)}
+.nav-item.hidden{display:none}
+.no-hits{display:none;font-size:13px;color:var(--faint);padding:10px 12px;font-style:italic}
+
+.hero{padding:64px 0 20px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--brass);display:flex;align-items:center;gap:10px;margin-bottom:20px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(32px,5.2vw,49px);line-height:1.1;letter-spacing:-.02em;margin:0 0 18px}
+.dek{font-size:19px;line-height:1.62;color:var(--muted);margin:0 0 26px;max-width:60ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 11px}
+.chip b{color:var(--ink);font-weight:600}
+
+section{padding:52px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:none}
+.sec-head{margin-bottom:22px}
+.sec-num{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--brass);
+  background:var(--brass-bg);border:1px solid var(--brass-line);
+  padding:2.5px 8px;border-radius:5px;display:inline-block;margin-bottom:14px;
+}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(25px,3.6vw,33px);line-height:1.2;letter-spacing:-.018em;margin:0}
+h3{font-weight:650;font-size:17.5px;letter-spacing:-.01em;margin:34px 0 12px;color:var(--ink)}
+h4{font-weight:650;font-size:15px;margin:24px 0 8px;color:var(--ink)}
+p{margin:0 0 17px;color:var(--ink-2)}
+ul,ol{margin:0 0 17px;padding-left:22px;color:var(--ink-2)}
+li{margin-bottom:8px}
+li::marker{color:var(--faint)}
+strong{color:var(--ink);font-weight:650}
+em{color:var(--ink);font-style:italic}
+a{color:var(--brass);text-underline-offset:2px}
+hr.soft{border:none;border-top:1px solid var(--line);margin:34px 0}
+.lead{font-size:18px;color:var(--ink)}
+code.i{font-family:var(--mono);font-size:.87em;background:var(--bg-2);border:1px solid var(--line);border-radius:5px;padding:1.5px 5px;color:var(--ink)}
+.big-answer{
+  font-family:var(--mono);font-size:19px;text-align:center;color:var(--ink);
+  background:var(--teal-bg);border:1px solid var(--teal-line);border-radius:12px;
+  padding:18px;margin:22px 0;overflow-x:auto;
+}
+
+.callout{border:1px solid;border-radius:13px;padding:18px 20px 4px;margin:24px 0;position:relative;background:var(--surface);box-shadow:var(--shadow-sm)}
+.callout>.ct{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;margin-bottom:10px}
+.callout p:last-child{margin-bottom:16px}
+.callout ul,.callout ol{margin-bottom:16px}
+.c-obs{background:var(--brass-bg);border-color:var(--brass-line)} .c-obs>.ct{color:var(--brass)}
+.c-pit{background:var(--coral-bg);border-color:var(--coral-line)} .c-pit>.ct{color:var(--coral)}
+.c-mem{background:var(--violet-bg);border-color:var(--violet-line)} .c-mem>.ct{color:var(--violet)}
+.c-tip{background:var(--teal-bg);border-color:var(--teal-line)} .c-tip>.ct{color:var(--teal)}
+.c-note{background:var(--blue-bg);border-color:var(--blue-line)} .c-note>.ct{color:var(--blue)}
+.hook-line{font-family:var(--serif);font-size:23px;line-height:1.4;color:var(--ink);margin:6px 0 18px;letter-spacing:-.01em}
+
+.codeblock{margin:22px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface-2);box-shadow:var(--shadow-sm)}
+.code-bar{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.code-label{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.copy-btn{margin-left:auto;font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer;transition:.15s}
+.copy-btn:hover{color:var(--ink);border-color:var(--line-2);background:var(--bg-2)}
+.copy-btn.ok{color:var(--teal);border-color:var(--teal-line);background:var(--teal-bg)}
+pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13.2px;line-height:1.68;color:var(--ink)}
+pre::-webkit-scrollbar{height:8px}
+pre::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+.tok-keyword{color:var(--tok-key)} .tok-type{color:var(--tok-type)} .tok-string{color:var(--tok-str)}
+.tok-number{color:var(--tok-num)} .tok-comment{color:var(--tok-com);font-style:italic}
+.tok-fn{color:var(--tok-fn)} .tok-punct{color:var(--tok-punct)} .tok-annotation{color:var(--tok-num)}
+.ascii{font-family:var(--mono);font-size:13px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:20px 0}
+
+.table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:440px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .14s}
+tbody tr:hover{background:var(--surface-2)}
+td b,th b{color:var(--ink)}
+.mono-cell{font-family:var(--mono);font-size:13px;white-space:nowrap}
+
+details.fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:20px 0;overflow:hidden;box-shadow:var(--shadow-sm)}
+details.fold>summary{cursor:pointer;list-style:none;padding:14px 18px;display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;color:var(--ink);transition:background .15s}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary:hover{background:var(--surface-2)}
+.caret{width:15px;height:15px;flex:none;color:var(--faint);transition:transform .22s ease;display:inline-block}
+details[open]>summary .caret{transform:rotate(90deg)}
+.summary-tag{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);padding:2px 7px;border-radius:99px}
+.fold-body{padding:2px 18px 6px;border-top:1px solid var(--line);animation:slideDown .22s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+details.bug{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);margin:9px 0}
+details.bug>summary{cursor:pointer;list-style:none;padding:11px 14px;display:flex;gap:10px;align-items:baseline;font-size:14.5px;font-weight:600;color:var(--ink)}
+details.bug>summary::-webkit-details-marker{display:none}
+details.bug>summary .bn{font-family:var(--mono);font-size:11px;color:var(--coral);flex:none}
+details.bug .bug-body{padding:0 14px 12px 38px;font-size:14.5px;color:var(--ink-2)}
+details.bug .bug-body p{margin:0 0 10px}
+details.bug[open]{background:var(--surface);border-color:var(--line-2)}
+
+.reveal{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:16px 0;overflow:hidden;box-shadow:var(--shadow-sm)}
+.reveal-head{padding:13px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.reveal-head .rc{font-family:var(--mono);font-size:12.6px;color:var(--ink);background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+.reveal-btn{margin-left:auto;font:inherit;font-size:12.5px;font-weight:500;color:var(--brass);background:var(--brass-bg);border:1px solid var(--brass-line);border-radius:99px;padding:4px 12px;cursor:pointer;transition:.15s;white-space:nowrap}
+.reveal-btn:hover{background:color-mix(in srgb,var(--brass) 14%,transparent)}
+.reveal-body{display:none;padding:2px 16px 4px;border-top:1px dashed var(--line);animation:slideDown .2s ease}
+.reveal.open .reveal-body{display:block}
+.reveal-body .disaster{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin:13px 0 6px}
+
+.term{border-bottom:1px dashed var(--brass);cursor:help;position:relative;color:var(--ink);font-weight:500}
+.term::after{
+  content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%) translateY(4px);
+  width:max-content;max-width:290px;background:var(--ink);color:var(--bg);
+  font-family:var(--sans);font-size:12.6px;font-weight:400;line-height:1.5;
+  padding:9px 12px;border-radius:9px;box-shadow:var(--shadow-lg);
+  opacity:0;pointer-events:none;transition:opacity .17s ease,transform .17s ease;z-index:60;text-align:left;
+}
+.term::before{content:"";position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%) translateY(4px);border:5px solid transparent;border-top-color:var(--ink);opacity:0;transition:opacity .17s,transform .17s;z-index:61}
+.term:hover::after,.term:focus::after,.term:hover::before,.term:focus::before{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- post office ---------- */
+.postoffice{background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line);border-radius:16px;padding:22px 20px 18px;margin:24px 0;box-shadow:var(--shadow-md)}
+.po-sign{font-family:var(--serif);font-size:20px;text-align:center;color:var(--brass);letter-spacing:.05em;margin-bottom:4px}
+.po-sub{text-align:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:20px}
+.holes{display:flex;gap:8px;align-items:flex-end;justify-content:center;flex-wrap:wrap}
+.hole{flex:1;min-width:74px;border:1px solid var(--line-2);border-radius:9px;background:var(--surface);padding:8px 6px;transition:.25s}
+.hole.lit{border-color:var(--brass);background:var(--brass-bg);box-shadow:var(--shadow-md)}
+.hole .hlabel{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint);text-align:center;margin-bottom:7px;text-transform:uppercase}
+.hole.lit .hlabel{color:var(--brass)}
+.letters{display:flex;flex-direction:column;gap:4px;min-height:26px}
+.letter{font-family:var(--mono);font-size:12px;text-align:center;border:1px solid var(--brass-line);background:var(--brass-bg);color:var(--brass);border-radius:6px;padding:3px 0;animation:pop .28s ease;font-weight:700}
+@keyframes pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.priya{display:flex;align-items:center;gap:14px;margin-top:20px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.priya-emoji{font-size:26px;animation:bob 3.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.priya p{margin:0;font-size:14.5px}
+.cast-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:22px 0;background:var(--surface)}
+.cast-grid>div{padding:11px 15px;border-bottom:1px solid var(--line);font-size:14px}
+.cast-grid>div:nth-child(odd){border-right:1px solid var(--line);color:var(--ink);font-weight:550}
+.cast-grid>div:nth-child(even){color:var(--muted)}
+.cast-grid>div:nth-last-child(-n+2){border-bottom:none}
+
+/* ---------- tree / grid svg ---------- */
+.tree-card{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:18px;margin:24px 0;box-shadow:var(--shadow-sm)}
+.tree-card svg{width:100%;height:auto;display:block}
+.band{fill:var(--bg-2);opacity:0;transition:opacity .25s}
+.band.lit{opacity:1}
+.bandline{stroke:var(--line);stroke-width:1;stroke-dasharray:3 4}
+.bandlbl{font-family:var(--mono);font-size:11px;fill:var(--faint);text-anchor:middle;transition:.2s}
+.bandlbl.lit{fill:var(--brass);font-weight:700}
+.rowlbl{font-family:var(--mono);font-size:10px;fill:var(--faint);text-anchor:start}
+.vn-edge{stroke:var(--line-2);stroke-width:1.6}
+.vn-circle{fill:var(--surface);stroke:var(--line-2);stroke-width:1.8;cursor:pointer;transition:.25s}
+.vn-circle:hover{stroke:var(--brass)}
+.vn-circle.done{fill:var(--bg-2)}
+.vn-circle.active{fill:var(--brass);stroke:var(--brass);stroke-width:2.4}
+.vn-circle.sel{fill:var(--brass);stroke:var(--brass)}
+.vn-circle.grouped{fill:var(--teal-bg);stroke:var(--teal);stroke-width:2.2}
+.vn-val{font-family:var(--mono);font-size:13.5px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none;transition:.25s}
+.vn-circle.active + .vn-val,.vn-circle.sel + .vn-val{fill:#fff}
+[data-theme="dark"] .vn-circle.active + .vn-val,[data-theme="dark"] .vn-circle.sel + .vn-val{fill:#17130a}
+.vn-coord{font-family:var(--mono);font-size:9.5px;fill:var(--faint);text-anchor:middle;opacity:0;transition:.25s}
+.vn-coord.show{opacity:1;fill:var(--brass);font-weight:700}
+.collide{fill:none;stroke:var(--coral);stroke-width:2;stroke-dasharray:5 4;opacity:0;transition:opacity .3s}
+.collide.show{opacity:1;animation:spin 14s linear infinite}
+@keyframes spin{to{stroke-dashoffset:-90}}
+.collide-lbl{font-family:var(--mono);font-size:10.5px;fill:var(--coral);text-anchor:middle;opacity:0;transition:opacity .3s;font-weight:700}
+.collide-lbl.show{opacity:1}
+.pt-readout{text-align:center;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:14px;min-height:22px}
+.pt-readout b{color:var(--brass)}
+
+/* ---------- player ---------- */
+.player{border:1px solid var(--line);border-radius:16px;background:var(--surface);margin:26px 0;overflow:hidden;box-shadow:var(--shadow-md)}
+.player-top{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.player-top .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.step-count{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--brass);background:var(--brass-bg);border:1px solid var(--brass-line);padding:3px 9px;border-radius:99px}
+.stage{padding:8px 10px 4px;background:var(--surface)}
+.stage svg{width:100%;height:auto;display:block}
+.narration{padding:14px 18px;border-top:1px solid var(--line);background:var(--surface-2);font-size:14.8px;line-height:1.6;color:var(--ink-2);min-height:74px}
+.narration .tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-right:9px;vertical-align:1.5px}
+.tag.t-stamp{background:var(--brass-bg);color:var(--brass);border:1px solid var(--brass-line)}
+.tag.t-collect{background:var(--violet-bg);color:var(--violet);border:1px solid var(--violet-line)}
+.tag.t-sort{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-line)}
+.tag.t-group{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-line)}
+.varbar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.vcell{background:var(--surface);padding:10px 8px;text-align:center;transition:background .35s}
+.vcell .vk{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:3px}
+.vcell .vv{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--ink)}
+.vcell.flash{background:var(--brass-bg)} .vcell.flash .vv{color:var(--brass)}
+.cellsbar{padding:11px 14px;border-top:1px solid var(--line);background:var(--surface);min-height:56px}
+.cellsbar .qk{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:8px}
+.triples{display:flex;flex-wrap:wrap;gap:6px}
+.tchip{font-family:var(--mono);font-size:11.5px;padding:4px 9px;border-radius:7px;background:var(--bg-2);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap;animation:pop .25s ease}
+.tchip b{color:var(--ink)}
+.tchip.fresh{background:var(--brass-bg);border-color:var(--brass-line);color:var(--brass)}
+.tchip.tie{background:var(--coral-bg);border-color:var(--coral-line);color:var(--coral);font-weight:700}
+.tchip.taken{opacity:.4}
+.answerbar{padding:11px 14px;border-top:1px solid var(--line);background:var(--surface-2);min-height:56px}
+.answerbar .qk{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:8px}
+.groups{display:flex;flex-wrap:wrap;gap:8px}
+.group{border:1px solid var(--teal-line);background:var(--teal-bg);border-radius:8px;padding:5px 10px;font-family:var(--mono);font-size:12.5px;color:var(--teal);animation:pop .25s ease}
+.group .gk{display:block;font-size:9.5px;opacity:.8;letter-spacing:.06em}
+.qempty{font-family:var(--mono);font-size:12px;color:var(--faint);font-style:italic}
+.player-ctrl{display:flex;align-items:center;gap:8px;padding:11px 14px;border-top:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.scrub{flex:1;min-width:110px;accent-color:var(--brass);height:4px}
+
+/* ---------- comparator playground ---------- */
+.play{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin:24px 0;overflow:hidden;box-shadow:var(--shadow-sm)}
+.play-top{padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;background:var(--bg-2);border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:12.2px;font-family:var(--mono);border:none;background:transparent;color:var(--muted);padding:5px 10px;border-radius:7px;cursor:pointer;transition:.15s}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-sm)}
+.play-out{padding:16px}
+.play-cols{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pcol{border:1px solid var(--line);border-radius:9px;background:var(--surface-2);padding:8px 12px;min-width:64px;text-align:center}
+.pcol .pk{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.06em;display:block;margin-bottom:5px}
+.pcol .pv{font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:700}
+.pcol.wrong{border-color:var(--coral-line);background:var(--coral-bg)}
+.pcol.wrong .pv{color:var(--coral)}
+.verdict{border-radius:10px;padding:11px 14px;font-size:14px;border:1px solid}
+.verdict.ok{background:var(--teal-bg);border-color:var(--teal-line);color:var(--teal)}
+.verdict.bad{background:var(--coral-bg);border-color:var(--coral-line);color:var(--coral)}
+
+.secnav{display:flex;gap:12px;margin-top:44px;padding-top:26px;border-top:1px solid var(--line)}
+.secnav a{flex:1;text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:13px 16px;background:var(--surface);transition:.16s;color:var(--ink);box-shadow:var(--shadow-sm)}
+.secnav a:hover{border-color:var(--brass);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.secnav .k{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+.secnav .t{font-size:14.5px;font-weight:600}
+.secnav .next{text-align:right}
+.secnav a.disabled{opacity:.35;pointer-events:none}
+
+.fabs{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:90}
+.fab{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);transition:.18s;font-size:15px}
+.fab:hover{color:var(--ink);border-color:var(--brass);transform:translateY(-2px)}
+#topFab{opacity:0;pointer-events:none;transform:translateY(8px)}
+#topFab.show{opacity:1;pointer-events:auto;transform:none}
+
+.endcard{margin-top:56px;padding:34px;border-radius:16px;text-align:center;border:1px solid var(--brass-line);background:var(--brass-bg)}
+.endcard .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin-bottom:12px}
+.endcard p{font-family:var(--serif);font-size:19px;color:var(--ink);margin:0 0 6px}
+.endcard small{color:var(--muted);font-size:13.5px}
+
+#scrim{position:fixed;inset:0;background:rgba(10,12,16,.44);z-index:98;opacity:0;pointer-events:none;transition:opacity .22s}
+#scrim.show{opacity:1;pointer-events:auto}
+
+@media (max-width:1000px){
+  #menuBtn{display:inline-flex}
+  aside{position:fixed;top:var(--topbar-h);left:0;z-index:99;background:var(--surface);transform:translateX(-102%);transition:transform .26s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow-lg);height:calc(100vh - var(--topbar-h))}
+  aside.open{transform:none}
+  main{padding:0 20px 120px}
+  .cast-grid{grid-template-columns:1fr}
+  .cast-grid>div:nth-child(odd){border-right:none;border-bottom:1px solid var(--line);padding-bottom:2px}
+  .cast-grid>div:nth-child(even){padding-top:2px}
+  .cast-grid>div:nth-last-child(2){border-bottom:1px solid var(--line)}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .hero{padding:40px 0 18px}
+  section{padding:40px 0}
+  .varbar{grid-template-columns:repeat(2,1fr)}
+  .secnav{flex-direction:column}
+  .hide-sm{display:none}
+  .term::after{max-width:220px}
+  .hole{min-width:58px}
+}
+</style>
+</head>
+<body>
+
+<div id="progressTrack"><div id="progressFill"></div></div>
+
+<header class="topbar">
+  <button class="btn icon-btn" id="menuBtn" aria-label="Show section list">☰</button>
+  <div class="brand">
+    <span class="brand-key">LC 987</span>
+    <span class="brand-title">Vertical Order Traversal of a Binary Tree</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn hide-sm" id="expandAll">Expand all</button>
+  <button class="btn icon-btn" id="themeBtn" aria-label="Switch theme" title="Switch theme">🌙</button>
+</header>
+
+<div id="scrim"></div>
+
+<div class="layout">
+
+  <aside id="sidebar">
+    <div class="search-wrap">
+      <span class="search-ico">⌕</span>
+      <input id="search" type="search" placeholder="Filter sections" aria-label="Filter sections">
+    </div>
+    <div class="side-meta"><span>Lesson progress</span><span id="progCount">0 / 14</span></div>
+    <div class="meter"><i id="progMeter"></i></div>
+    <nav aria-label="Lesson sections">
+      <ol id="navList"></ol>
+      <div class="no-hits" id="noHits">No section matches that.</div>
+    </nav>
+  </aside>
+
+  <main>
+  <div class="article">
+
+    <div class="hero">
+      <div class="eyebrow">Interview pattern · Tree geometry + total ordering</div>
+      <h1>Vertical Order Traversal of a Binary&nbsp;Tree</h1>
+      <p class="dek">This looks like a traversal problem. It isn't. It's a sorting problem wearing a traversal costume — and the single line most people forget is the one the whole problem was built around.</p>
+      <div class="chips">
+        <span class="chip">LeetCode <b>987</b></span>
+        <span class="chip">Difficulty <b>Hard</b></span>
+        <span class="chip">Time <b>O(n log n)</b></span>
+        <span class="chip">Core trick <b>(col, row, value) triples</b></span>
+        <span class="chip">Asked at <b>Amazon · Meta · Google</b></span>
+      </div>
+    </div>
+
+    <!-- ================= 1 ================= -->
+    <section id="s1" data-title="The Problem in Plain English">
+      <div class="sec-head"><span class="sec-num">01</span><h2>The Problem in Plain English</h2></div>
+
+      <p class="lead">Draw the tree on graph paper. Not sketched loosely — drawn on a real grid, with real coordinates.</p>
+
+      <p>The root sits at the origin. Every time you go <strong>down-left</strong>, you move one square down and one square <em>left</em>. Every time you go <strong>down-right</strong>, you move one square down and one square <em>right</em>. That's it — that's the entire coordinate system.</p>
+
+      <p>Now here's the thing you're being asked for. Forget the branches. Forget parents and children. Just look at the piece of paper and the dots on it.</p>
+
+      <div class="callout c-note">
+        <div class="ct">▸ The whole task</div>
+        <p>Sweep across the paper in <strong>vertical strips</strong>, from the leftmost strip to the rightmost strip. For each strip, read out the numbers you find in it — <strong>top row first</strong>, working downwards.</p>
+        <p>And if two numbers happen to be sitting on <em>the exact same square</em>, read out the <strong>smaller number first</strong>.</p>
+      </div>
+
+      <p>Return one list per strip. Skip strips with nothing in them.</p>
+
+      <p>That last rule — smaller number first when two nodes land on the same square — sounds like a footnote. It is not a footnote. It is the entire reason this problem is rated Hard instead of Medium, and it is the reason a perfectly reasonable solution you'll write in ninety seconds will fail.</p>
+
+      <p>Because yes: <strong>two different nodes can land on exactly the same square.</strong> A node deep in the left subtree that drifted right, and a node deep in the right subtree that drifted left, can collide on the same coordinate. They're unrelated. They've never met. And now you have to decide which one gets printed first, and the tree structure gives you no answer — so the problem hands you one: smaller value wins.</p>
+
+      <div class="ascii">        1
+      /   \
+     2     3
+    / \   / \
+   4   6 5   7
+
+on graph paper:
+
+  col:  -2    -1     0     1     2
+row 0:                1
+row 1:          2           3
+row 2:    4          6,5          7
+                      ^^^
+                 same square!</div>
+
+      <p>Reading strip by strip, left to right: <code class="i">[4]</code>, <code class="i">[2]</code>, then the middle strip — which contains 1 on row 0, and both 5 and 6 on row 2. Smaller first, so <code class="i">[1, 5, 6]</code>. Then <code class="i">[3]</code>, then <code class="i">[7]</code>.</p>
+
+      <div class="big-answer">[[4], [2], [1, 5, 6], [3], [7]]</div>
+
+      <div class="secnav">
+        <a class="disabled prev" href="#"><span class="k">Previous</span><span class="t">—</span></a>
+        <a class="next" href="#s2"><span class="k">Next</span><span class="t">Why Most People Get Stuck</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 2 ================= -->
+    <section id="s2" data-title="Why Most People Get Stuck">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Why Most People Get Stuck</h2></div>
+
+      <p>There are three traps here, stacked on top of each other. Most people fall into the first two, fix them, feel clever, and then get destroyed by the third.</p>
+
+      <h3>Trap 1 — "I'll just DFS and bucket by column"</h3>
+
+      <p>Completely natural. Recurse, carry a column number, dump values into a map keyed by column.</p>
+
+      <div class="codeblock" data-code="trap1" data-label="looks fine, isn't"></div>
+
+      <p>The problem: <strong>DFS visits in depth order, not row order.</strong> A node three levels deep in the left subtree gets visited long before a node one level deep in the right subtree — and they can share a column. So the list for that column comes out vertically scrambled.</p>
+
+      <h3>Trap 2 — "Fine, BFS then, so rows come out in order"</h3>
+
+      <p>Better! BFS is level order, so within any single column, nodes now genuinely appear top-to-bottom. Row ordering: solved, free, no extra work.</p>
+
+      <p>And this is where people get comfortable. This solution passes a satisfying number of test cases. It is also the accepted solution to a <em>different problem</em> — LeetCode 314, "Binary Tree Vertical Order Traversal," which has no tie-break rule.</p>
+
+      <h3>Trap 3 — the one that actually fails you</h3>
+
+      <div class="callout c-pit">
+        <div class="ct">⚠️ The mental trap</div>
+        <p>You assume that because BFS gave you correct <em>row</em> ordering for free, it will also give you correct ordering <em>within</em> a row. It does not. BFS visits nodes in a row left-to-right <strong>by tree position</strong>, not by value. When two nodes collide on the same square, BFS hands them to you in whichever order their parents happened to sit — and the problem wants them in value order.</p>
+      </div>
+
+      <p>Here's the exact test case that exposes it. Watch node <strong>6</strong> and node <strong>5</strong>:</p>
+
+      <div class="tree-card">
+        <svg id="clashSvg" viewBox="0 0 720 340" role="img" aria-label="Tree showing nodes 6 and 5 colliding at the same coordinate"></svg>
+        <div class="pt-readout" id="clashRead">Press the button to see what BFS actually produces.</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+          <button class="btn" id="clashBfs">Show BFS order</button>
+          <button class="btn primary" id="clashReq">Show required order</button>
+        </div>
+      </div>
+
+      <p>Node 6 is the <em>right</em> child of 2. Node 5 is the <em>left</em> child of 3. Both land at column 0, row 2. Same square. They are not siblings, not cousins in any useful sense — they just happen to have drifted into each other.</p>
+
+      <p>BFS reaches 2 before 3, so it emits <strong>6 then 5</strong>. The answer requires <strong>5 then 6</strong>. Your output is <code class="i">[1, 6, 5]</code>; the expected output is <code class="i">[1, 5, 6]</code>. One test case, and it's over.</p>
+
+      <h3>Trap 4 (bonus) — negative columns</h3>
+
+      <p>Columns go negative. You can't index an array with −2. And a <code class="i">HashMap</code> gives you no ordering, so even after you've collected everything perfectly, printing it in hash order scrambles the strips. Small trap, but it catches people at the very last line.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s1"><span class="k">Previous</span><span class="t">The Problem in Plain English</span></a>
+        <a class="next" href="#s3"><span class="k">Next</span><span class="t">The Key Observation</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 3 ================= -->
+    <section id="s3" data-title="The Key Observation">
+      <div class="sec-head"><span class="sec-num">03</span><h2>The Key Observation</h2></div>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 Key Observation</div>
+        <p><strong>Every node reduces to a triple: (column, row, value). The required output is exactly that list of triples sorted lexicographically. The traversal has nothing to do with the ordering.</strong></p>
+      </div>
+
+      <p>Let me convince you properly, because this sounds like a restatement and it isn't.</p>
+
+      <h3>Step 1 — read the problem's rules as a comparator</h3>
+
+      <p>The problem tells you, in plain English, exactly how to compare any two nodes:</p>
+
+      <ul>
+        <li>Different column? The <strong>smaller column</strong> comes first.</li>
+        <li>Same column, different row? The <strong>smaller row</strong> comes first.</li>
+        <li>Same column, same row? The <strong>smaller value</strong> comes first.</li>
+      </ul>
+
+      <p>Look at what that is. That is a <span class="term" tabindex="0" data-tip="An ordering where any two distinct items can be compared, and the comparison is consistent and transitive — so a unique sorted sequence exists.">total order</span> on nodes. Given any two nodes in the tree, those three rules always produce a decisive answer. There are no unresolved ties, no "it depends," no ambiguity.</p>
+
+      <h3>Step 2 — realise what that buys you</h3>
+
+      <p>Any collection of items with a total order defined on them has <strong>exactly one correct sorted sequence</strong>. And any sorting algorithm will find it.</p>
+
+      <p>So the answer isn't something you have to <em>discover through clever traversal</em>. It's already determined the moment you know each node's triple. The output is a mathematical consequence of the data, not a consequence of the walk.</p>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 The reframe that fixes everything</div>
+        <p>Stop trying to make the traversal produce the right order. <strong>No traversal can</strong> — no walk of a tree visits nodes in value order for collisions, because value order has nothing to do with tree shape.</p>
+        <p>The traversal has exactly one job: <strong>hand out coordinates</strong>. That's it. Then you sort. The two concerns are completely independent, and the moment you separate them, the problem collapses.</p>
+      </div>
+
+      <p>This is why the DFS-versus-BFS argument that dominates most explanations is a red herring. <strong>Use whichever you like.</strong> DFS is three lines shorter. Neither one affects correctness, because neither one is responsible for ordering.</p>
+
+      <h3>Step 3 — why the coordinates work the way they do</h3>
+
+      <p>The rule <code class="i">left → (row+1, col−1)</code> and <code class="i">right → (row+1, col+1)</code> is just a statement about drawing. Going left moves you left. Going down moves you down. There's nothing to derive.</p>
+
+      <p>But notice one consequence that <em>does</em> matter: <strong>the column is not unique to a node.</strong> Unlike the seat index in a perfect-tree layout, where each position belongs to exactly one node, here <code class="i">−1 + 1 = 0</code> and <code class="i">+1 − 1 = 0</code>. Two entirely different paths can arrive at the same column. And if they also happen to be at the same depth, you get a genuine collision — which is precisely why the problem needs a third tie-break key.</p>
+
+      <p>Click any node to see its coordinate and light up its column strip.</p>
+
+      <div class="tree-card">
+        <svg id="coordSvg" viewBox="0 0 720 340" role="img" aria-label="Interactive coordinate explorer"></svg>
+        <div class="pt-readout" id="coordRead">Click any node.</div>
+      </div>
+
+      <h3>Step 4 — see the comparator actually matter</h3>
+
+      <p>Below is the same tree shape, with the root relabelled <strong>9</strong> so each broken comparator produces a visibly different answer. Switch the sort keys and watch the output break in four distinct ways.</p>
+
+      <div class="play">
+        <div class="play-top">
+          <div class="seg" id="cmpSeg" role="tablist">
+            <button data-k="crv" class="on">col → row → value</button>
+            <button data-k="cr">col → row (no tie-break)</button>
+            <button data-k="cvr">col → value → row</button>
+            <button data-k="rcv">row → col → value</button>
+          </div>
+        </div>
+        <div class="play-out">
+          <div class="play-cols" id="cmpCols"></div>
+          <div class="verdict" id="cmpVerdict"></div>
+        </div>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s2"><span class="k">Previous</span><span class="t">Why Most People Get Stuck</span></a>
+        <a class="next" href="#s4"><span class="k">Next</span><span class="t">The Movie</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 4 ================= -->
+    <section id="s4" data-title="The Movie">
+      <div class="sec-head"><span class="sec-num">04</span><h2>The Movie</h2></div>
+
+      <p class="lead">Welcome to the village of <strong>Treeton</strong>, and its famously over-engineered post office. 📮</p>
+
+      <p>Treeton has one Main Street, running north to south, and it is numbered <strong>0</strong>. Streets to the west are <strong>−1, −2, −3</strong>. Streets to the east are <strong>+1, +2, +3</strong>. The village council thought this was elegant. The postal service has never forgiven them.</p>
+
+      <p>Every building has a <strong>floor number</strong> too: floor 0 at the top of the hill, floor 1 below it, floor 2 below that. (Treeton is built into a hillside. Don't overthink it.)</p>
+
+      <p>So every letter that arrives has three things written on it:</p>
+
+      <div class="ascii">    ┌──────────────────────────────┐
+    │  To:  street  0              │   ← which vertical strip
+    │       floor   2              │   ← how far down
+    │       name    "Five"         │   ← the value on the node
+    └──────────────────────────────┘</div>
+
+      <p><strong>Meet Priya, the postal clerk.</strong> Her job has exactly three phases, and she never mixes them up.</p>
+
+      <p><strong>Phase 1 — stamping.</strong> The letters arrive in a jumbled sack, in no useful order whatsoever. Priya doesn't care. She picks up each letter and stamps the street and floor onto it. She does this in whatever order the letters come out of the sack, because <em>the order she stamps them in has no bearing on anything.</em> Stamping is not sorting.</p>
+
+      <p><strong>Phase 2 — pigeonholes.</strong> Behind her is a wall of pigeonholes, one per street, arranged west to east: −2, −1, 0, +1, +2. She throws each stamped letter into the hole for its street.</p>
+
+      <p><strong>Phase 3 — ordering each hole.</strong> Now she takes each pigeonhole and puts its letters in delivery order: lowest floor first, because the postman walks downhill. And here's the rule from the manual, Section 4, subclause (c):</p>
+
+      <div class="callout c-note">
+        <div class="ct">▸ Treeton Postal Manual, §4(c)</div>
+        <p>"Where two letters are addressed to the <em>same street and the same floor</em>, they shall be ordered <strong>alphabetically by name</strong>. The postman cannot be expected to guess."</p>
+      </div>
+
+      <p>Then she walks the pigeonholes west to east and hands out the bundles. Done.</p>
+
+      <div class="postoffice">
+        <div class="po-sign">✉ TREETON POST OFFICE ✉</div>
+        <div class="po-sub">west ← main street → east</div>
+        <div class="holes" id="holes"></div>
+        <div class="priya">
+          <span class="priya-emoji">📮</span>
+          <p id="priyaLine">Priya has a sack of unsorted letters and a wall of pigeonholes. Press the button.</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn primary" id="priyaGo">Run the sorting office</button>
+          <button class="btn" id="priyaReset">Empty the holes</button>
+        </div>
+      </div>
+
+      <h3>The subplot: Bob</h3>
+
+      <p>Last summer the post office hired a temp named <strong>Bob</strong>. Bob noticed that the mail truck always delivers letters floor by floor — all the floor-0 letters, then all the floor-1 letters, and so on. Bob concluded, reasonably, that the truck had already done the sorting for him, and he could just stack letters into pigeonholes in arrival order and skip Phase 3 entirely.</p>
+
+      <p>Bob was right about floors. Bob was catastrophically wrong about §4(c).</p>
+
+      <p>Two letters arrived for street 0, floor 2: one for <strong>Six</strong>, one for <strong>Five</strong>. The truck had picked up Six first, because Six lives on the eastern edge of the western district and the truck goes west to east. Bob stacked Six, then Five. The postman delivered them in that order. Section 4(c) was violated. There was an inquiry.</p>
+
+      <p><strong>Bob is the BFS-only solution.</strong> Bob is what you write in the first ninety seconds. Don't be Bob.</p>
+
+      <h3>Cast list</h3>
+
+      <div class="cast-grid">
+        <div>A letter</div><div>A node</div>
+        <div>Street number (can be negative)</div><div>Column, from <code class="i">col−1</code> / <code class="i">col+1</code></div>
+        <div>Floor number</div><div>Row, from <code class="i">row+1</code></div>
+        <div>Name on the letter</div><div><code class="i">node.val</code></div>
+        <div>Stamping the address</div><div>The traversal — DFS or BFS, doesn't matter</div>
+        <div>The wall of pigeonholes</div><div><code class="i">TreeMap&lt;Integer, List&lt;Integer&gt;&gt;</code></div>
+        <div>Holes arranged west to east</div><div>Sorted keys — the reason it isn't a HashMap</div>
+        <div>Lowest floor delivered first</div><div>Secondary sort key: row</div>
+        <div>Manual §4(c), alphabetical</div><div>Tertiary sort key: value</div>
+        <div>Bob the temp</div><div>BFS with no tie-break — solves LC 314, fails LC 987</div>
+      </div>
+
+      <p>Remember Priya's three phases: <strong>stamp, file, order.</strong> Never let them bleed into each other, and this problem cannot hurt you.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s3"><span class="k">Previous</span><span class="t">The Key Observation</span></a>
+        <a class="next" href="#s5"><span class="k">Next</span><span class="t">Build the Algorithm Naturally</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 5 ================= -->
+    <section id="s5" data-title="Build the Algorithm Naturally">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Build the Algorithm Naturally</h2></div>
+
+      <p>Let's invent this from nothing, failing our way forward.</p>
+
+      <h3>Attempt 0 — "DFS, bucket by column"</h3>
+      <div class="ascii">dfs(node, col):
+    map[col].add(node.val)
+    dfs(node.left,  col - 1)
+    dfs(node.right, col + 1)</div>
+      <p>Columns are right. Contents are scrambled. On the tree <code class="i">[3,9,20,null,null,15,7]</code>, column 0 gets 3 first and 15 later, which happens to be fine — but flip the shape and a deep left node beats a shallow right node into the same bucket. ❌</p>
+      <p><strong>Lesson:</strong> depth order ≠ row order. We need row information.</p>
+
+      <h3>Attempt 1 — "BFS instead"</h3>
+      <p>Now nodes enter each bucket in genuine top-to-bottom order, free of charge, because BFS is level order. Rows: solved. ✅</p>
+      <p>Then you hit <code class="i">[1,2,3,4,6,5,7]</code> and get <code class="i">[1,6,5]</code> instead of <code class="i">[1,5,6]</code>. ❌</p>
+      <p><strong>Lesson:</strong> BFS orders rows, but within a row it orders by tree position, and tree position is not value.</p>
+
+      <h3>Attempt 2 — "Patch it: sort each row's slice"</h3>
+      <p>Since BFS already isolates one row at a time, collect that row's <code class="i">(col, value)</code> pairs into a small list, sort it by <code class="i">(col, value)</code>, <em>then</em> flush it into the buckets. Ties inside a row are now resolved by value, and rows still arrive in order.</p>
+      <p>This works. It's a genuinely good solution. But notice what just happened: <strong>you gave up on the traversal doing the ordering, and started sorting.</strong> You just did it in small batches.</p>
+
+      <h3>Attempt 3 — "Why am I sorting in batches?"</h3>
+      <p>Ask the honest question: if I'm sorting anyway, why am I bending the traversal into level order to help? What if I sort <em>everything, once</em>?</p>
+
+      <div class="ascii">for every node:
+    record (col, row, value)
+
+sort all records by col, then row, then value
+
+group consecutive records by col</div>
+
+      <p>And now the traversal genuinely doesn't matter — use a three-line DFS. Every ordering requirement lives in one comparator, where you can read it and check it against the problem statement line by line.</p>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 Why this is the version to write</div>
+        <p>The comparator is a <strong>direct transcription of the problem statement</strong>. Three rules in the prompt, three lines in the comparator, in the same order. There is nowhere for a subtle ordering bug to hide, because there is no implicit ordering anywhere — the traversal contributes nothing but coordinates.</p>
+      </div>
+
+      <h3>Attempt 4 — "Can I make the data structure do the sorting?"</h3>
+      <p>Yes, and it's worth knowing because interviewers sometimes like it:</p>
+      <div class="ascii">TreeMap&lt;Integer,                  // column, sorted
+   TreeMap&lt;Integer,               // row, sorted
+      PriorityQueue&lt;Integer&gt;&gt;&gt;    // values at that exact cell, min-heap</div>
+      <p>Insert every node and the structure maintains all three orderings automatically; then you just walk it. It's elegant and it reads beautifully. It's also slower in practice (three levels of tree-map overhead per insert), more allocation, and much easier to fumble under pressure. <strong>Know it, mention it, don't lead with it.</strong></p>
+
+      <h3>The final algorithm</h3>
+      <ol>
+        <li>DFS from the root with <code class="i">(row = 0, col = 0)</code>. Recurse left with <code class="i">(row+1, col−1)</code>, right with <code class="i">(row+1, col+1)</code>.</li>
+        <li>At each node, append the triple <code class="i">{col, row, value}</code> to a flat list.</li>
+        <li>Sort the list: by <code class="i">col</code>, then <code class="i">row</code>, then <code class="i">value</code>.</li>
+        <li>Walk the sorted list; start a new output group every time <code class="i">col</code> changes.</li>
+      </ol>
+
+      <div class="callout c-tip">
+        <div class="ct">🎯 Interview Tip</div>
+        <p>Say the reframe out loud before you write anything: <em>"The output order is a total order on (col, row, value), so this is really a sort, not a traversal — the traversal just assigns coordinates."</em> That single sentence tells the interviewer you've seen the actual structure of the problem rather than pattern-matched to "tree question, do BFS."</p>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s4"><span class="k">Previous</span><span class="t">The Movie</span></a>
+        <a class="next" href="#s6"><span class="k">Next</span><span class="t">Dry Run</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 6 ================= -->
+    <section id="s6" data-title="Dry Run">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Dry Run</h2></div>
+
+      <p>Tree: <code class="i">[1, 2, 3, 4, 6, 5, 7]</code> — the collision case.</p>
+
+      <div class="ascii">        1
+      /   \
+     2     3
+    / \   / \
+   4   6 5   7</div>
+
+      <p>Watch the three phases stay strictly separate: <strong>stamp</strong> (assign coordinates, in DFS preorder), <strong>sort</strong> (one comparator, everything at once), <strong>group</strong> (walk and cut on column change).</p>
+
+      <div class="player">
+        <div class="player-top">
+          <span class="lbl">Step-by-step execution</span>
+          <span class="step-count" id="stepCount">1 / 15</span>
+        </div>
+        <div class="stage">
+          <svg id="drySvg" viewBox="0 0 720 340" role="img" aria-label="Animated execution over the example tree"></svg>
+        </div>
+        <div class="narration" id="narration"></div>
+        <div class="varbar">
+          <div class="vcell" data-v="node"><span class="vk">node</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="row"><span class="vk">row</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="col"><span class="vk">col</span><span class="vv">–</span></div>
+          <div class="vcell" data-v="prevCol"><span class="vk">prevCol</span><span class="vv">–</span></div>
+        </div>
+        <div class="cellsbar">
+          <span class="qk" id="cellsLabel">cells — list of {col, row, value}</span>
+          <div class="triples" id="triples"></div>
+        </div>
+        <div class="answerbar">
+          <span class="qk">answer</span>
+          <div class="groups" id="groups"></div>
+        </div>
+        <div class="player-ctrl">
+          <button class="btn" id="dryPrev">‹ Previous</button>
+          <button class="btn primary" id="dryNext">Next ›</button>
+          <button class="btn" id="dryPlay">▶ Play</button>
+          <button class="btn" id="dryReset">↺ Replay</button>
+          <input class="scrub" id="dryScrub" type="range" min="0" max="14" value="0" aria-label="Scrub through steps">
+        </div>
+      </div>
+
+      <div class="big-answer">[[4], [2], [1, 5, 6], [3], [7]]</div>
+
+      <h3>The moment that matters</h3>
+
+      <p>Look back at the stamping phase. Node <strong>6</strong> was stamped fourth and node <strong>5</strong> was stamped sixth — DFS reached 6 long before 5. Look at the sorted list: <strong>5 comes before 6</strong>.</p>
+
+      <p>The sort completely erased the traversal's opinion. That's not a side effect; that's the design. The traversal was never allowed to have an opinion in the first place.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s5"><span class="k">Previous</span><span class="t">Build the Algorithm Naturally</span></a>
+        <a class="next" href="#s7"><span class="k">Next</span><span class="t">Implementation Intuition</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 7 ================= -->
+    <section id="s7" data-title="Implementation Intuition">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Implementation Intuition</h2></div>
+
+      <p>For each line, one question: <strong>what disaster happens if we delete it or change it?</strong> Click to open.</p>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">cells.add(new int[]{col, row, node.val});</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Why col first, not row first?</div>
+          <p>Purely so the array's natural element order matches the comparator's key order — it makes the comparator readable top-to-bottom and makes an off-by-one in the index far less likely. Functionally you could store <code class="i">{row, col, val}</code> and compare <code class="i">[1]</code> then <code class="i">[0]</code>, but now you have two orderings to keep in your head and one of them is a lie.</p>
+          <div class="disaster">Why store row at all, when BFS would give it for free?</div>
+          <p>Because we're using DFS, where row is <em>not</em> free. But more importantly: storing it makes the solution traversal-independent. The comparator is now the single source of truth for ordering. If ordering lives partly in the comparator and partly in "well, BFS happens to visit in the right order," you have a solution you cannot reason about.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">if (a[0] != b[0]) return Integer.compare(a[0], b[0]);</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if this isn't first</div>
+          <p>Column must be the primary key, because the output is grouped by column. If any other key comes first, the sorted list interleaves columns, your grouping loop cuts a new group every few elements, and you get more groups than there are columns — with the same column appearing multiple times.</p>
+          <div class="disaster">Why Integer.compare and not a[0] - b[0]</div>
+          <p>Subtraction overflows. With this problem's constraints (values 0–1000, columns bounded by n) it can't actually overflow, so you'd get away with it — but it's a habit that will silently break you on a problem with <code class="i">Integer.MIN_VALUE</code> in it. <code class="i">Integer.compare</code> costs nothing and is always right.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">if (a[1] != b[1]) return Integer.compare(a[1], b[1]);</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed</div>
+          <p>Within a column, ordering falls through to value. A node with value 1 sitting at row 9 would print before a node with value 500 sitting at row 0 — the column reads bottom-to-top-ish, in an order with no relationship to the picture.</p>
+          <div class="disaster">Disaster if swapped with the value key</div>
+          <p>Same thing. <strong>Row must outrank value.</strong> Value is only ever a tie-break, and it only fires when the rows are already equal. Getting this backwards is the single most common comparator bug on this problem — and it passes plenty of tests, because it only differs when a column contains multiple rows with out-of-order values.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">return Integer.compare(a[2], b[2]);   // the value tie-break</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed</div>
+          <p>You have written the solution to LeetCode 314, not 987. Everything passes until a test has two nodes on the same square — then the collision resolves by whatever order the sort happened to leave them in, which for a stable sort is traversal order and for an unstable sort is <em>undefined</em>.</p>
+          <p>This is the line the entire problem exists to test. If you remember one thing about 987, remember that it has a third key.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">int prevCol = Integer.MIN_VALUE;</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if you initialise to 0</div>
+          <p>Column 0 always exists (the root is there), and it is frequently the first column when the tree leans right. If <code class="i">prevCol</code> starts at 0, the first group never gets created, and you crash on <code class="i">answer.get(answer.size() - 1)</code> with an empty list — or, worse, silently merge column 0 into nothing.</p>
+          <p><code class="i">Integer.MIN_VALUE</code> is a sentinel meaning "no column yet." It works because no real column can ever equal it: columns are bounded by ±n.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">if (cell[0] != prevCol) { answer.add(new ArrayList&lt;&gt;()); prevCol = cell[0]; }</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Why this simple check is enough</div>
+          <p>Because the list is <em>sorted by column</em>, all entries for a column are guaranteed contiguous. You never need a map at this stage — a single "did the column just change?" test is sufficient, and it automatically skips empty columns, since a column with no nodes simply never appears in the list.</p>
+          <div class="disaster">Disaster if you use a HashMap here instead</div>
+          <p>You'd re-introduce the unordered-keys problem you already solved by sorting. Sorting made the map unnecessary; keeping the map makes the sort half-wasted.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">collect(node.left, row + 1, col - 1);</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if the sign flips</div>
+          <p>Left becomes <code class="i">col + 1</code> and your whole answer comes out mirrored — every column list is correct internally, but the columns are in reverse order. It passes symmetric test trees and fails everything else, which makes it maddening to spot.</p>
+          <div class="disaster">Why row + 1 on both branches</div>
+          <p>Row is depth. Both children are one level deeper; only the horizontal direction differs. If you accidentally write <code class="i">row</code> instead of <code class="i">row + 1</code> on one branch, that subtree flattens into its parent's row and starts colliding with nodes it should sit below.</p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="reveal-head">
+          <span class="rc">if (node == null) return;</span>
+          <button class="reveal-btn">Reveal disaster</button>
+        </div>
+        <div class="reveal-body">
+          <div class="disaster">Disaster if removed</div>
+          <p>NPE on <code class="i">node.val</code> the first time you hit a leaf. Putting the null check at the <em>top</em> of the recursive function (rather than guarding each call site) means you write it once instead of twice and can't forget one branch.</p>
+        </div>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s6"><span class="k">Previous</span><span class="t">Dry Run</span></a>
+        <a class="next" href="#s8"><span class="k">Next</span><span class="t">Common Bugs</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 8 ================= -->
+    <section id="s8" data-title="Common Bugs">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Common Bugs</h2></div>
+
+      <p>Thirteen ways this goes wrong, roughly ordered by how often they actually happen in interviews.</p>
+
+      <details class="fold" open>
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          The thirteen classic failures
+          <span class="summary-tag">13 items</span>
+        </summary>
+        <div class="fold-body">
+
+          <details class="bug"><summary><span class="bn">01</span> No value tie-break at all</summary>
+            <div class="bug-body"><p>You solved LC 314. Fails the instant a test has two nodes on the same square. Symptom: exactly one column is wrong, by exactly one swap. If your output differs from expected by a single adjacent transposition, this is always the cause.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">02</span> Comparator keys in the wrong order</summary>
+            <div class="bug-body"><p>Value before row is the classic. Row must outrank value; value only fires on a row tie. Passes many tests, which is what makes it dangerous — it only differs when a column holds several rows with values that aren't already ascending.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">03</span> <code class="i">HashMap</code> instead of <code class="i">TreeMap</code></summary>
+            <div class="bug-body"><p>Columns come out in hash order. With small integer keys, Java's HashMap often <em>looks</em> sorted for non-negative keys, so this can pass a couple of tests and then explode the moment a negative column appears. A near-perfect trap.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">04</span> Indexing an array by column</summary>
+            <div class="bug-body"><p><code class="i">ArrayIndexOutOfBoundsException</code> on the first left-leaning node, because column −1 is not an array index. If you want an array, you must first find <code class="i">minCol</code> and offset every index by it — which is two extra passes for no benefit over sorting.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">05</span> DFS without recording the row</summary>
+            <div class="bug-body"><p>Column contents come out in depth-first order, so a deep left node outranks a shallow right node in the same column. The output looks <em>almost</em> right, which is the worst kind of wrong.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">06</span> Sorting an entire column by value</summary>
+            <div class="bug-body"><p>A "fix" people reach for after seeing bug 1. It resolves the collision and destroys the row ordering at the same time. Value sorting must be scoped to <em>within a single (col, row) cell</em> — which the three-key comparator does automatically and a blanket sort does not.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">07</span> Sign flip on the column</summary>
+            <div class="bug-body"><p>Left going to <code class="i">col + 1</code>. Output is perfectly mirrored. Symmetric test trees pass, so you'll only catch it on an asymmetric case. Sanity check: on a left-only chain, the answer should be columns from most-negative upward.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">08</span> <code class="i">prevCol</code> initialised to 0</summary>
+            <div class="bug-body"><p>Column 0 is never empty (the root lives there), so this either crashes on the first element or silently drops it. Use <code class="i">Integer.MIN_VALUE</code> as the "no column yet" sentinel.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">09</span> Subtraction in the comparator</summary>
+            <div class="bug-body"><p><code class="i">a[0] - b[0]</code> overflows for extreme values. Safe here given the constraints, but it's a habit that breaks silently elsewhere, and interviewers notice. <code class="i">Integer.compare</code> always.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">10</span> Forgetting <code class="i">computeIfAbsent</code> in the TreeMap version</summary>
+            <div class="bug-body"><p><code class="i">columns.get(col).add(val)</code> NPEs on the first node in each column. <code class="i">computeIfAbsent(col, k -&gt; new ArrayList&lt;&gt;()).add(val)</code> creates the bucket lazily and is one line.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">11</span> Instance state not reset</summary>
+            <div class="bug-body"><p>If <code class="i">cells</code> is a field on the Solution object and the judge reuses the instance across test cases, results bleed between tests. Either declare it locally inside the method or clear it first. LeetCode usually creates a fresh instance, so this bites you in real code more than on the judge.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">12</span> Relying on sort stability instead of a third key</summary>
+            <div class="bug-body"><p>"Java's <code class="i">List.sort</code> is stable, so ties keep insertion order, so I'll just insert in the right order." Now correctness depends on an invariant living in a different function, and switching DFS to BFS silently breaks it. Encode the rule in the comparator where it can be read.</p></div>
+          </details>
+
+          <details class="bug"><summary><span class="bn">13</span> Emitting empty columns</summary>
+            <div class="bug-body"><p>Only a risk in the array-offset version, where you allocate a slot for every column between min and max and then dutifully print the empty ones. The problem wants only non-empty columns. Sorting sidesteps this entirely: a column with no nodes never appears.</p></div>
+          </details>
+
+        </div>
+      </details>
+
+      <div class="callout c-pit">
+        <div class="ct">⚠️ Common Pitfall — the interview-losing one</div>
+        <p>Bugs 1 and 2 are the same underlying mistake: <strong>you let the traversal own part of the ordering.</strong> The instant any ordering rule lives outside the comparator, you can no longer verify correctness by reading the comparator against the problem statement — and that's the only verification you have time for in an interview.</p>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s7"><span class="k">Previous</span><span class="t">Implementation Intuition</span></a>
+        <a class="next" href="#s9"><span class="k">Next</span><span class="t">Recognising the Pattern</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 9 ================= -->
+    <section id="s9" data-title="Recognising the Pattern">
+      <div class="sec-head"><span class="sec-num">09</span><h2>How to Recognise This Pattern Again</h2></div>
+
+      <h3>Trigger words in the prompt</h3>
+      <ul>
+        <li>"vertical," "column," "same column," "left to right"</li>
+        <li>"top to bottom," "row," "position <code class="i">(row, col)</code>"</li>
+        <li><strong>"if two nodes are in the same position / same row and column, order by value"</strong> — this sentence <em>is</em> the problem. The moment you see it, you know there are three sort keys, and you know the naive traversal solution is wrong.</li>
+        <li>Any explicit statement of the form "sort by A, then by B, then by C"</li>
+      </ul>
+
+      <h3>Structural tells</h3>
+      <ul>
+        <li>The problem <strong>describes the output order in words</strong> rather than implying it from a traversal. That's a comparator specification in disguise.</li>
+        <li>The output is grouped by something that isn't depth.</li>
+        <li>Two nodes with no relationship to each other can compete for the same output slot.</li>
+      </ul>
+
+      <div class="callout c-obs">
+        <div class="ct">💡 The general rule to internalise</div>
+        <p><strong>When a problem specifies an output order that no traversal naturally produces, stop traversing and start sorting.</strong> Use the traversal only to attach coordinates, then transcribe the problem's ordering rules directly into a comparator.</p>
+      </div>
+
+      <p>The wider family — every one of these is "assign a coordinate, then order by it":</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Problem</th><th>Coordinate</th><th>Ordering</th></tr></thead>
+          <tbody>
+            <tr><td>Vertical order, LC 987 (this one)</td><td class="mono-cell">col ∓1, row +1</td><td>col, row, value — <b>three keys</b></td></tr>
+            <tr><td>Vertical order, LC 314</td><td class="mono-cell">col ∓1, row +1</td><td>col, row — no tie-break</td></tr>
+            <tr><td>Top view / bottom view</td><td class="mono-cell">col ∓1</td><td>first / last seen per column in BFS</td></tr>
+            <tr><td>Diagonal traversal</td><td class="mono-cell">left → d+1, right → d</td><td>diagonal index, then order of arrival</td></tr>
+            <tr><td>Maximum width, LC 662</td><td class="mono-cell">seat 2i, 2i+1</td><td>no sort — just min and max per level</td></tr>
+            <tr><td>Boundary traversal</td><td class="mono-cell">none</td><td>three separate walks, concatenated</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout c-tip">
+        <div class="ct">🎯 Interview Tip — the disambiguating question</div>
+        <p>If an interviewer gives you a vertical-order problem verbally, <strong>ask</strong>: "If two nodes end up at the same row and column, what order do you want them in?" Either they say "by value" (it's 987, and you've just shown you spotted the hard part unprompted) or they say "doesn't matter" (it's 314, and you've just saved yourself a sort). It's the single highest-value question you can ask on this problem.</p>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s8"><span class="k">Previous</span><span class="t">Common Bugs</span></a>
+        <a class="next" href="#s10"><span class="k">Next</span><span class="t">Memory Hook</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 10 ================= -->
+    <section id="s10" data-title="Memory Hook">
+      <div class="sec-head"><span class="sec-num">10</span><h2>Memory Hook</h2></div>
+
+      <div class="callout c-mem">
+        <div class="ct">🧠 Memory Hook</div>
+        <p class="hook-line">"The traversal only hands out addresses. The sort delivers the mail."</p>
+      </div>
+
+      <p>And the one that encodes the actual comparator:</p>
+
+      <div class="callout c-mem">
+        <div class="ct">🧠 Memory Hook — the three keys</div>
+        <p class="hook-line">"Street, then floor, then name. Three keys, always three."</p>
+      </div>
+
+      <p>If you remember nothing else six months from now, remember Priya's three phases — <strong>stamp, file, order</strong> — and remember Bob, who thought the truck had already sorted his letters and got hauled into an inquiry over Section 4(c). Those two images regenerate the whole solution, including the part everyone forgets.</p>
+
+      <div class="secnav">
+        <a class="prev" href="#s9"><span class="k">Previous</span><span class="t">Recognising the Pattern</span></a>
+        <a class="next" href="#s11"><span class="k">Next</span><span class="t">Interview Explanation</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 11 ================= -->
+    <section id="s11" data-title="Interview Explanation">
+      <div class="sec-head"><span class="sec-num">11</span><h2>Interview Explanation — 60 seconds</h2></div>
+
+      <p>The interviewer asks: <em>"Walk me through your approach."</em> Here is the answer, near-verbatim.</p>
+
+      <div class="callout c-tip">
+        <div class="ct">🎯 Say this</div>
+        <p>"The output order here is fully specified by the problem: column ascending, then row ascending, then value ascending. That's a total order on nodes — which means this isn't really a traversal problem, it's a sort. The traversal's only job is to assign each node its coordinate.</p>
+        <p>So: one DFS from the root carrying <code class="i">(row, col)</code>, starting at <code class="i">(0, 0)</code>. Left child gets <code class="i">(row+1, col−1)</code>, right gets <code class="i">(row+1, col+1)</code>. At each node I record the triple <code class="i">(col, row, value)</code> into a flat list.</p>
+        <p>Then I sort that list once with a three-key comparator that transcribes the problem statement directly. Finally I walk the sorted list and start a new output group whenever the column changes — which works because sorting by column first makes each column's entries contiguous, and empty columns simply never appear.</p>
+        <p>The reason the third key matters is that two unrelated nodes can land on the exact same <code class="i">(row, col)</code> — a right child in the left subtree and a left child in the right subtree — and no traversal will order those two by value. That's the case a BFS-only solution silently gets wrong.</p>
+        <p>O(n log n) time from the sort, O(n) space. I could also do BFS and sort each row's slice, which gets row ordering free — same complexity, slightly more code."</p>
+      </div>
+
+      <h3>The three beats, if you forget the script</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Beat</th><th>The one sentence</th></tr></thead>
+          <tbody>
+            <tr><td><b>Reframe</b></td><td>The output order is a total order on (col, row, value) — so it's a sort, not a traversal.</td></tr>
+            <tr><td><b>Mechanism</b></td><td>DFS assigns coordinates; one three-key comparator does all the ordering; group on column change.</td></tr>
+            <tr><td><b>Hidden catch</b></td><td>Two unrelated nodes can occupy the same cell — that's why there's a third key, and why BFS alone fails.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s10"><span class="k">Previous</span><span class="t">Memory Hook</span></a>
+        <a class="next" href="#s12"><span class="k">Next</span><span class="t">Complexity</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 12 ================= -->
+    <section id="s12" data-title="Complexity">
+      <div class="sec-head"><span class="sec-num">12</span><h2>Complexity</h2></div>
+
+      <details class="fold" open>
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Where every unit of cost comes from
+          <span class="summary-tag">O(n log n)</span>
+        </summary>
+        <div class="fold-body">
+
+          <h4>Time: O(n log n)</h4>
+          <p>Three phases, three costs:</p>
+          <ul>
+            <li><strong>Stamping:</strong> the DFS touches each node once and does O(1) work — one array allocation, one list append. <strong>O(n).</strong></li>
+            <li><strong>Sorting:</strong> n triples, comparison-based sort, each comparison O(1) (at most three integer compares). <strong>O(n log n)</strong> — and this dominates everything.</li>
+            <li><strong>Grouping:</strong> one linear walk of the sorted list, O(1) per element. <strong>O(n).</strong></li>
+          </ul>
+          <p>Total: <strong>O(n) + O(n log n) + O(n) = O(n log n)</strong>.</p>
+
+          <div class="callout c-note">
+            <div class="ct">▸ Could it be faster?</div>
+            <p>In principle, a little. Columns are bounded to <code class="i">[−n, n]</code>, so you could bucket by column in O(n) and only sort inside buckets. But you still need to sort within each bucket by (row, value), and the sum of those sorts is still O(n log n) in the worst case — a single tall column holding every node. So the asymptotic answer doesn't move, and the code gets considerably worse. Not worth it. Say this if asked; don't volunteer it as your main solution.</p>
+          </div>
+
+          <h4>Why the BFS variant is the same</h4>
+          <p>The BFS-and-sort-each-row version sorts k₁, k₂, … kₘ elements where the kᵢ sum to n. That's Σ kᵢ log kᵢ ≤ Σ kᵢ log n = n log n. Slightly better in practice on wide, shallow trees (many small sorts beat one big one), identical asymptotically. Worth one sentence, not worth choosing over the simpler code.</p>
+
+          <h4>Space: O(n)</h4>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>What</th><th>Cost</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td>The triple list</td><td class="mono-cell">O(n)</td><td>one <code class="i">int[3]</code> per node — unavoidable, it's the whole dataset</td></tr>
+                <tr><td>Sort workspace</td><td class="mono-cell">O(n)</td><td>Java's <code class="i">TimSort</code> on objects needs auxiliary space</td></tr>
+                <tr><td>Recursion stack</td><td class="mono-cell">O(h)</td><td>h = height; O(n) on a skewed tree, O(log n) balanced</td></tr>
+                <tr><td>Output</td><td class="mono-cell">O(n)</td><td>every node appears exactly once</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>All of it collapses to <strong>O(n)</strong>. Note that unlike the width problem, there's no clever way to avoid storing every node — the sort fundamentally needs the whole dataset in hand before it can produce the first element of the answer.</p>
+
+          <h4>A note on the TreeMap-of-TreeMap-of-heap version</h4>
+          <p>Same O(n log n) — each insert is O(log n) across the nested structures, done n times. But the constant factor is meaningfully worse: three levels of red-black tree traversal plus a heap sift per node, and a great deal more allocation. It reads elegantly and runs slower. Good to know it exists; don't reach for it first.</p>
+
+        </div>
+      </details>
+
+      <div class="secnav">
+        <a class="prev" href="#s11"><span class="k">Previous</span><span class="t">Interview Explanation</span></a>
+        <a class="next" href="#s13"><span class="k">Next</span><span class="t">Java Walkthrough</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 13 ================= -->
+    <section id="s13" data-title="Java Walkthrough">
+      <div class="sec-head"><span class="sec-num">13</span><h2>Java Implementation Walkthrough</h2></div>
+
+      <details class="fold" open>
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Solution A — DFS + one sort
+          <span class="summary-tag">write this one</span>
+        </summary>
+        <div class="fold-body">
+
+          <div class="codeblock" data-code="dfs" data-label="Java · triples + three-key comparator"></div>
+
+          <h4>Line by line</h4>
+
+          <p><code class="i">List&lt;int[]&gt; cells</code> — declared as a local inside the public method and passed down, rather than as a field. That kills bug 11 (state bleeding across calls) for free. Each element is <code class="i">{col, row, value}</code>: three ints, no object overhead, and the element order deliberately mirrors the comparator's key order so the two can be read against each other at a glance.</p>
+
+          <p><code class="i">collect(root, 0, 0)</code> — the root is the origin. Nothing special about (0,0); any starting point works since all coordinates are relative, but 0 makes the negative columns visible and obvious.</p>
+
+          <p><code class="i">if (node == null) return;</code> — at the top of the recursion, so it's written once and covers both branches. Handles the empty-tree input as well: the list stays empty, the sort does nothing, the grouping loop never runs, and you return an empty list. No special case needed anywhere.</p>
+
+          <p><code class="i">collect(node.left, row + 1, col - 1)</code> — down and left. <code class="i">row + 1</code> on both branches because both children are one level deeper; only the column direction differs. There's no return value and no accumulation on the way back up — this recursion is pure descent, which is why it's three lines.</p>
+
+          <p><code class="i">cells.sort(...)</code> — the entire ordering logic of the problem, in one place. Read it against the problem statement: column ascending, row ascending, value ascending. Three rules in the prompt, three lines here, same order. That correspondence is the thing that makes this version verifiable under interview pressure.</p>
+
+          <p><code class="i">Integer.compare(a[0], b[0])</code> — never <code class="i">a[0] - b[0]</code>. Costs nothing, can't overflow, signals care.</p>
+
+          <p><code class="i">int prevCol = Integer.MIN_VALUE;</code> — the "no column yet" sentinel. Cannot collide with a real column, since columns are bounded by ±n.</p>
+
+          <p><code class="i">if (cell[0] != prevCol)</code> — start a new group on every column change. This is correct <em>only because the list is sorted by column</em>, which guarantees each column's entries are contiguous. Empty columns never appear in <code class="i">cells</code>, so they're skipped automatically — no filtering needed.</p>
+
+          <p><code class="i">answer.get(answer.size() - 1).add(cell[2])</code> — append to the group we're currently building. <code class="i">cell[2]</code> is the value; the column and row have done their job and are discarded.</p>
+
+        </div>
+      </details>
+
+      <details class="fold">
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Solution B — BFS + TreeMap + per-row sort
+          <span class="summary-tag">mention this one</span>
+        </summary>
+        <div class="fold-body">
+
+          <div class="codeblock" data-code="bfs" data-label="Java · level order, sort each row's slice"></div>
+
+          <h4>Why this works</h4>
+
+          <p><code class="i">int levelSize = queue.size();</code> — the same level-fence snapshot as in the width problem. Freeze it before the inner loop, or pushing children extends the loop into the next row and the whole row-isolation guarantee collapses.</p>
+
+          <p><code class="i">List&lt;int[]&gt; level</code> — holds <code class="i">{col, value}</code> for <strong>this row only</strong>. No row field needed: every element here is on the same row by construction. That's the entire benefit BFS buys you.</p>
+
+          <p><code class="i">level.sort(...)</code> — two keys instead of three, because row is already handled by the outer loop. Sort by column, then by value for same-cell ties. This is the line Bob skipped.</p>
+
+          <p><code class="i">columns.computeIfAbsent(cell[0], k -&gt; new ArrayList&lt;&gt;()).add(cell[1])</code> — lazily create each column's bucket. Without <code class="i">computeIfAbsent</code>, you NPE on the first node of every column.</p>
+
+          <p><code class="i">TreeMap</code>, not <code class="i">HashMap</code> — the keys must come out west-to-east. <code class="i">answer.addAll(columns.values())</code> then walks them in ascending column order for free.</p>
+
+          <div class="callout c-note">
+            <div class="ct">▸ When would you actually choose this?</div>
+            <p>When the tree is very wide and shallow: many small sorts beat one large one in practice, and you avoid materialising n three-element arrays. It's also the more natural answer if the interviewer has already pushed you down a BFS path. But it has more moving parts — a pair class, a level fence, a lazily-created map — and therefore more places to slip.</p>
+          </div>
+
+        </div>
+      </details>
+
+      <details class="fold">
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Solution C — let the data structure do the sorting
+          <span class="summary-tag">know it, don't lead with it</span>
+        </summary>
+        <div class="fold-body">
+          <div class="codeblock" data-code="nested" data-label="Java · nested sorted structures"></div>
+          <p>Every ordering is maintained on insert: outer <code class="i">TreeMap</code> sorts columns, inner <code class="i">TreeMap</code> sorts rows, and the <code class="i">PriorityQueue</code> is a min-heap that resolves same-cell ties by value. Walking the structure emits the answer directly, with no comparator anywhere.</p>
+          <p>It reads beautifully and it is genuinely clever. It is also slower (three levels of tree overhead plus a heap sift per insert), allocates far more, and puts the ordering logic into <em>type declarations</em> rather than a readable comparator — which means a reviewer has to reverse-engineer the intent from the generics. <strong>Mention it as an alternative; write Solution A.</strong></p>
+        </div>
+      </details>
+
+      <details class="fold">
+        <summary>
+          <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Which one do you actually write?
+          <span class="summary-tag">decision table</span>
+        </summary>
+        <div class="fold-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th></th><th>A · DFS + sort</th><th>B · BFS + row sort</th><th>C · Nested maps</th></tr></thead>
+              <tbody>
+                <tr><td><b>Lines of code</b></td><td>~25</td><td>~35</td><td>~30</td></tr>
+                <tr><td><b>Where ordering lives</b></td><td>one comparator ✅</td><td>comparator + BFS invariant</td><td>type declarations</td></tr>
+                <tr><td><b>Time</b></td><td>O(n log n)</td><td>O(n log n)</td><td>O(n log n)</td></tr>
+                <tr><td><b>Practical speed</b></td><td>fastest</td><td>fast on wide trees</td><td>slowest</td></tr>
+                <tr><td><b>Risk on a deep tree</b></td><td>stack overflow (recursion)</td><td>none</td><td>stack overflow if DFS-fed</td></tr>
+                <tr><td><b>Interview default</b></td><td><b>✅ this one</b></td><td>good fallback</td><td>name-drop only</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Default to A.</strong> It's the shortest, the ordering is verifiable in one glance, and the traversal choice is visibly irrelevant — which is exactly the insight you want to demonstrate. If the interviewer specifically wants an iterative solution or flags recursion depth, switch to B; the reframe you already explained still holds, you're just sorting in batches.</p>
+        </div>
+      </details>
+
+      <div class="secnav">
+        <a class="prev" href="#s12"><span class="k">Previous</span><span class="t">Complexity</span></a>
+        <a class="next" href="#s14"><span class="k">Next</span><span class="t">Visual Cheat Sheet</span></a>
+      </div>
+    </section>
+
+    <!-- ================= 14 ================= -->
+    <section id="s14" data-title="Visual Cheat Sheet">
+      <div class="sec-head"><span class="sec-num">14</span><h2>Visual Cheat Sheet</h2></div>
+
+      <p>The whole lesson, compressed to the size of an index card.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Idea</th><th>Remember</th></tr></thead>
+          <tbody>
+            <tr><td><b>Observation</b></td><td>Every node is a triple <code class="i">(col, row, value)</code>. The answer is those triples sorted lexicographically. The traversal only assigns coordinates.</td></tr>
+            <tr><td><b>Coordinates</b></td><td>Root at <code class="i">(0,0)</code>. Left → <code class="i">(row+1, col−1)</code>. Right → <code class="i">(row+1, col+1)</code>.</td></tr>
+            <tr><td><b>The comparator</b></td><td>col ascending → row ascending → <b>value ascending</b>. Three keys, in that order, always.</td></tr>
+            <tr><td><b>Why three keys</b></td><td>Two unrelated nodes can occupy the same cell (a right child in the left subtree meets a left child in the right subtree). No traversal orders those by value.</td></tr>
+            <tr><td><b>Pattern</b></td><td>Coordinate assignment + explicit total order. Traversal choice is irrelevant to correctness.</td></tr>
+            <tr><td><b>Data structure</b></td><td><code class="i">List&lt;int[]&gt;</code> of triples + one sort. Alternative: <code class="i">TreeMap&lt;col, List&gt;</code> with a per-row sort.</td></tr>
+            <tr><td><b>Pitfall 1</b></td><td>No value tie-break → you solved LC 314, not 987. Symptom: one column off by a single swap.</td></tr>
+            <tr><td><b>Pitfall 2</b></td><td>Value before row in the comparator. Row must outrank value; value only fires on a row tie.</td></tr>
+            <tr><td><b>Pitfall 3</b></td><td><code class="i">HashMap</code> for columns (unordered), array indexed by a negative column, or <code class="i">prevCol = 0</code>.</td></tr>
+            <tr><td><b>Recognition cue</b></td><td>"If two nodes are in the same position, order by value" → three sort keys, and the naive BFS answer is wrong.</td></tr>
+            <tr><td><b>Question to ask</b></td><td>"What order do you want for two nodes at the same row and column?" — distinguishes 987 from 314 in one sentence.</td></tr>
+            <tr><td><b>Memory hook</b></td><td><b>"The traversal only hands out addresses. The sort delivers the mail."</b></td></tr>
+            <tr><td><b>Complexity</b></td><td>Time O(n log n), dominated by the sort. Space O(n) for the triples, plus O(h) recursion.</td></tr>
+            <tr><td><b>The movie</b></td><td>Priya at the Treeton Post Office: <b>stamp, file, order</b>. Negative streets to the west. Manual §4(c) breaks name ties. Bob skipped Phase 3 and there was an inquiry.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="endcard">
+        <div class="k">Lesson complete</div>
+        <p>Type <strong>"next"</strong> when you're ready.</p>
+        <small>Or name the problem you want — the next lesson uses this exact structure.</small>
+      </div>
+
+      <div class="secnav">
+        <a class="prev" href="#s13"><span class="k">Previous</span><span class="t">Java Walkthrough</span></a>
+        <a class="disabled next" href="#"><span class="k">Next</span><span class="t">—</span></a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<div class="fabs">
+  <button class="fab" id="prevFab" title="Previous section" aria-label="Previous section">↑</button>
+  <button class="fab" id="nextFab" title="Next section" aria-label="Next section">↓</button>
+  <button class="fab" id="topFab" title="Back to top" aria-label="Back to top">⤒</button>
+</div>
+
+<script>
+/* =========================================================
+   0. CODE SNIPPETS
+   ========================================================= */
+const CODE = {
+trap1:
+`// DFS, bucket by column. Columns right, contents scrambled.
+void dfs(TreeNode node, int col) {
+    if (node == null) return;
+    map.computeIfAbsent(col, k -> new ArrayList<>()).add(node.val);
+    dfs(node.left,  col - 1);
+    dfs(node.right, col + 1);
+}`,
+
+dfs:
+`class Solution {
+
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        List<int[]> cells = new ArrayList<>();     // {col, row, value}
+        collect(root, 0, 0, cells);
+
+        cells.sort((a, b) -> {
+            if (a[0] != b[0]) return Integer.compare(a[0], b[0]);  // column, L to R
+            if (a[1] != b[1]) return Integer.compare(a[1], b[1]);  // row, top to bottom
+            return Integer.compare(a[2], b[2]);                    // value, the tie-break
+        });
+
+        List<List<Integer>> answer = new ArrayList<>();
+        int prevCol = Integer.MIN_VALUE;           // "no column yet" sentinel
+
+        for (int[] cell : cells) {
+            if (cell[0] != prevCol) {              // sorted, so columns are contiguous
+                answer.add(new ArrayList<>());
+                prevCol = cell[0];
+            }
+            answer.get(answer.size() - 1).add(cell[2]);
+        }
+        return answer;
+    }
+
+    private void collect(TreeNode node, int row, int col, List<int[]> cells) {
+        if (node == null) return;
+        cells.add(new int[]{col, row, node.val});
+        collect(node.left,  row + 1, col - 1, cells);
+        collect(node.right, row + 1, col + 1, cells);
+    }
+}`,
+
+bfs:
+`class Solution {
+
+    private static class Item {
+        TreeNode node; int col;
+        Item(TreeNode node, int col) { this.node = node; this.col = col; }
+    }
+
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        List<List<Integer>> answer = new ArrayList<>();
+        if (root == null) return answer;
+
+        TreeMap<Integer, List<Integer>> columns = new TreeMap<>();
+        Queue<Item> queue = new ArrayDeque<>();
+        queue.offer(new Item(root, 0));
+
+        while (!queue.isEmpty()) {
+            int levelSize = queue.size();          // freeze the row boundary
+            List<int[]> level = new ArrayList<>(); // {col, value} for THIS row only
+
+            for (int i = 0; i < levelSize; i++) {
+                Item cur = queue.poll();
+                level.add(new int[]{cur.col, cur.node.val});
+                if (cur.node.left  != null) queue.offer(new Item(cur.node.left,  cur.col - 1));
+                if (cur.node.right != null) queue.offer(new Item(cur.node.right, cur.col + 1));
+            }
+
+            level.sort((a, b) -> a[0] != b[0] ? Integer.compare(a[0], b[0])
+                                              : Integer.compare(a[1], b[1]));
+
+            for (int[] cell : level) {
+                columns.computeIfAbsent(cell[0], k -> new ArrayList<>()).add(cell[1]);
+            }
+        }
+
+        answer.addAll(columns.values());           // TreeMap: west to east, free
+        return answer;
+    }
+}`,
+
+nested:
+`// column -> row -> min-heap of values at that exact cell
+TreeMap<Integer, TreeMap<Integer, PriorityQueue<Integer>>> grid = new TreeMap<>();
+
+void collect(TreeNode node, int row, int col) {
+    if (node == null) return;
+    grid.computeIfAbsent(col, k -> new TreeMap<>())
+        .computeIfAbsent(row, k -> new PriorityQueue<>())
+        .offer(node.val);
+    collect(node.left,  row + 1, col - 1);
+    collect(node.right, row + 1, col + 1);
+}
+
+// then just walk it -- every ordering is already maintained
+for (TreeMap<Integer, PriorityQueue<Integer>> column : grid.values()) {
+    List<Integer> out = new ArrayList<>();
+    for (PriorityQueue<Integer> cell : column.values()) {
+        while (!cell.isEmpty()) out.add(cell.poll());
+    }
+    answer.add(out);
+}`
+};
+
+/* =========================================================
+   1. SYNTAX HIGHLIGHTER
+   ========================================================= */
+const KEYWORDS = "class|public|private|protected|static|final|void|int|long|short|byte|char|float|double|boolean|new|return|if|else|for|while|do|switch|case|break|continue|null|true|false|this|super|import|package|extends|implements|throws|throw|try|catch|finally|instanceof";
+const TYPES = "TreeNode|Queue|Deque|ArrayDeque|LinkedList|List|ArrayList|Map|HashMap|TreeMap|PriorityQueue|Math|Item|String|Integer|Solution|Object|Comparator";
+
+const JAVA_RE = new RegExp([
+  "(?<comment>\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)",
+  "(?<string>\"(?:\\\\.|[^\"\\\\])*\")",
+  "(?<annotation>@\\w+)",
+  "(?<number>\\b\\d+(?:\\.\\d+)?\\b)",
+  "(?<keyword>\\b(?:" + KEYWORDS + ")\\b)",
+  "(?<type>\\b(?:" + TYPES + ")\\b)",
+  "(?<fn>\\b[a-zA-Z_]\\w*(?=\\s*\\())",
+  "(?<punct>[{}()\\[\\];,.<>=+\\-*\\/!&|?:%])"
+].join("|"), "g");
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function highlight(code){
+  let out = "", last = 0, m;
+  JAVA_RE.lastIndex = 0;
+  while ((m = JAVA_RE.exec(code)) !== null){
+    out += esc(code.slice(last, m.index));
+    const g = m.groups;
+    const kind = Object.keys(g).find(k => g[k] !== undefined);
+    out += '<span class="tok-' + kind + '">' + esc(m[0]) + "</span>";
+    last = m.index + m[0].length;
+  }
+  return out + esc(code.slice(last));
+}
+
+document.querySelectorAll(".codeblock[data-code]").forEach(block => {
+  const raw = CODE[block.dataset.code] || "";
+  block.innerHTML =
+    '<div class="code-bar"><span class="code-label">' + esc(block.dataset.label || "java") +
+    '</span><button class="copy-btn" type="button">Copy</button></div>' +
+    "<pre><code>" + highlight(raw) + "</code></pre>";
+  block.querySelector(".copy-btn").addEventListener("click", function(){
+    const btn = this;
+    const done = () => {
+      btn.textContent = "Copied"; btn.classList.add("ok");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(raw).then(done).catch(() => fallbackCopy(raw, done));
+    } else fallbackCopy(raw, done);
+  });
+});
+function fallbackCopy(text, cb){
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); cb(); } catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* =========================================================
+   2. THEME
+   ========================================================= */
+const themeBtn = document.getElementById("themeBtn");
+function setTheme(t){
+  document.documentElement.setAttribute("data-theme", t);
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  try { localStorage.setItem("lc987-theme", t); } catch(e){}
+}
+let startTheme = "light";
+try {
+  const saved = localStorage.getItem("lc987-theme");
+  if (saved) startTheme = saved;
+  else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) startTheme = "dark";
+} catch(e){}
+setTheme(startTheme);
+themeBtn.addEventListener("click", () =>
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"));
+
+/* =========================================================
+   3. NAV / ACTIVE SECTION / PROGRESS
+   ========================================================= */
+const sections = Array.from(document.querySelectorAll("main section"));
+const navList = document.getElementById("navList");
+const navItems = [];
+sections.forEach((sec, i) => {
+  const li = document.createElement("li");
+  const a = document.createElement("a");
+  a.className = "nav-item";
+  a.href = "#" + sec.id;
+  a.innerHTML = '<span class="n">' + String(i + 1).padStart(2, "0") + '</span><span class="t">' + sec.dataset.title + "</span>";
+  li.appendChild(a); navList.appendChild(li); navItems.push(a);
+});
+
+let currentIdx = 0;
+const seen = new Set();
+const progCount = document.getElementById("progCount");
+const progMeter = document.getElementById("progMeter");
+function setActive(i){
+  currentIdx = i;
+  navItems.forEach((a, k) => a.classList.toggle("active", k === i));
+  for (let k = 0; k <= i; k++){ seen.add(k); navItems[k].classList.add("done"); }
+  progCount.textContent = seen.size + " / " + sections.length;
+  progMeter.style.width = (seen.size / sections.length * 100) + "%";
+  const item = navItems[i], side = document.getElementById("sidebar");
+  const top = item.offsetTop, bot = top + item.offsetHeight;
+  if (top < side.scrollTop || bot > side.scrollTop + side.clientHeight){
+    side.scrollTo({ top: top - side.clientHeight / 2, behavior: "smooth" });
+  }
+}
+const obs = new IntersectionObserver(entries => {
+  const vis = entries.filter(e => e.isIntersecting)
+                     .sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top);
+  if (vis.length) setActive(sections.indexOf(vis[0].target));
+}, { rootMargin: "-88px 0px -62% 0px", threshold: 0 });
+sections.forEach(s => obs.observe(s));
+
+const fill = document.getElementById("progressFill");
+const topFab = document.getElementById("topFab");
+window.addEventListener("scroll", () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  fill.style.width = (h > 0 ? Math.min(1, window.scrollY / h) * 100 : 0) + "%";
+  topFab.classList.toggle("show", window.scrollY > 500);
+}, { passive: true });
+
+topFab.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+document.getElementById("prevFab").addEventListener("click", () => jump(currentIdx - 1));
+document.getElementById("nextFab").addEventListener("click", () => jump(currentIdx + 1));
+function jump(i){ if (i >= 0 && i < sections.length) sections[i].scrollIntoView({ behavior: "smooth", block: "start" }); }
+
+/* =========================================================
+   4. SEARCH
+   ========================================================= */
+const search = document.getElementById("search");
+const noHits = document.getElementById("noHits");
+search.addEventListener("input", () => {
+  const q = search.value.trim().toLowerCase();
+  let hits = 0;
+  navItems.forEach((a, i) => {
+    const hay = (sections[i].dataset.title + " " + (i + 1)).toLowerCase();
+    const match = !q || hay.includes(q);
+    a.parentElement.classList.toggle("hidden", !match);
+    if (match) hits++;
+  });
+  noHits.style.display = hits ? "none" : "block";
+});
+
+/* =========================================================
+   5. DRAWER / EXPAND ALL / REVEALS
+   ========================================================= */
+const sidebar = document.getElementById("sidebar");
+const scrim = document.getElementById("scrim");
+function closeDrawer(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+document.getElementById("menuBtn").addEventListener("click", () => {
+  sidebar.classList.toggle("open");
+  scrim.classList.toggle("show", sidebar.classList.contains("open"));
+});
+scrim.addEventListener("click", closeDrawer);
+navItems.forEach(a => a.addEventListener("click", () => { if (window.innerWidth <= 1000) closeDrawer(); }));
+
+const expandBtn = document.getElementById("expandAll");
+let allOpen = false;
+expandBtn.addEventListener("click", () => {
+  allOpen = !allOpen;
+  document.querySelectorAll("details").forEach(d => d.open = allOpen);
+  document.querySelectorAll(".reveal").forEach(r => {
+    r.classList.toggle("open", allOpen);
+    r.querySelector(".reveal-btn").textContent = allOpen ? "Hide" : "Reveal disaster";
+  });
+  expandBtn.textContent = allOpen ? "Collapse all" : "Expand all";
+});
+document.querySelectorAll(".reveal").forEach(card => {
+  const btn = card.querySelector(".reveal-btn");
+  btn.addEventListener("click", () => {
+    btn.textContent = card.classList.toggle("open") ? "Hide" : "Reveal disaster";
+  });
+});
+
+/* =========================================================
+   6. SHARED TREE GEOMETRY
+   ========================================================= */
+const NS = "http://www.w3.org/2000/svg";
+const COLS = [-2,-1,0,1,2];
+const CW = 130, CX = 360;
+function colX(c){ return CX + c * CW; }
+function rowY(r){ return 60 + r * 95; }
+
+// value, row, col, visual x-offset for the two colliding nodes
+const TREE = [
+  { v:1, r:0, c:0,  dx:0   },
+  { v:2, r:1, c:-1, dx:0   },
+  { v:3, r:1, c:1,  dx:0   },
+  { v:4, r:2, c:-2, dx:0   },
+  { v:6, r:2, c:0,  dx:33  },
+  { v:5, r:2, c:0,  dx:-33 },
+  { v:7, r:2, c:2,  dx:0   }
+];
+const LINKS = [[1,2],[1,3],[2,4],[2,6],[3,5],[3,7]];
+const byVal = {}; TREE.forEach(n => byVal[n.v] = n);
+function nx(n){ return colX(n.c) + n.dx; }
+
+function buildTree(svg, opts){
+  opts = opts || {};
+  // column bands + labels
+  COLS.forEach(c => {
+    const rect = document.createElementNS(NS, "rect");
+    rect.setAttribute("x", colX(c) - CW/2 + 4);
+    rect.setAttribute("y", 8);
+    rect.setAttribute("width", CW - 8);
+    rect.setAttribute("height", 275);
+    rect.setAttribute("rx", 10);
+    rect.setAttribute("class", "band");
+    rect.dataset.col = c;
+    svg.appendChild(rect);
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("x1", colX(c)); ln.setAttribute("y1", 14);
+    ln.setAttribute("x2", colX(c)); ln.setAttribute("y2", 283);
+    ln.setAttribute("class", "bandline");
+    svg.appendChild(ln);
+    const lbl = document.createElementNS(NS, "text");
+    lbl.setAttribute("x", colX(c)); lbl.setAttribute("y", 305);
+    lbl.setAttribute("class", "bandlbl");
+    lbl.dataset.col = c;
+    lbl.textContent = "col " + c;
+    svg.appendChild(lbl);
+  });
+  [0,1,2].forEach(r => {
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", 6); t.setAttribute("y", rowY(r) - 26);
+    t.setAttribute("class", "rowlbl");
+    t.textContent = "row " + r;
+    svg.appendChild(t);
+  });
+  // edges
+  LINKS.forEach(([p, c]) => {
+    const a = byVal[p], b = byVal[c];
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("x1", nx(a)); ln.setAttribute("y1", rowY(a.r));
+    ln.setAttribute("x2", nx(b)); ln.setAttribute("y2", rowY(b.r));
+    ln.setAttribute("class", "vn-edge");
+    svg.appendChild(ln);
+  });
+  // collision ring
+  const ring = document.createElementNS(NS, "ellipse");
+  ring.setAttribute("cx", colX(0)); ring.setAttribute("cy", rowY(2));
+  ring.setAttribute("rx", 60); ring.setAttribute("ry", 30);
+  ring.setAttribute("class", "collide");
+  svg.appendChild(ring);
+  const ringLbl = document.createElementNS(NS, "text");
+  ringLbl.setAttribute("x", colX(0)); ringLbl.setAttribute("y", rowY(2) + 46);
+  ringLbl.setAttribute("class", "collide-lbl");
+  ringLbl.textContent = "same cell (row 2, col 0)";
+  svg.appendChild(ringLbl);
+  // nodes
+  const nodes = {};
+  TREE.forEach(n => {
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", nx(n)); c.setAttribute("cy", rowY(n.r));
+    c.setAttribute("r", 21); c.setAttribute("class", "vn-circle");
+    c.dataset.v = n.v;
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", nx(n)); t.setAttribute("y", rowY(n.r));
+    t.setAttribute("class", "vn-val"); t.textContent = n.v;
+    const co = document.createElementNS(NS, "text");
+    co.setAttribute("x", nx(n)); co.setAttribute("y", rowY(n.r) + 36);
+    co.setAttribute("class", "vn-coord");
+    co.textContent = "(" + n.r + "," + n.c + ")";
+    svg.appendChild(c); svg.appendChild(t); svg.appendChild(co);
+    nodes[n.v] = { circle:c, coord:co, data:n };
+  });
+  return { nodes, ring, ringLbl,
+           bands: Array.from(svg.querySelectorAll(".band")),
+           labels: Array.from(svg.querySelectorAll(".bandlbl")) };
+}
+
+/* =========================================================
+   7. SECTION 2 — the collision demo
+   ========================================================= */
+(function(){
+  const svg = document.getElementById("clashSvg");
+  const read = document.getElementById("clashRead");
+  const T = buildTree(svg);
+  T.ring.classList.add("show");
+  T.ringLbl.classList.add("show");
+  Object.values(T.nodes).forEach(n => n.coord.classList.add("show"));
+
+  function flash(order, ok){
+    Object.values(T.nodes).forEach(n => n.circle.classList.remove("active"));
+    order.forEach((v, i) => setTimeout(() => {
+      T.nodes[v].circle.classList.add("active");
+    }, i * 340));
+    setTimeout(() => {
+      Object.values(T.nodes).forEach(n => n.circle.classList.remove("active"));
+    }, order.length * 340 + 700);
+  }
+  document.getElementById("clashBfs").addEventListener("click", () => {
+    flash([6,5]);
+    read.innerHTML = 'BFS reaches node <b>2</b> before node <b>3</b>, so it emits <b>6</b> then <b>5</b>. Column 0 becomes <b>[1, 6, 5]</b> — wrong.';
+  });
+  document.getElementById("clashReq").addEventListener("click", () => {
+    flash([5,6]);
+    read.innerHTML = 'The rules say smaller value first on a tie, so column 0 must be <b>[1, 5, 6]</b>. No traversal produces this — only a sort does.';
+  });
+})();
+
+/* =========================================================
+   8. SECTION 3 — coordinate explorer
+   ========================================================= */
+(function(){
+  const svg = document.getElementById("coordSvg");
+  const read = document.getElementById("coordRead");
+  const T = buildTree(svg);
+
+  svg.addEventListener("click", e => {
+    if (!e.target.classList.contains("vn-circle")) return;
+    const v = +e.target.dataset.v;
+    const n = byVal[v];
+    Object.values(T.nodes).forEach(x => { x.circle.classList.remove("sel"); x.coord.classList.remove("show"); });
+    T.bands.forEach(b => b.classList.toggle("lit", +b.dataset.col === n.c));
+    T.labels.forEach(l => l.classList.toggle("lit", +l.dataset.col === n.c));
+    T.nodes[v].circle.classList.add("sel");
+    T.nodes[v].coord.classList.add("show");
+
+    const sharing = TREE.filter(x => x.c === n.c && x.v !== v);
+    const same = TREE.filter(x => x.c === n.c && x.r === n.r && x.v !== v);
+    let msg = "Node <b>" + v + "</b> sits at row <b>" + n.r + "</b>, column <b>" + n.c + "</b>. ";
+    msg += sharing.length
+      ? "It shares column " + n.c + " with " + sharing.map(x => x.v).join(", ") + "."
+      : "It is alone in column " + n.c + ".";
+    if (same.length){
+      T.ring.classList.add("show"); T.ringLbl.classList.add("show");
+      same.forEach(x => T.nodes[x.v].coord.classList.add("show"));
+      msg += " ⚠ It occupies the <b>same cell</b> as " + same.map(x => x.v).join(", ") + " — value breaks the tie.";
+    } else {
+      T.ring.classList.remove("show"); T.ringLbl.classList.remove("show");
+    }
+    read.innerHTML = msg;
+  });
+})();
+
+/* =========================================================
+   9. SECTION 3 — comparator playground
+   ========================================================= */
+(function(){
+  const seg = document.getElementById("cmpSeg");
+  const out = document.getElementById("cmpCols");
+  const verdict = document.getElementById("cmpVerdict");
+
+  // same shape, root relabelled 9 so every broken comparator differs visibly.
+  // insertion order = BFS order, so a stable sort exposes the "no tie-break" bug.
+  const DATA = [
+    { c:0,  r:0, v:9 },
+    { c:-1, r:1, v:2 },
+    { c:1,  r:1, v:3 },
+    { c:-2, r:2, v:4 },
+    { c:0,  r:2, v:6 },
+    { c:0,  r:2, v:5 },
+    { c:2,  r:2, v:7 }
+  ];
+  const CORRECT = JSON.stringify([[4],[2],[9,5,6],[3],[7]]);
+  const CORRECT_COLS = [-2,-1,0,1,2];
+
+  const CMPS = {
+    crv: (a,b) => a.c-b.c || a.r-b.r || a.v-b.v,
+    cr:  (a,b) => a.c-b.c || a.r-b.r,
+    cvr: (a,b) => a.c-b.c || a.v-b.v || a.r-b.r,
+    rcv: (a,b) => a.r-b.r || a.c-b.c || a.v-b.v
+  };
+  const NOTES = {
+    crv: ["ok", "Correct. Columns run west to east, each column reads top to bottom, and the two nodes on the same cell come out 5 before 6."],
+    cr:  ["bad", "Broken — no tie-break. The sort is stable, so 6 and 5 keep the order the traversal happened to produce. Column 0 reads 9, 6, 5. This is the LC 314 solution."],
+    cvr: ["bad", "Broken — value outranks row. Inside column 0 the values sort ascending regardless of depth, so the root (9, row 0) is pushed to the end behind two row-2 nodes."],
+    rcv: ["bad", "Broken — row outranks column. Rows now interleave columns, so grouping on column change produces the columns in visit order rather than west to east."]
+  };
+
+  function render(key){
+    const sorted = DATA.slice().sort(CMPS[key]);
+    const groups = [];
+    let prev = null;
+    sorted.forEach(x => {
+      if (prev === null || x.c !== prev){ groups.push({ c:x.c, vals:[] }); prev = x.c; }
+      groups[groups.length - 1].vals.push(x.v);
+    });
+    const asStr = JSON.stringify(groups.map(g => g.vals));
+    const expected = JSON.parse(CORRECT);
+    out.innerHTML = "";
+    groups.forEach((g, i) => {
+      const d = document.createElement("div");
+      d.className = "pcol";
+      const colOk  = CORRECT_COLS[i] === g.c;
+      const valsOk = colOk && JSON.stringify(g.vals) === JSON.stringify(expected[i]);
+      if (!colOk || !valsOk) d.classList.add("wrong");
+      d.innerHTML = '<span class="pk">col ' + g.c + '</span><span class="pv">[' + g.vals.join(", ") + "]</span>";
+      out.appendChild(d);
+    });
+    const n = NOTES[key];
+    verdict.className = "verdict " + n[0];
+    verdict.innerHTML = (asStr === CORRECT ? "✓ " : "✗ ") + n[1];
+  }
+
+  seg.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    Array.from(seg.children).forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    render(b.dataset.k);
+  });
+  render("crv");
+})();
+
+/* =========================================================
+   10. SECTION 4 — Treeton post office
+   ========================================================= */
+(function(){
+  const host = document.getElementById("holes");
+  const line = document.getElementById("priyaLine");
+  const HOLE_COLS = [-2,-1,0,1,2];
+  const CONTENT = { "-2":[4], "-1":[2], "0":[1,5,6], "1":[3], "2":[7] };
+  // sack order = DFS preorder, deliberately jumbled relative to the answer
+  const SACK = [
+    { v:1, c:0 }, { v:2, c:-1 }, { v:4, c:-2 }, { v:6, c:0 },
+    { v:3, c:1 }, { v:5, c:0 }, { v:7, c:2 }
+  ];
+
+  HOLE_COLS.forEach(c => {
+    const d = document.createElement("div");
+    d.className = "hole"; d.dataset.col = c;
+    d.innerHTML = '<div class="hlabel">street ' + c + '</div><div class="letters"></div>';
+    host.appendChild(d);
+  });
+  const holes = {};
+  Array.from(host.children).forEach(h => holes[h.dataset.col] = h);
+
+  let timers = [];
+  function reset(){
+    timers.forEach(clearTimeout); timers = [];
+    HOLE_COLS.forEach(c => {
+      holes[c].classList.remove("lit");
+      holes[c].querySelector(".letters").innerHTML = "";
+    });
+    line.textContent = "Priya has a sack of unsorted letters and a wall of pigeonholes. Press the button.";
+  }
+  document.getElementById("priyaReset").addEventListener("click", reset);
+
+  document.getElementById("priyaGo").addEventListener("click", () => {
+    reset();
+    // phase 2: file in sack order
+    SACK.forEach((L, i) => timers.push(setTimeout(() => {
+      const h = holes[L.c];
+      HOLE_COLS.forEach(c => holes[c].classList.toggle("lit", c === L.c));
+      const el = document.createElement("div");
+      el.className = "letter"; el.textContent = L.v;
+      h.querySelector(".letters").appendChild(el);
+      line.innerHTML = "Phase 2 — filing letter <b>" + L.v + "</b> into street <b>" + L.c +
+                       "</b>. Priya files in whatever order the sack gives her; order comes later.";
+    }, i * 620)));
+
+    // phase 3: order each hole
+    const t0 = SACK.length * 620 + 500;
+    timers.push(setTimeout(() => {
+      HOLE_COLS.forEach(c => holes[c].classList.remove("lit"));
+      HOLE_COLS.forEach((c, i) => timers.push(setTimeout(() => {
+        const h = holes[c];
+        h.classList.add("lit");
+        h.querySelector(".letters").innerHTML =
+          CONTENT[c].map(v => '<div class="letter">' + v + "</div>").join("");
+        line.innerHTML = "Phase 3 — ordering street <b>" + c + "</b>: lowest floor first" +
+          (c === 0 ? ", and §4(c) puts <b>5</b> ahead of <b>6</b> because they share a floor." : ".");
+      }, i * 700)));
+    }, t0));
+
+    timers.push(setTimeout(() => {
+      HOLE_COLS.forEach(c => holes[c].classList.remove("lit"));
+      line.innerHTML = "Delivery order, west to east: <b>[[4], [2], [1, 5, 6], [3], [7]]</b>. Priya has not violated §4(c). 📮";
+    }, t0 + HOLE_COLS.length * 700 + 400));
+  });
+})();
+
+/* =========================================================
+   11. SECTION 6 — dry run player
+   ========================================================= */
+(function(){
+  const svg = document.getElementById("drySvg");
+  const T = buildTree(svg);
+
+  // DFS preorder stamping order
+  const STAMP = [
+    { v:1, r:0, c:0 }, { v:2, r:1, c:-1 }, { v:4, r:2, c:-2 }, { v:6, r:2, c:0 },
+    { v:3, r:1, c:1 }, { v:5, r:2, c:0 }, { v:7, r:2, c:2 }
+  ];
+  const SORTED = [
+    { v:4, r:2, c:-2 }, { v:2, r:1, c:-1 }, { v:1, r:0, c:0 },
+    { v:5, r:2, c:0 },  { v:6, r:2, c:0 },  { v:3, r:1, c:1 }, { v:7, r:2, c:2 }
+  ];
+
+  const STEPS = [];
+  // phase 1 — stamping
+  STAMP.forEach((n, i) => {
+    STEPS.push({
+      tag:"stamp", active:n.v, list:STAMP.slice(0, i+1), listSorted:false, fresh:i,
+      groups:[], band:n.c, coords:STAMP.slice(0, i+1).map(x => x.v),
+      v:{ node:n.v, row:n.r, col:n.c, prevCol:"–" },
+      txt: "Stamp node <b>" + n.v + "</b> with row <b>" + n.r + "</b>, column <b>" + n.c +
+           "</b>, and append the triple <code class=\"i\">{" + n.c + ", " + n.r + ", " + n.v +
+           "}</code>. " + (n.v === 6 ? "Note it lands on column 0, row 2." :
+                           n.v === 5 ? "It lands on column 0, row 2 as well — <b>the same cell as node 6</b>." :
+                           "DFS preorder: root, then the whole left subtree, then the right.")
+    });
+  });
+  // phase 2 — collected
+  STEPS.push({
+    tag:"collect", active:null, list:STAMP, listSorted:false, fresh:-1, groups:[], band:null,
+    coords:STAMP.map(x => x.v),
+    v:{ node:"–", row:"–", col:"–", prevCol:"–" },
+    txt:"Stamping done. Seven triples, in <b>DFS order</b> — which is meaningless for the answer. Notice 6 was recorded before 5. The traversal's job is finished; it never gets a say in the output."
+  });
+  // phase 3 — sorted
+  STEPS.push({
+    tag:"sort", active:null, list:SORTED, listSorted:true, fresh:-1, groups:[], band:null,
+    coords:SORTED.map(x => x.v),
+    v:{ node:"–", row:"–", col:"–", prevCol:"–" },
+    txt:"One sort, three keys: <b>column</b>, then <b>row</b>, then <b>value</b>. Watch the middle: <code class=\"i\">{0,2,5}</code> now comes before <code class=\"i\">{0,2,6}</code>. The value key just overruled the traversal — that's the line everyone forgets."
+  });
+  // phase 4 — grouping, one column at a time
+  const GROUPS = [
+    { c:-2, vals:[4], take:1 },
+    { c:-1, vals:[2], take:2 },
+    { c:0,  vals:[1,5,6], take:5 },
+    { c:1,  vals:[3], take:6 },
+    { c:2,  vals:[7], take:7 }
+  ];
+  GROUPS.forEach((g, i) => {
+    STEPS.push({
+      tag:"group", active:null, list:SORTED, listSorted:true, fresh:-1, taken:g.take,
+      groups:GROUPS.slice(0, i+1), band:g.c, coords:SORTED.map(x => x.v),
+      grouped:GROUPS.slice(0, i+1).flatMap(x => x.vals),
+      v:{ node:"–", row:"–", col:g.c, prevCol: i === 0 ? "MIN" : GROUPS[i-1].c },
+      txt:"Column changes from <b>" + (i === 0 ? "MIN_VALUE" : GROUPS[i-1].c) + "</b> to <b>" + g.c +
+          "</b> → cut a new group and fill it with <b>[" + g.vals.join(", ") + "]</b>." +
+          (g.c === 0 ? " Three entries, all contiguous because the list is sorted by column." : "")
+    });
+  });
+  STEPS.push({
+    tag:"group", active:null, list:SORTED, listSorted:true, fresh:-1, taken:7,
+    groups:GROUPS, band:null, coords:SORTED.map(x => x.v),
+    grouped:GROUPS.flatMap(x => x.vals),
+    v:{ node:"–", row:"–", col:"–", prevCol:2 },
+    txt:"List exhausted. Return <b>[[4], [2], [1, 5, 6], [3], [7]]</b>. Total cost: one O(n) walk to stamp, one O(n log n) sort, one O(n) walk to group."
+  });
+
+  const narration = document.getElementById("narration");
+  const stepCount = document.getElementById("stepCount");
+  const triples = document.getElementById("triples");
+  const groupsEl = document.getElementById("groups");
+  const cellsLabel = document.getElementById("cellsLabel");
+  const scrub = document.getElementById("dryScrub");
+  scrub.max = STEPS.length - 1;
+  const vcells = {};
+  document.querySelectorAll(".vcell").forEach(c => vcells[c.dataset.v] = c);
+
+  let cur = 0, playing = false, timer = null;
+
+  function render(i){
+    const s = STEPS[i];
+    stepCount.textContent = (i + 1) + " / " + STEPS.length;
+    scrub.value = i;
+    narration.innerHTML = '<span class="tag t-' + s.tag + '">' + s.tag + "</span>" + s.txt;
+    cellsLabel.textContent = s.listSorted
+      ? "cells — sorted by col, then row, then value"
+      : "cells — list of {col, row, value}, in stamping order";
+
+    // triples
+    triples.innerHTML = "";
+    if (!s.list.length){
+      triples.innerHTML = '<span class="qempty">empty</span>';
+    } else {
+      s.list.forEach((x, k) => {
+        const el = document.createElement("span");
+        el.className = "tchip";
+        if (k === s.fresh) el.classList.add("fresh");
+        if (s.listSorted && x.c === 0 && x.r === 2) el.classList.add("tie");
+        if (s.taken !== undefined && k < s.taken) el.classList.add("taken");
+        el.innerHTML = "{" + x.c + ", " + x.r + ", <b>" + x.v + "</b>}";
+        triples.appendChild(el);
+      });
+    }
+
+    // groups
+    groupsEl.innerHTML = "";
+    if (!s.groups.length){
+      groupsEl.innerHTML = '<span class="qempty">empty</span>';
+    } else {
+      s.groups.forEach(g => {
+        const el = document.createElement("span");
+        el.className = "group";
+        el.innerHTML = '<span class="gk">col ' + g.c + "</span>[" + g.vals.join(", ") + "]";
+        groupsEl.appendChild(el);
+      });
+    }
+
+    // vars
+    Object.keys(vcells).forEach(k => {
+      vcells[k].querySelector(".vv").textContent = s.v[k];
+      vcells[k].classList.toggle("flash", s.tag === "stamp" && (k === "row" || k === "col" || k === "node"));
+    });
+
+    // tree
+    Object.keys(T.nodes).forEach(v => {
+      const n = T.nodes[v];
+      n.circle.classList.remove("active","done","grouped");
+      n.coord.classList.toggle("show", s.coords.indexOf(+v) >= 0);
+      if (s.active === +v) n.circle.classList.add("active");
+      else if (s.grouped && s.grouped.indexOf(+v) >= 0) n.circle.classList.add("grouped");
+      else if (s.coords.indexOf(+v) >= 0) n.circle.classList.add("done");
+    });
+    T.bands.forEach(b => b.classList.toggle("lit", s.band !== null && +b.dataset.col === s.band));
+    T.labels.forEach(l => l.classList.toggle("lit", s.band !== null && +l.dataset.col === s.band));
+    const showRing = s.tag !== "stamp" || s.active === 5 || s.active === 6;
+    T.ring.classList.toggle("show", showRing);
+    T.ringLbl.classList.toggle("show", showRing);
+
+    document.getElementById("dryPrev").disabled = (i === 0);
+    document.getElementById("dryNext").disabled = (i === STEPS.length - 1);
+  }
+
+  function go(i){ cur = Math.max(0, Math.min(STEPS.length - 1, i)); render(cur); }
+  document.getElementById("dryNext").addEventListener("click", () => { stop(); go(cur + 1); });
+  document.getElementById("dryPrev").addEventListener("click", () => { stop(); go(cur - 1); });
+  document.getElementById("dryReset").addEventListener("click", () => { stop(); go(0); });
+  scrub.addEventListener("input", () => { stop(); go(+scrub.value); });
+
+  const playBtn = document.getElementById("dryPlay");
+  function stop(){ playing = false; clearInterval(timer); playBtn.textContent = "▶ Play"; }
+  playBtn.addEventListener("click", () => {
+    if (playing){ stop(); return; }
+    if (cur === STEPS.length - 1) go(0);
+    playing = true; playBtn.textContent = "❚❚ Pause";
+    timer = setInterval(() => { if (cur >= STEPS.length - 1) stop(); else go(cur + 1); }, 2300);
+  });
+
+  render(0);
+})();
+
+/* =========================================================
+   12. KEYBOARD
+   ========================================================= */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.key === "j") jump(currentIdx + 1);
+  if (e.key === "k") jump(currentIdx - 1);
+  if (e.key === "/"){ e.preventDefault(); search.focus(); }
+});
+</script>
+</body>
+</html>

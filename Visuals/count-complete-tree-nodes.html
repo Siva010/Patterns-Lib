@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  STEP 1 — CLASSIFY
+  LeetCode 222, Count Complete Tree Nodes, is a HYBRID:
+     dominant  : (a) VALUE-COMBINING — countNodes(root) returns an int that the
+                 parent combines as  1 + left + right, so the load-bearing panel
+                 is the pending-expression stack with holes:
+                     return 1 + countNodes(#2) + |_|
+                  -> return 1 + 15 + |_|
+                  -> return 1 + 15 + 9
+     secondary : (c) STRUCTURE TRAVERSAL — the recursion walks an existing binary
+                 tree, and the height probes walk the left/right spines. So the
+                 tree itself is drawn beside the stack, with the visited set,
+                 the current spine, and the formula-covered subtrees marked.
+  The recursion tree and the binary tree are different objects. Both are shown.
+
+  STEP 2 — DESIGN THE TRACE
+  buildTrace() is a hand-written generator. Nothing is parsed or interpreted.
+  It yields CALL / BASE / MEASURE / PERFECT / SPLIT / RESUME / RETURN events into
+  one array up front; render(stepIndex) rebuilds every panel purely from
+  EVENTS[0..stepIndex], so stepping backward costs nothing.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>222. Count Complete Tree Nodes — recursion trace</title>
+<style>
+  :root{
+    --bg:#12161f;
+    --panel:#1a202c;
+    --panel-2:#212938;
+    --line:#2c3546;
+    --ink:#dde4f0;
+    --ink-dim:#8a95aa;
+    --ink-faint:#5a6478;
+    --iris:#8b7dff;        /* active recursion */
+    --iris-soft:#3a3468;
+    --teal:#3fbfb0;        /* height probe / spine */
+    --gold:#e8b44a;        /* the perfect-subtree shortcut: the signature */
+    --gold-soft:#4a3a18;
+    --rose:#e2668a;        /* null / base case */
+    --ok:#6fd08c;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:1500px;margin:0 auto;padding:18px 16px 60px}
+
+  /* ---------- header ---------- */
+  header{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:16px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 6px
+  }
+  h1{
+    font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.01em;
+    margin:0 0 8px;color:var(--ink)
+  }
+  h1 .num{color:var(--iris)}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid var(--line);border-radius:2px;padding:3px 7px;color:var(--ink-dim)
+  }
+  .tag.pri{border-color:var(--iris-soft);color:var(--iris)}
+  .tag.sec{border-color:#2b4a46;color:var(--teal)}
+
+  /* ---------- control bars ---------- */
+  .bar{
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;
+    padding:11px 13px;margin-bottom:10px;
+  }
+  .bar-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  label.lbl{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-faint);display:block;margin-bottom:4px
+  }
+  select,input[type=number]{
+    background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:3px;padding:6px 8px;font-family:var(--mono);font-size:12.5px;
+  }
+  select{min-width:250px}
+  input[type=number]{width:78px}
+  button{
+    background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:3px;padding:6px 11px;font-family:var(--mono);font-size:12.5px;cursor:pointer;
+    transition:border-color .12s,color .12s;
+  }
+  button:hover:not(:disabled){border-color:var(--iris);color:#fff}
+  button:disabled{opacity:.38;cursor:not-allowed}
+  button.primary{border-color:var(--iris-soft);color:var(--iris)}
+  :focus-visible{outline:2px solid var(--iris);outline-offset:2px}
+
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:6px 12px;background:transparent;color:var(--ink-dim)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button[aria-pressed=true]{background:var(--gold-soft);color:var(--gold)}
+  .why{font-size:12.5px;color:var(--ink-dim);margin-top:9px;font-style:italic}
+
+  input[type=range]{accent-color:var(--iris);width:100%}
+  .scrub{flex:1 1 260px;min-width:180px}
+  .speed{width:120px;flex:0 0 auto}
+  .counter{font-family:var(--mono);font-size:12px;color:var(--ink-dim);white-space:nowrap}
+  .counter b{color:var(--ink);font-weight:600}
+
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .stat{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:3px;
+    padding:6px 9px;font-family:var(--mono);font-size:11.5px;color:var(--ink-dim)
+  }
+  .stat b{color:var(--ink);font-weight:600}
+  .stat.gold{border-color:var(--gold-soft)} .stat.gold b{color:var(--gold)}
+
+  /* ---------- narration ---------- */
+  .narration{
+    background:linear-gradient(90deg,var(--iris-soft) 0%,var(--panel) 55%);
+    border:1px solid var(--line);border-left:3px solid var(--iris);
+    border-radius:4px;padding:12px 14px;margin-bottom:10px;min-height:58px;
+    display:flex;align-items:center;gap:11px
+  }
+  .narration .kind{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--iris);
+    border:1px solid var(--iris-soft);border-radius:2px;padding:2px 6px;flex:0 0 auto
+  }
+  .narration.k-perfect{background:linear-gradient(90deg,var(--gold-soft) 0%,var(--panel) 55%);border-left-color:var(--gold)}
+  .narration.k-perfect .kind{color:var(--gold);border-color:var(--gold-soft)}
+  .narration.k-base{border-left-color:var(--rose)} .narration.k-base .kind{color:var(--rose);border-color:#5a2c3c}
+  .narration.k-measure{border-left-color:var(--teal)} .narration.k-measure .kind{color:var(--teal);border-color:#2b4a46}
+  .narration p{margin:0;font-size:14.5px}
+
+  /* ---------- panels ---------- */
+  .grid{display:grid;grid-template-columns:minmax(0,410px) minmax(0,1fr);gap:10px}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;min-width:0}
+  .panel > h2{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0;padding:9px 12px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:8px;align-items:baseline
+  }
+  .panel > h2 span{letter-spacing:.04em;text-transform:none;font-size:11px;color:var(--ink-faint)}
+  .panel .body{padding:10px 12px}
+
+  /* ---------- source ---------- */
+  .src{font-family:var(--mono);font-size:11.5px;line-height:1.65;padding:8px 0;overflow:hidden}
+  .src .ln{display:flex;padding:0 10px;border-left:2px solid transparent}
+  .src .no{color:#3d4658;width:20px;text-align:right;margin-right:10px;flex:0 0 auto;user-select:none}
+  .src .code{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+  .src .ln.done{color:var(--ink-faint)}
+  .src .ln.done .kw,.src .ln.done .num,.src .ln.done .cm{color:var(--ink-faint)}
+  .src .ln.here{background:var(--iris-soft);border-left-color:var(--iris);color:#fff}
+  .src .ln.here .no{color:var(--iris)}
+  .src .ln.also{background:#232b3c;border-left-color:var(--teal)}
+  .kw{color:#a99bff}.num{color:var(--teal)}.cm{color:#5e6a80;font-style:italic}
+  .ty{color:#8fb8e8}
+
+  /* ---------- stack ---------- */
+  .stack{display:flex;flex-direction:column;gap:7px;padding:10px 12px;max-height:430px;overflow-y:auto}
+  .frame{border:1px solid var(--line);border-radius:3px;background:var(--panel-2);padding:8px 10px}
+  .frame.top{border-color:var(--iris);box-shadow:0 0 0 1px var(--iris-soft)}
+  .frame.top.gold{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-soft)}
+  .frame.top.null{border-color:var(--rose);box-shadow:none}
+  .fhead{
+    display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11.5px;
+    color:var(--ink-dim);margin-bottom:5px
+  }
+  .fhead b{color:var(--ink);font-weight:600}
+  .expr{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  .hole{
+    display:inline-block;min-width:17px;text-align:center;color:var(--ink-faint);
+    border:1px dashed var(--ink-faint);border-radius:2px;padding:0 3px;line-height:1.25
+  }
+  .fill{color:var(--ok);font-weight:600}
+  .fill.just{background:var(--ok);color:#0d2416;border-radius:2px;padding:0 4px;animation:pop .45s ease-out}
+  @keyframes pop{from{transform:scale(1.35)}to{transform:scale(1)}}
+  .waiting{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-top:4px}
+  .gold-t{color:var(--gold)} .teal-t{color:var(--teal)} .rose-t{color:var(--rose)}
+  .empty{color:var(--ink-faint);font-family:var(--mono);font-size:12px;padding:6px 0}
+
+  /* ---------- svg holders ---------- */
+  .scroller{overflow:auto;max-height:400px;padding:6px}
+  #st-scroll{overflow:visible;max-height:none}
+  .legend{display:flex;flex-wrap:wrap;gap:11px;padding:8px 12px 11px;border-top:1px solid var(--line)}
+  .lg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+
+  text{font-family:var(--mono)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:980px){
+    .grid{grid-template-columns:minmax(0,1fr)}
+    select{min-width:0;width:100%}
+    .stack{max-height:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Recursion trace · Java</p>
+  <h1><span class="num">222.</span> Count Complete Tree Nodes</h1>
+  <div class="tags">
+    <span class="tag pri">Primary: value-combining</span>
+    <span class="tag sec">Secondary: structure traversal</span>
+    <span class="tag">Nodes labelled by heap index: children of #i are #2i and #2i+1</span>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="bar-row">
+    <div style="flex:1 1 300px;min-width:0">
+      <label class="lbl" for="preset">Input</label>
+      <select id="preset"></select>
+    </div>
+    <div>
+      <label class="lbl" for="custom">Custom n (0–31)</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" id="custom" min="0" max="31" value="12">
+        <button id="apply">Run it</button>
+      </div>
+    </div>
+    <div>
+      <label class="lbl">Algorithm</label>
+      <div class="seg" role="group" aria-label="Algorithm">
+        <button id="m-short" aria-pressed="true">Height shortcut</button>
+        <button id="m-naive" aria-pressed="false">Naive walk</button>
+      </div>
+    </div>
+  </div>
+  <p class="why" id="why"></p>
+  <p id="warn" style="display:none;color:var(--rose);font-family:var(--mono);font-size:12px;margin:8px 0 0"></p>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="bar">
+  <div class="bar-row">
+    <button id="reset" title="Reset (R)">&#8635; Reset</button>
+    <button id="back" title="Step back (&larr;)">&#9664; Back</button>
+    <button id="play" class="primary" title="Play / pause (space)">&#9654; Play</button>
+    <button id="fwd" title="Step forward (&rarr;)">Next &#9654;</button>
+    <div class="scrub"><input type="range" id="scrub" min="0" max="0" value="0" aria-label="Scrub the trace"></div>
+    <div class="speed">
+      <label class="lbl" for="speed" style="margin-bottom:2px">Speed</label>
+      <input type="range" id="speed" min="1" max="10" value="5" aria-label="Playback speed">
+    </div>
+    <div class="counter" id="counter"></div>
+  </div>
+</div>
+
+<div class="narration" id="narration">
+  <span class="kind" id="n-kind">READY</span>
+  <p id="n-text">Press Next to make the first call.</p>
+</div>
+
+<div class="grid">
+  <div class="col">
+    <div class="panel">
+      <h2>Source <span id="src-note"></span></h2>
+      <div class="src" id="src"></div>
+    </div>
+    <div class="panel">
+      <h2>Call stack <span>newest on top</span></h2>
+      <div class="stack" id="stack"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel">
+      <h2>Recursion tree <span>one node per call, drawn in call order</span></h2>
+      <div class="scroller" id="rec-scroll"><svg id="rec-svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="legend">
+        <span class="lg"><i class="dot" style="background:var(--iris)"></i>active</span>
+        <span class="lg"><i class="dot" style="background:#4d5875"></i>on the stack</span>
+        <span class="lg"><i class="dot" style="background:var(--gold)"></i>perfect &rarr; formula</span>
+        <span class="lg"><i class="dot" style="background:var(--rose)"></i>null &rarr; 0</span>
+        <span class="lg"><i class="dot" style="background:#252c3b"></i>returned</span>
+        <span class="lg"><i class="dot" style="background:#1d2432"></i>not called yet</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>The tree being counted <span id="struct-note"></span></h2>
+      <div class="scroller" id="st-scroll"><svg id="st-svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="legend">
+        <span class="lg"><i class="dot" style="background:var(--iris)"></i>frame&#39;s node</span>
+        <span class="lg"><i class="dot" style="background:var(--teal)"></i>on the height probe</span>
+        <span class="lg"><i class="dot" style="background:var(--gold)"></i>counted by 2<sup>h</sup>&minus;1</span>
+        <span class="lg"><i class="dot" style="background:var(--ok)"></i>counted by a call</span>
+        <span class="lg"><i class="dot" style="background:#1d2432"></i>never visited</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   SOURCE LISTINGS (line numbers are 1-based and referenced by trace events)
+   ========================================================================= */
+const SRC = {
+  shortcut: [
+/* 1*/ "class Solution {",
+/* 2*/ "    public int countNodes(TreeNode root) {",
+/* 3*/ "        if (root == null) return 0;",
+/* 4*/ "        int lh = leftHeight(root);",
+/* 5*/ "        int rh = rightHeight(root);",
+/* 6*/ "        if (lh == rh) return (1 << lh) - 1;",
+/* 7*/ "        return 1 + countNodes(root.left)",
+/* 8*/ "                 + countNodes(root.right);",
+/* 9*/ "    }",
+/*10*/ "",
+/*11*/ "    private int leftHeight(TreeNode n) {",
+/*12*/ "        int h = 0;",
+/*13*/ "        while (n != null) { h++; n = n.left; }",
+/*14*/ "        return h;",
+/*15*/ "    }",
+/*16*/ "",
+/*17*/ "    private int rightHeight(TreeNode n) {",
+/*18*/ "        int h = 0;",
+/*19*/ "        while (n != null) { h++; n = n.right; }",
+/*20*/ "        return h;",
+/*21*/ "    }",
+/*22*/ "}"
+  ],
+  naive: [
+/* 1*/ "class Solution {",
+/* 2*/ "    public int countNodes(TreeNode root) {",
+/* 3*/ "        if (root == null) return 0;",
+/* 4*/ "        return 1 + countNodes(root.left)",
+/* 5*/ "                 + countNodes(root.right);",
+/* 6*/ "    }",
+/* 7*/ "}"
+  ]
+};
+
+const PRESETS = [
+  {n:1,  label:"n = 1 — a single node",            why:"Base case: left height and right height are both 1, so the formula answers before any recursion happens."},
+  {n:3,  label:"n = 3 — a perfect tree",           why:"The whole tree is perfect. One call, two height probes, done — the naive walk would take 7 calls."},
+  {n:4,  label:"n = 4 — the first real branch",    why:"Heights disagree for the first time (3 vs 2), so this is the smallest input that actually recurses."},
+  {n:5,  label:"n = 5 — both children perfect",    why:"One split at the root, then each child collapses to a formula. Three calls, no null calls, done."},
+  {n:12, label:"n = 12 — recursion picks one side",why:"Watch the recursion tree: at every level only ONE child recurses. That is why the cost is log squared, not linear."},
+  {n:25, label:"n = 25 — the full shape",          why:"Seven calls against 51 for the naive walk. The tallest stack you can get under the size cap."},
+  {n:31, label:"n = 31 — perfect again, but deep", why:"Height 5 and perfect, so the answer is one shift: 2^5 − 1. The shortcut skips 63 calls."}
+];
+
+const MAX_N = 31;
+
+/* =========================================================================
+   STEP 2 — THE GENERATOR. Hand-written, yields one event per meaningful step.
+   ========================================================================= */
+function buildTrace(N, mode){
+  const events = [];
+  let nextId = 0;
+  const short = mode === "shortcut";
+
+  function subtreeOf(i){
+    const out = [], q = [i];
+    while(q.length){
+      const x = q.shift();
+      if (x > N) continue;
+      out.push(x); q.push(2*x, 2*x+1);
+    }
+    return out;
+  }
+
+  function* call(idx, parentId, depth, slot){
+    const id = nextId++;
+    const isNull = idx > N;
+    yield {type:"CALL", id, parentId, depth, idx, slot, isNull, line:2};
+
+    if (isNull){
+      yield {type:"BASE",   id, depth, idx, isNull:true, line:3, value:0};
+      yield {type:"RETURN", id, depth, idx, isNull:true, line:3, value:0};
+      return 0;
+    }
+
+    if (short){
+      const spineL = []; for (let c=idx; c<=N; c=2*c)   spineL.push(c);
+      yield {type:"MEASURE", id, depth, idx, side:"left",  spine:spineL, h:spineL.length, line:4, also:13};
+      const spineR = []; for (let c=idx; c<=N; c=2*c+1)  spineR.push(c);
+      yield {type:"MEASURE", id, depth, idx, side:"right", spine:spineR, h:spineR.length, line:5, also:19};
+
+      if (spineL.length === spineR.length){
+        const h = spineL.length, value = (1 << h) - 1;
+        yield {type:"PERFECT", id, depth, idx, h, value, covered:subtreeOf(idx), line:6};
+        yield {type:"RETURN",  id, depth, idx, value, viaFormula:true, line:6};
+        return value;
+      }
+      yield {type:"SPLIT", id, depth, idx, lh:spineL.length, rh:spineR.length, line:7};
+    } else {
+      yield {type:"SPLIT", id, depth, idx, line:4};
+    }
+
+    const lineL = short ? 7 : 4, lineR = short ? 8 : 5;
+    const l = yield* call(2*idx,   id, depth+1, "left");
+    yield {type:"RESUME", id, depth, idx, slot:"left",  value:l, line:lineL};
+    const r = yield* call(2*idx+1, id, depth+1, "right");
+    yield {type:"RESUME", id, depth, idx, slot:"right", value:r, line:lineR};
+
+    const total = 1 + l + r;
+    yield {type:"RETURN", id, depth, idx, value:total, line:lineL};
+    return total;
+  }
+
+  for (const e of call(1, null, 0, "root")) events.push(e);
+  return events;
+}
+
+/* =========================================================================
+   LAYOUT — computed once per trace so nodes never jump as the tree grows.
+   ========================================================================= */
+const R_DX = 76, R_DY = 78, R_PAD = 34;
+
+function layoutRecursionTree(events){
+  const nodes = new Map(), order = [];
+  for (const e of events){
+    if (e.type !== "CALL") continue;
+    const n = {id:e.id, parentId:e.parentId, depth:e.depth, idx:e.idx,
+               isNull:e.isNull, slot:e.slot, kids:[], x:0, y:0};
+    nodes.set(e.id, n); order.push(n);
+    if (e.parentId !== null) nodes.get(e.parentId).kids.push(n);
+  }
+  let leaf = 0, maxDepth = 0;
+  (function place(n){
+    maxDepth = Math.max(maxDepth, n.depth);
+    if (!n.kids.length){ n.x = R_PAD + (leaf++) * R_DX; }
+    else {
+      n.kids.forEach(place);
+      n.x = (n.kids[0].x + n.kids[n.kids.length-1].x) / 2;
+    }
+    n.y = R_PAD + n.depth * R_DY;
+  })(order[0]);
+  return {nodes, order,
+          w: R_PAD*2 + Math.max(1, leaf) * R_DX,
+          h: R_PAD*2 + (maxDepth+1) * R_DY};
+}
+
+const S_R = 16, S_DY = 68;
+
+function layoutStructure(N){
+  const pos = new Map();
+  if (N < 1) return {pos, w:260, h:110, levels:0};
+  const levels = Math.floor(Math.log2(N)) + 1;
+  const slots = Math.pow(2, levels - 1);
+  const w = Math.max(300, slots * 50 + 40);
+  for (let i = 1; i <= N; i++){
+    const lvl = Math.floor(Math.log2(i));
+    const p = i - Math.pow(2, lvl);
+    pos.set(i, {x: (p + 0.5) * (w / Math.pow(2, lvl)), y: 30 + lvl * S_DY, lvl});
+  }
+  return {pos, w, h: 30 + (levels-1) * S_DY + 40, levels};
+}
+
+/* =========================================================================
+   REPLAY — every panel is a pure function of EVENTS[0..k].
+   ========================================================================= */
+function stateAt(k){
+  const st = {
+    frames:new Map(), stack:[], rstate:new Map(), rvalue:new Map(),
+    marks:new Map(),  formulaTag:new Map(),
+    executed:new Set(), line:null, also:null,
+    calls:0, nullCalls:0, formulaHits:0, formulaNodes:0, maxDepth:0,
+    result:null, spine:null, flash:null, curId:null, kind:"READY",
+    narr:"Press Next to make the first call.", ev:null
+  };
+  for (let i = 0; i <= k && i < EVENTS.length; i++) apply(st, EVENTS[i], i === k);
+  return st;
+}
+
+function apply(st, e, cur){
+  st.executed.add(e.line);
+  if (e.also) st.executed.add(e.also);
+  if (cur){ st.line = e.line; st.also = e.also || null; st.curId = e.id; st.ev = e; }
+
+  const label = e.isNull ? "null" : ("#" + e.idx);
+
+  switch (e.type){
+    case "CALL": {
+      st.frames.set(e.id, {id:e.id, idx:e.idx, isNull:e.isNull, depth:e.depth,
+                           slot:e.slot, phase:"call", lh:null, rh:null,
+                           left:null, right:null, value:null});
+      st.stack.push(e.id);
+      st.rstate.set(e.id, "open");
+      st.maxDepth = Math.max(st.maxDepth, e.depth + 1);
+      if (e.isNull) st.nullCalls++; else { st.calls++; st.marks.set(e.idx, "stack"); }
+      if (cur){
+        st.kind = "CALL";
+        st.narr = e.isNull
+          ? "Call countNodes(null) at depth " + e.depth + " — this is the " + e.slot + " child slot of #" + Math.floor(e.idx/2) + ", and it is empty."
+          : "Call countNodes(#" + e.idx + ") at depth " + e.depth + ". A new frame goes on the stack.";
+      }
+      break;
+    }
+    case "BASE": {
+      const f = st.frames.get(e.id); f.phase = "base"; f.value = 0;
+      if (cur){ st.kind = "BASE"; st.narr = "root is null, so this call returns 0 without looking at anything else."; }
+      break;
+    }
+    case "MEASURE": {
+      const f = st.frames.get(e.id);
+      if (e.side === "left") f.lh = e.h; else f.rh = e.h;
+      f.phase = e.side === "left" ? "ml" : "mr";
+      if (cur){
+        st.spine = {side:e.side, nodes:e.spine};
+        st.kind = "MEASURE";
+        st.narr = "Walk " + e.side + " children from #" + e.idx + ": " +
+                  e.spine.map(x => "#" + x).join(" → ") +
+                  ". That is " + e.h + " level" + (e.h===1?"":"s") + ", so " +
+                  (e.side === "left" ? "lh" : "rh") + " = " + e.h + ".";
+      }
+      break;
+    }
+    case "PERFECT": {
+      const f = st.frames.get(e.id); f.phase = "perfect"; f.value = e.value;
+      st.formulaHits++; st.formulaNodes += e.covered.length;
+      for (const c of e.covered) st.marks.set(c, "formula");
+      st.formulaTag.set(e.idx, {h:e.h, value:e.value});
+      if (cur){
+        st.kind = "PERFECT";
+        st.narr = "lh == rh == " + e.h + ", so the subtree at #" + e.idx +
+                  " is perfectly filled. It holds (1 << " + e.h + ") − 1 = " + e.value +
+                  " nodes. All " + e.covered.length + " of them are counted in one step — no recursion at all.";
+      }
+      break;
+    }
+    case "SPLIT": {
+      const f = st.frames.get(e.id); f.phase = "split";
+      if (cur){
+        st.kind = "SPLIT";
+        st.narr = (e.lh !== undefined)
+          ? "lh = " + e.lh + " but rh = " + e.rh + ", so #" + e.idx +
+            " is not perfect. Count it as 1, then recurse into both children and add what they return."
+          : "Count #" + e.idx + " as 1, then recurse into both children and add what they return.";
+      }
+      break;
+    }
+    case "RESUME": {
+      const f = st.frames.get(e.id);
+      f[e.slot] = e.value; f.phase = e.slot === "left" ? "left" : "right";
+      if (cur){
+        st.flash = {id:e.id, slot:e.slot};
+        st.kind = "FILL";
+        const other = e.slot === "left" ? "right" : null;
+        st.narr = "The " + e.slot + " call returned " + e.value +
+                  ", which fills the " + e.slot + " hole in frame #" + e.idx + "." +
+                  (other ? " Now the right call goes out." : " Both holes are full, so the sum is ready.");
+      }
+      break;
+    }
+    case "RETURN": {
+      const f = st.frames.get(e.id);
+      f.value = e.value;
+      st.rstate.set(e.id, "closed");
+      st.rvalue.set(e.id, e.value);
+      st.stack.pop();
+      if (!e.isNull && st.marks.get(e.idx) !== "formula") st.marks.set(e.idx, "counted");
+      if (!st.stack.length) st.result = e.value;
+      if (cur){
+        st.kind = "RETURN";
+        st.narr = e.isNull
+          ? "Return 0 to the parent. The frame is gone."
+          : "Return " + e.value + " from #" + e.idx + "." +
+            (st.stack.length ? " The frame pops and the parent resumes."
+                             : " The stack is empty — the tree has " + e.value + " nodes.");
+      }
+      break;
+    }
+  }
+  const top = st.stack[st.stack.length - 1];
+  if (top !== undefined) st.rstate.set(top, "active");
+}
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+let N = 12, MODE = "shortcut", EVENTS = [], RLAY = null, SLAY = null, STEP = -1, timer = null;
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function hl(line){
+  const ci = line.indexOf("//");
+  let code = ci >= 0 ? line.slice(0, ci) : line;
+  const com = ci >= 0 ? line.slice(ci) : "";
+  code = esc(code)
+    .replace(/\b(class|public|private|int|if|return|while|null|new)\b/g, '<span class="kw">$1</span>')
+    .replace(/\b(TreeNode|Solution)\b/g, '<span class="ty">$1</span>')
+    .replace(/(^|[^\w>])(\d+)\b/g, '$1<span class="num">$2</span>');
+  return code + (com ? '<span class="cm">' + esc(com) + "</span>" : "");
+}
+
+function renderSource(st){
+  const lines = SRC[MODE];
+  let html = "";
+  for (let i = 0; i < lines.length; i++){
+    const no = i + 1;
+    const cls = no === st.line ? "ln here"
+              : no === st.also ? "ln also"
+              : st.executed.has(no) ? "ln done" : "ln";
+    html += '<div class="' + cls + '"><span class="no">' + no +
+            '</span><span class="code">' + hl(lines[i]) + "</span></div>";
+  }
+  $("src").innerHTML = html;
+  $("src-note").textContent = MODE === "shortcut" ? "O(log² n) — height shortcut" : "O(n) — plain traversal";
+}
+
+function frameExpr(f, st){
+  const just = (slot) => st.flash && st.flash.id === f.id && st.flash.slot === slot ? " just" : "";
+  const filled = (v, slot) => '<span class="fill' + just(slot) + '">' + v + "</span>";
+  const hole = '<span class="hole">&#9633;</span>';
+  const one = "1";
+
+  if (f.isNull) return {expr:'root == <span class="rose-t">null</span> → <span class="fill">return 0</span>', wait:""};
+
+  switch (f.phase){
+    case "call":
+      return {expr:"if (root == null) …", wait:"#" + f.idx + " is not null, so the call continues"};
+    case "base":
+      return {expr:'<span class="fill">return 0</span>', wait:""};
+    case "ml":
+      return {expr:'lh = <span class="teal-t">' + f.lh + "</span>   ·   rh = " + hole,
+              wait:"probing the right spine next"};
+    case "mr":
+      return {expr:'lh = <span class="teal-t">' + f.lh + '</span>   ·   rh = <span class="teal-t">' + f.rh + "</span>",
+              wait:f.lh === f.rh ? "equal → perfect subtree" : "different → must recurse"};
+    case "perfect":
+      return {expr:'return (1 &lt;&lt; ' + f.lh + ") - 1 = " + filled(f.value),
+              wait:"counted " + f.value + " nodes without a single recursive call"};
+    case "split":
+      return {expr:"return " + one + " + " + hole + " + " + hole,
+              wait:"waiting on countNodes(#" + (2*f.idx) + ")"};
+    case "left":
+      return {expr:"return " + one + " + " + filled(f.left, "left") + " + " + hole,
+              wait:"waiting on countNodes(#" + (2*f.idx+1) + ")"};
+    case "right":
+      return {expr:"return " + one + " + " + filled(f.left) + " + " + filled(f.right, "right") +
+                   " = " + (1 + f.left + f.right),
+              wait:"ready to return"};
+  }
+  return {expr:"", wait:""};
+}
+
+function renderStack(st){
+  const el = $("stack");
+  if (!st.stack.length){
+    el.innerHTML = '<p class="empty">' + (st.result === null
+      ? "The stack is empty. Nothing has been called yet."
+      : "The stack is empty. countNodes returned " + st.result + ".") + "</p>";
+    return;
+  }
+  let html = "";
+  for (let i = st.stack.length - 1; i >= 0; i--){
+    const f = st.frames.get(st.stack[i]);
+    const isTop = i === st.stack.length - 1;
+    const {expr, wait} = frameExpr(f, st);
+    const cls = "frame" + (isTop ? " top" : "") +
+                (isTop && f.phase === "perfect" ? " gold" : "") +
+                (isTop && f.isNull ? " null" : "");
+    html += '<div class="' + cls + '">' +
+              '<div class="fhead"><b>countNodes(' + (f.isNull ? "null" : "#" + f.idx) + ")</b>" +
+              "<span>depth " + f.depth + (isTop ? " · top" : "") + "</span></div>" +
+              '<div class="expr">' + expr + "</div>" +
+              (wait ? '<div class="waiting">' + wait + "</div>" : "") +
+            "</div>";
+  }
+  el.innerHTML = html;
+}
+
+function renderRecTree(st){
+  const svg = $("rec-svg");
+  const {nodes, order, w, h} = RLAY;
+  svg.setAttribute("width", w); svg.setAttribute("height", h);
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  let g = "";
+
+  // edges
+  for (const n of order){
+    if (n.parentId === null) continue;
+    const p = nodes.get(n.parentId);
+    const live = st.rstate.has(n.id);
+    g += '<path d="M' + p.x + " " + p.y + " C " + p.x + " " + ((p.y+n.y)/2) +
+         ", " + n.x + " " + ((p.y+n.y)/2) + ", " + n.x + " " + n.y +
+         '" fill="none" stroke="' + (live ? "#3d4760" : "#1d2432") +
+         '" stroke-width="' + (live ? 1.6 : 1) + '"/>';
+    if (live){
+      const mx = (p.x + n.x)/2, my = (p.y + n.y)/2;
+      g += '<text x="' + (mx + (n.slot==="left" ? -9 : 9)) + '" y="' + my +
+           '" fill="#5a6478" font-size="9.5" text-anchor="middle">' +
+           (n.slot === "left" ? "L" : "R") + "</text>";
+    }
+  }
+
+  // nodes
+  for (const n of order){
+    const state = st.rstate.get(n.id);
+    if (!state){
+      g += '<circle cx="' + n.x + '" cy="' + n.y + '" r="17" fill="#171d29" stroke="#232b3b" stroke-width="1"/>';
+      continue;
+    }
+    const f = st.frames.get(n.id);
+    const isPerfect = !!f && f.phase === "perfect";
+    let fill = "#252c3b", stroke = "#3d4760", txt = "#8a95aa";
+    if (state === "active"){ fill = "#2f2a5c"; stroke = "#8b7dff"; txt = "#fff"; }
+    else if (state === "open"){ fill = "#232b3c"; stroke = "#4d5875"; txt = "#c3cbdb"; }
+    if (n.isNull){ stroke = state === "closed" ? "#5a2c3c" : "#e2668a"; fill = state === "closed" ? "#221722" : "#2c1c26"; }
+    if (isPerfect && state === "active"){ fill = "#3a2d10"; stroke = "#e8b44a"; }
+
+    g += '<circle cx="' + n.x + '" cy="' + n.y + '" r="17" fill="' + fill +
+         '" stroke="' + stroke + '" stroke-width="' + (state === "active" ? 2.2 : 1.4) + '"/>';
+    if (state === "active")
+      g += '<circle cx="' + n.x + '" cy="' + n.y + '" r="23" fill="none" stroke="' +
+           (isPerfect ? "#e8b44a" : "#8b7dff") + '" stroke-width="1" opacity=".45"/>';
+    g += '<text x="' + n.x + '" y="' + (n.y + 4) + '" fill="' + (n.isNull ? "#e2668a" : txt) +
+         '" font-size="12" text-anchor="middle">' + (n.isNull ? "&#8709;" : "#" + n.idx) + "</text>";
+
+    if (st.rvalue.has(n.id)){
+      const v = st.rvalue.get(n.id);
+      const gold = st.formulaTag.has(n.idx) && st.formulaTag.get(n.idx).value === v && !n.isNull;
+      g += '<text x="' + n.x + '" y="' + (n.y + 31) + '" fill="' + (gold ? "#e8b44a" : "#6fd08c") +
+           '" font-size="11" text-anchor="middle">' + (gold ? "&#9889; " : "&#8594; ") + v + "</text>";
+    }
+  }
+  svg.innerHTML = g;
+
+  // keep the active node in view
+  const act = order.find(n => st.rstate.get(n.id) === "active") ||
+              order.find(n => n.id === st.curId);
+  if (act){
+    const box = $("rec-scroll");
+    const tx = Math.max(0, act.x - box.clientWidth/2);
+    const ty = Math.max(0, act.y - box.clientHeight/2);
+    try {
+      if (typeof box.scrollTo === "function") box.scrollTo({left:tx, top:ty, behavior:"smooth"});
+      else { box.scrollLeft = tx; box.scrollTop = ty; }
+    } catch (_) { /* scrolling is a nicety, never let it break the render */ }
+  }
+}
+
+function renderStructure(st){
+  const svg = $("st-svg");
+  const {pos, w, h} = SLAY;
+  // viewBox + fluid width: the tree scales down to fit rather than overflowing
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.removeAttribute("width"); svg.removeAttribute("height");
+  svg.setAttribute("style", "width:100%;max-width:" + w + "px;height:auto;display:block;margin:0 auto");
+  if (!pos.size){
+    svg.innerHTML = '<text x="20" y="46" fill="#5a6478" font-size="12">n = 0 — the tree is empty.</text>';
+    return;
+  }
+  const onSpine = new Set(st.spine ? st.spine.nodes : []);
+  const curIdx = st.ev && !st.ev.isNull ? st.ev.idx : null;
+  let g = "";
+
+  for (const [i, p] of pos){
+    if (i === 1) continue;
+    const q = pos.get(Math.floor(i/2));
+    const both = onSpine.has(i) && onSpine.has(Math.floor(i/2));
+    g += '<line x1="' + q.x + '" y1="' + q.y + '" x2="' + p.x + '" y2="' + p.y +
+         '" stroke="' + (both ? "#3fbfb0" : "#2c3546") + '" stroke-width="' + (both ? 2.6 : 1.2) + '"/>';
+  }
+  for (const [i, p] of pos){
+    const m = st.marks.get(i);
+    let fill = "#1d2432", stroke = "#2c3546", txt = "#4d5875";
+    if (m === "counted"){ fill = "#16301f"; stroke = "#6fd08c"; txt = "#9fe0b3"; }
+    if (m === "formula"){ fill = "#332710"; stroke = "#e8b44a"; txt = "#f0cd88"; }
+    if (m === "stack"){ fill = "#232b3c"; stroke = "#4d5875"; txt = "#c3cbdb"; }
+    if (onSpine.has(i)){ stroke = "#3fbfb0"; txt = "#8fe0d6"; }
+    if (i === curIdx){ stroke = "#8b7dff"; txt = "#fff"; }
+
+    g += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + S_R + '" fill="' + fill +
+         '" stroke="' + stroke + '" stroke-width="' + (i === curIdx || onSpine.has(i) ? 2.4 : 1.3) + '"/>';
+    if (i === curIdx)
+      g += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + (S_R+5) + '" fill="none" stroke="#8b7dff" stroke-width="1" opacity=".5"/>';
+    g += '<text x="' + p.x + '" y="' + (p.y+4) + '" fill="' + txt + '" font-size="11.5" text-anchor="middle">' + i + "</text>";
+
+    const tag = st.formulaTag.get(i);
+    if (tag)
+      g += '<text x="' + p.x + '" y="' + (p.y - S_R - 6) + '" fill="#e8b44a" font-size="10" text-anchor="middle">&#9889;2^' +
+           tag.h + "-1=" + tag.value + "</text>";
+  }
+  svg.innerHTML = g;
+  $("struct-note").textContent = "n = " + N + " · complete, filled left to right";
+}
+
+function renderNarration(st){
+  const box = $("narration");
+  box.className = "narration k-" + st.kind.toLowerCase();
+  $("n-kind").textContent = st.kind;
+  $("n-text").textContent = st.narr;
+}
+
+function renderStats(st){
+  const naiveCalls = 2*N + 1;
+  const totalCalls = EVENTS.filter(e => e.type === "CALL").length;
+  const items = [
+    ["depth now", st.stack.length],
+    ["max depth", st.maxDepth],
+    ["calls so far", st.calls + (st.nullCalls ? " + " + st.nullCalls + " null" : "")],
+    ["calls in full trace", totalCalls],
+    ["answer", st.result === null ? "—" : st.result]
+  ];
+  let html = items.map(([k,v]) => '<span class="stat">' + k + " <b>" + v + "</b></span>").join("");
+  if (MODE === "shortcut"){
+    html += '<span class="stat gold">formula hits <b>' + st.formulaHits + "</b></span>";
+    html += '<span class="stat gold">nodes counted by formula <b>' + st.formulaNodes + "</b></span>";
+    html += '<span class="stat gold">naive would need <b>' + naiveCalls + " calls</b></span>";
+  }
+  $("stats").innerHTML = html;
+  $("counter").innerHTML = "step <b>" + (STEP + 1) + "</b> / " + EVENTS.length;
+}
+
+function render(){
+  const st = stateAt(STEP);
+  renderSource(st); renderStack(st); renderRecTree(st);
+  renderStructure(st); renderNarration(st); renderStats(st);
+  $("scrub").value = STEP + 1;
+  $("back").disabled = STEP < 0;
+  $("fwd").disabled = STEP >= EVENTS.length - 1;
+}
+
+/* =========================================================================
+   INPUT + TRANSPORT
+   ========================================================================= */
+function rebuild(resetStep){
+  EVENTS = buildTrace(N, MODE);
+  RLAY = layoutRecursionTree(EVENTS);
+  SLAY = layoutStructure(N);
+  $("scrub").max = EVENTS.length;
+  if (resetStep) STEP = -1;
+  STEP = Math.min(STEP, EVENTS.length - 1);
+  render();
+}
+
+function setInput(n, whyText){
+  N = Math.max(0, Math.min(MAX_N, n|0));
+  $("custom").value = N;
+  $("why").textContent = whyText || ("Custom input: a complete tree with " + N + " node" + (N===1?"":"s") + ".");
+  stop();
+  rebuild(true);          // changing input always re-runs the generator from step 0
+}
+
+function setMode(m){
+  MODE = m;
+  $("m-short").setAttribute("aria-pressed", m === "shortcut");
+  $("m-naive").setAttribute("aria-pressed", m === "naive");
+  stop();
+  rebuild(true);
+}
+
+function step(d){
+  const next = STEP + d;
+  if (next < -1 || next >= EVENTS.length){ if (next >= EVENTS.length) stop(); return; }
+  STEP = next; render();
+}
+
+function stop(){ if (timer){ clearInterval(timer); timer = null; } $("play").innerHTML = "&#9654; Play"; }
+
+function play(){
+  if (timer){ stop(); return; }
+  if (STEP >= EVENTS.length - 1) STEP = -1;
+  const ms = 1250 - (parseInt($("speed").value,10) - 1) * 120;
+  $("play").innerHTML = "&#10074;&#10074; Pause";
+  timer = setInterval(() => {
+    if (STEP >= EVENTS.length - 1){ stop(); return; }
+    step(1);
+  }, ms);
+}
+
+/* wiring */
+const sel = $("preset");
+PRESETS.forEach((p, i) => {
+  const o = document.createElement("option");
+  o.value = i; o.textContent = p.label; sel.appendChild(o);
+});
+sel.value = 4;
+sel.addEventListener("change", () => {
+  const p = PRESETS[+sel.value]; setInput(p.n, p.why);
+});
+$("apply").addEventListener("click", () => {
+  const v = parseInt($("custom").value, 10);
+  const warn = $("warn");
+  if (isNaN(v) || v < 0 || v > MAX_N){
+    warn.style.display = "block";
+    warn.textContent = "Enter a whole number from 0 to " + MAX_N + " — above that the tree stops being readable.";
+    return;
+  }
+  warn.style.display = "none";
+  sel.value = "";
+  setInput(v, null);
+});
+$("m-short").addEventListener("click", () => setMode("shortcut"));
+$("m-naive").addEventListener("click", () => setMode("naive"));
+$("fwd").addEventListener("click", () => { stop(); step(1); });
+$("back").addEventListener("click", () => { stop(); step(-1); });
+$("reset").addEventListener("click", () => { stop(); STEP = -1; render(); });
+$("play").addEventListener("click", play);
+$("scrub").addEventListener("input", e => { stop(); STEP = parseInt(e.target.value,10) - 1; render(); });
+$("speed").addEventListener("input", () => { if (timer){ stop(); play(); } });
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.key === "ArrowRight"){ stop(); step(1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft"){ stop(); step(-1); e.preventDefault(); }
+  else if (e.key === " "){ play(); e.preventDefault(); }
+  else if (e.key.toLowerCase() === "r"){ stop(); STEP = -1; render(); }
+});
+
+setInput(PRESETS[4].n, PRESETS[4].why);
+</script>
+</body>
+</html>

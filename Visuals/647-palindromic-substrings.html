@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 647 &middot; Palindromic Substrings &mdash; visual guide</title>
+<meta name="description" content="Interactive expand-around-center visualizer for Palindromic Substrings (LeetCode 647): the same 2n-1 centers as LeetCode 5, counting every successful expansion instead of keeping a maximum.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+
+/* ---------- expand-around-center rig (sub-variant I) ---------- */
+.palwrap {
+  --colw: 34px; --gapw: 6px;
+  display: flex; flex-direction: column; gap: 6px;
+  max-width: 100%; overflow-x: auto; padding-bottom: 2px;
+}
+.palrow { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.rowtag {
+  width: 62px; flex-shrink: 0; text-align: right;
+  font-family: var(--sans); font-size: 10px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim);
+}
+
+.tape.pal { gap: var(--gapw); flex-wrap: nowrap; }
+.tape.pal .col { width: var(--colw); gap: 4px; }
+.tape.pal .cell { font-size: 15px; border-radius: 7px; }
+.tape.pal .caret { height: 18px; font-size: 10px; }
+.tape.pal .caret .p { padding: 1px 4px; }
+.tape.pal .idx { font-size: 9.5px; }
+
+/* the 2n-1 center rail — one tick per center, alternating on-char / in-gap */
+.rail { display: flex; gap: 0; flex-wrap: nowrap; align-items: center; }
+.tick { display: flex; align-items: center; justify-content: center; height: 15px; }
+.tick.onchar { width: var(--colw); }
+.tick.ongap  { width: var(--gapw); }
+.tick i { display: block; width: 100%; height: 5px; border-radius: 3px; background: var(--rule-hard); }
+.tick.onchar i { width: 62%; }
+.tick.past i { background: var(--rule); }
+.tick.cur i  { background: var(--r-anchor); height: 10px; }
+
+/* the current center: must beat .cell.found so the pivot never disappears */
+.cell.ctr { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); }
+.cell.dead {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); opacity: .55; transform: none;
+}
+
+/* the running tally — the only thing that differs from LeetCode 5 */
+.tally {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--mono); font-size: 13px; color: var(--fg-dim);
+  border: 1px solid var(--r-hit-line); background: var(--r-hit-wash);
+  border-radius: 9px; padding: 6px 16px;
+}
+.tally .num { font-size: 22px; font-weight: 500; color: var(--r-hit); line-height: 1; }
+.tally .lab { font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+              letter-spacing: .08em; text-transform: uppercase; }
+.tally.bump { border-color: var(--r-hit); }
+
+/* the governing rule, restated under the stage on every frame */
+.rulebar {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
+  border-radius: 8px; padding: 6px 13px; max-width: 610px; text-align: center;
+}
+.rulebar b { color: var(--fg-mid); font-weight: 600; }
+.rulebar .i { color: var(--r-anchor); font-weight: 600; }
+.rulebar .l { color: var(--r-left);   font-weight: 600; }
+.rulebar .r { color: var(--r-right);  font-weight: 600; }
+.rulebar .m { color: var(--r-hit);    font-weight: 600; }
+
+.advtag {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em;
+  padding: 2px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
+}
+.advtag.grow { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+.advtag.stop { color: var(--fg-dim);   border-color: var(--rule-hard);     background: var(--bg-sunk); border-style: dashed; }
+.advtag.ctr  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+
+.triplets.tight { gap: 5px; max-width: 560px; }
+.trip.small { font-size: 11.5px; padding: 2px 9px; }
+.trip.fresh { background: var(--r-hit-wash); border-color: var(--r-hit); }
+.trip.no { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
+.trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
+
+.sum-line .l { color: var(--r-left); }
+.sum-line .r { color: var(--r-right); }
+.sum-line .m { color: var(--r-hit); }
+.sum-line .x { color: var(--fg-dim); }
+.sum-line .i { color: var(--r-anchor); }
+
+.code .cm { color: var(--t-com); font-style: italic; }
+.code .ln.diff { border-left: 2.5px solid var(--r-hit); }
+.code .ln.diff .no { color: var(--r-hit); opacity: 1; }
+
+@media (max-width: 620px) {
+  .palwrap { --colw: 27px; --gapw: 5px; }
+  .tape.pal .cell { font-size: 13px; }
+  .rowtag { width: 46px; font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { .cell.ctr, .cell.dead { transform: none; } }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+  <div class="eyebrow">Two Pointers &middot; expand around center <span class="tag">LeetCode 647</span></div>
+  <h1>Palindromic Substrings <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    This is <em>literally the same loop</em> as LeetCode 5 &mdash; same <b>2n&minus;1</b> centers, same two
+    pointers starting together and moving apart, same <span class="k">while (s[l] == s[r])</span>. Only the
+    accumulator changes: LeetCode 5 keeps a <em>maximum</em>, this one keeps a <em>counter</em>. That
+    single-line swap is the whole reason both problems sit in the syllabus, and it works because the
+    expansion has a hidden bijection built into it: every palindromic substring has exactly one center, so
+    incrementing once per successful widen counts each substring exactly once, with no dedup pass and no
+    set. The <span class="i">n&minus;1</span> gap centers are still the part people drop &mdash; forget them
+    and <code>"abba"</code> answers 4 instead of 6.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">String (letters and digits, up to 10)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="aabaa" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="palwrap">
+          <div class="palrow"><span class="rowtag">s</span><div class="tape pal" id="tape"></div></div>
+          <div class="palrow"><span class="rowtag">centers</span><div class="rail" id="rail"></div></div>
+        </div>
+        <div class="tally" id="tally"><span class="num">0</span><span class="lab">count</span></div>
+        <div class="rulebar" id="ruleBar"></div>
+        <div class="sum-line" id="cmpLine"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="triplets tight" id="verdict"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot i"></i>current center</span>
+        <span><i class="dot l"></i>l &mdash; expanding left</span>
+        <span><i class="dot r"></i>r &mdash; expanding right</span>
+        <span><i class="dot m"></i>counted palindrome</span>
+        <span><i class="dot x"></i>mismatch that stops the center</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    O(n&sup2;) time &middot; O(1) extra space &nbsp;&middot;&nbsp; every palindromic substring is generated by
+    exactly one of the 2n&minus;1 centers, so <code>count++</code> per successful expansion is already
+    deduplicated. Swap that line for <code>if (r-l+1 &gt; bestLen)</code> and you have LeetCode 5.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['kw','int '],['fn','countSubstrings'],['tx','(String s) {']],
+    [['tx','    '],['kw','int '],['tx','n = s.length(), count = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < 2*n - 1; c++) {   '],['cm','// the same 2n-1 centers']],
+    [['tx','        '],['kw','int '],['tx','l = c / 2, r = l + (c % 2);   '],['cm','// c even: l==r  ·  c odd: gap']],
+    [['tx','        '],['kw','while '],['tx','(l >= 0 && r < n && s.charAt(l) == s.charAt(r)) {']],
+    [['tx','            count++;                   '],['cm','// <- the ONLY line LC 5 writes differently']],
+    [['tx','            l--; r++;                  '],['cm','// started together, move APART']],
+    [['tx','        }']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','count;']],
+    [['tx','}']]
+  ];
+
+  const RULE = `<b>same machine as LC 5:</b> <span class="i">2n&minus;1</span> centers &middot; ` +
+               `expand while <span class="l">s[l]</span> == <span class="r">s[r]</span> &middot; ` +
+               `accumulator = <span class="m">count++</span>, not a max`;
+
+  /* ---- a real countSubstrings run, one frame per meaningful step ---- */
+  function buildFrames(s){
+    const n = s.length, F = [];
+
+    if(n === 0){
+      F.push({c:-1, cl:-1, cr:-1, l:-1, r:-1, spanL:null, spanR:null, count:0, list:[],
+        phase:'done', code:9, done:true, cmp:'',
+        msg:`Empty string &mdash; <b>2&middot;0&minus;1 = &minus;1</b> centers, the loop never runs,
+             <span class="m">count = 0</span>.`});
+      return F;
+    }
+
+    const centers = 2*n - 1;
+    let count = 0;
+    const list = [];
+
+    F.push({c:-1, cl:-1, cr:-1, l:-1, r:-1, spanL:null, spanR:null, count, list:[],
+      phase:'scan', code:1, cmp:'',
+      msg:`Length <b>${n}</b> &rarr; <b>${centers}</b> centers on the rail below: <b>${n}</b> sitting on a
+           character and <b>${n-1}</b> sitting in a gap. Count starts at <b>0</b>. Notice what is
+           <em>not</em> here: no set, no substring hashing, no dedup. The center decomposition guarantees
+           each palindrome is reached once.`});
+
+    for(let c = 0; c < centers; c++){
+      const cl = Math.floor(c/2), cr = cl + (c % 2), odd = (c % 2 === 0);
+      let l = cl, r = cr, spanL = null, spanR = null;
+
+      F.push({c, cl, cr, l, r, spanL, spanR, count, list:list.slice(), phase:'center', code:3, cmp:'',
+        msg: odd
+          ? `Center <b>${c}</b>: <span class="k">l = r = ${cl}</span>. An on-character center, so it will
+             count odd-length palindromes (1, 3, 5, ...) starting from '${s[cl]}' itself.`
+          : `Center <b>${c}</b>: <span class="k">l = ${cl}</span>, <span class="k">r = ${cr}</span> &mdash;
+             the center is the <em>gap</em>. This is where even-length palindromes come from, and it counts
+             nothing at all unless '${s[cl]}' and '${s[cr]}' already match.`});
+
+      while(true){
+        if(l < 0 || r >= n){
+          const edge = (l < 0) ? 'left' : 'right';
+          F.push({c, cl, cr, l:-1, r:-1, spanL, spanR, count, list:list.slice(), phase:'stop', code:4, cmp:'',
+            msg:`Off the <b>${edge}</b> edge &mdash; <span class="k">${edge === 'left' ? 'l &gt;= 0' : 'r &lt; n'}</span>
+                 fails. Center ${c} contributed
+                 <b>${list.filter(x=>x[2]===c).length}</b> to the count.`});
+          break;
+        }
+        if(s[l] !== s[r]){
+          F.push({c, cl, cr, l, r, spanL, spanR, count, list:list.slice(), phase:'stop', code:4, dead:true,
+            cmp:`<span class="l">s[${l}] = '${s[l]}'</span> <span class="x">&ne;</span> <span class="r">s[${r}] = '${s[r]}'</span>` +
+                `<span class="advtag stop">no count &mdash; center ${c} is done</span>`,
+            msg:`<span class="x">'${s[l]}' &ne; '${s[r]}'</span>. Nothing is counted on a mismatch, and there
+                 is no point widening: any larger span from this center still contains this failing pair.
+                 Center ${c} contributed <b>${list.filter(x=>x[2]===c).length}</b>.`});
+          break;
+        }
+
+        spanL = l; spanR = r;
+        count++;
+        list.push([l, r, c]);
+        const len = r - l + 1;
+
+        F.push({c, cl, cr, l, r, spanL, spanR, count, list:list.slice(), phase:'found', code:5, bump:true,
+          cmp:`<span class="l">s[${l}]</span> <span class="m">==</span> <span class="r">s[${r}]</span> = '${s[l]}'` +
+              `<span class="advtag grow">count++ &rarr; ${count}</span>`,
+          msg: (l === r)
+            ? `<span class="m">count++ &rarr; ${count}</span> for the single character
+               <span class="m">"${s[l]}"</span>. Every one of the ${n} on-character centers scores at least
+               this one, which is why the answer can never be below <b>${n}</b>.`
+            : `<span class="m">count++ &rarr; ${count}</span> for <span class="k">s[${l}..${r}]</span> =
+               <span class="m">"${s.slice(l, r+1)}"</span>, length <b>${len}</b>. LeetCode 5 would ask
+               &ldquo;is ${len} bigger than my best?&rdquo; here; this problem does not care how long it is,
+               only that it exists.`});
+
+        l--; r++;
+        if(l >= 0 && r < n){
+          F.push({c, cl, cr, l, r, spanL, spanR, count, list:list.slice(), phase:'scan', code:6,
+            cmp:`<span class="l">l&minus;&minus; &rarr; ${l}</span> &nbsp; <span class="r">r++ &rarr; ${r}</span>` +
+                `<span class="advtag ctr">both move away from center ${c}</span>`,
+            msg:`Push outward: <span class="l">l&minus;&minus;</span>, <span class="r">r++</span>. The pointers
+                 started on the same center and separate by two every step. Each further success is a
+                 <em>different, longer</em> palindrome around the same center, so it earns its own count.`});
+        }
+      }
+    }
+
+    F.push({c:centers, cl:-1, cr:-1, l:-1, r:-1, spanL:null, spanR:null, count, list:list.slice(),
+      phase:'done', code:9, done:true, cmp:'',
+      msg:`All <b>${centers}</b> centers visited. <span class="m">return ${count}</span> &mdash; that is
+           ${n} single characters plus <b>${count - n}</b> longer palindrome${count - n === 1 ? '' : 's'}
+           found by widening. Every chip below was counted exactly once.`});
+    return F;
+  }
+
+  /* ---------------------------- wiring ---------------------------- */
+  const $ = id => document.getElementById(id);
+  const tapeEl=$('tape'), railEl=$('rail'), msgEl=$('message'), pillEl=$('phasePill'),
+        barEl=$('bar'), countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'),
+        cmpEl=$('cmpLine'), verdictEl=$('verdict'), ruleEl=$('ruleBar'), tallyEl=$('tally');
+  let frames=[], idx=0, playing=false, timer=null, S='';
+
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln${i===5?' diff':''}" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+  })();
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function clean(str){ return String(str).toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,10); }
+
+  function buildBoard(str){
+    tapeEl.innerHTML=''; railEl.innerHTML='';
+    const n = str.length;
+    for(let k=0;k<n;k++){
+      const col=document.createElement('div'); col.className='col';
+      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
+        `<div class="cell" data-cell="${k}">${esc(str[k])}</div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`;
+      tapeEl.appendChild(col);
+    }
+    for(let c=0;c<2*n-1;c++){
+      railEl.insertAdjacentHTML('beforeend',
+        `<span class="tick ${c%2===0?'onchar':'ongap'}" data-tick="${c}"><i></i></span>`);
+    }
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+
+    for(let k=0;k<S.length;k++){
+      const cell=tapeEl.querySelector(`[data-cell="${k}"]`);
+      const caret=tapeEl.querySelector(`[data-caret="${k}"]`);
+      const lbl=tapeEl.querySelector(`[data-idx="${k}"]`);
+      let cls='cell';
+      if(f.spanL !== null && k >= f.spanL && k <= f.spanR) cls+=' found';
+      if(k === f.l) cls+=' left';
+      if(k === f.r) cls+=' right';
+      if(!f.done && (k === f.cl || k === f.cr)) cls+=' ctr';
+      if(f.dead && (k === f.l || k === f.r)) cls+=' dead';
+      cell.className=cls;
+      let cr='';
+      if(k === f.l && k === f.r) cr='<span class="p pI">l=r</span>';
+      else if(k === f.l) cr='<span class="p pL">l</span>';
+      else if(k === f.r) cr='<span class="p pR">r</span>';
+      caret.innerHTML=cr; caret.style.opacity = cr ? '1' : '0';
+      lbl.classList.toggle('on', k === f.cl || k === f.cr);
+    }
+    railEl.querySelectorAll('.tick').forEach(t=>{
+      const c=+t.dataset.tick;
+      t.className='tick '+(c%2===0?'onchar':'ongap')+(c < f.c ? ' past' : '')+(c === f.c ? ' cur' : '');
+    });
+
+    tallyEl.className = 'tally' + (f.bump ? ' bump' : '');
+    tallyEl.innerHTML = `<span class="num">${f.count}</span><span class="lab">palindromic substrings so far</span>`;
+
+    ruleEl.innerHTML = RULE;
+    cmpEl.innerHTML = f.cmp || '';
+    msgEl.innerHTML = f.msg;
+
+    const last = f.list.length - 1;
+    verdictEl.innerHTML = f.list.length
+      ? f.list.map(([a,b],n2)=>`<span class="trip small${(f.bump && n2===last)?' fresh':''}">"${esc(S.slice(a,b+1))}" ${a}..${b}</span>`).join('')
+      : `<span class="trip no">nothing counted yet</span>`;
+
+    const pmap={scan:['scan','&#9679; expanding'],center:['scan','&#8226; new center'],
+                found:['found','&#10003; counted'],stop:['sort','&#8212; stopped'],
+                done:['done','&#9632; complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.innerHTML=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(raw){
+    stop();
+    S = clean(raw);
+    buildBoard(S);
+    frames = buildFrames(S);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').innerHTML='&#10074;&#10074;'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').innerHTML='&#9654;'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    ['abc',   '3 — only the single characters'],
+    ['aaa',   '6 — every substring qualifies'],
+    ['abba',  '6 — the gap center carries the extras'],
+    ['aabaa', '9 — nested odd centers plus two gaps'],
+    ['abcba', '7 — one center expands three deep'],
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(([w,note])=>{
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`"${esc(w)}"<b>${note}</b>`;
+      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=()=>run(inputEl.value);
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===inputEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+
+  run(inputEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>
