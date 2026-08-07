@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>LC 992 &middot; Subarrays with K Different Integers &mdash; visual guide</title>
-<meta name="description" content="Interactive visualizer: exactly-K distinct via atMost(k) - atMost(k-1), two sliding-window passes, with the freq-map key deletion made visible.">
+<title>LC 1248 &middot; Count Number of Nice Subarrays &mdash; visual guide</title>
+<meta name="description" content="Interactive visualizer: map each value to its parity bit and count subarrays with exactly k odd numbers via atMost(k) - atMost(k-1).">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -473,55 +473,35 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .trip.big { font-size: 14.5px; font-weight: 600; padding: 5px 15px; }
 .code .cm { color: var(--t-com); font-style: italic; }
 
-/* ---- LC 992 only: the freq map, and the deletion-at-zero event ---- */
-.kmapwrap {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  min-height: 62px; justify-content: center; width: 100%;
+/* ---- LC 1248 only: the parity row, and the reduction banner ---- */
+.lcell.p1 {
+  border-color: var(--r-window-line); background: var(--r-window-wash);
+  color: var(--r-window); font-weight: 600;
 }
-.kmapcap {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: .03em;
-  color: var(--fg-dim); text-align: center;
+.lcell.p0 { border-style: dashed; color: var(--fg-dim); opacity: .5; }
+.lcell.dimout { opacity: .26; }
+.lcell.hot { border-width: 2px; }
+
+.cell.oddv::before {
+  content: ""; position: absolute; top: 3px; right: 3px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--r-window); opacity: .8;
 }
-.kmapcap b   { color: var(--r-window); font-weight: 600; }
-.kmapcap .ov { color: var(--r-left);   font-weight: 600; }
-.kmapcap .ok { color: var(--r-hit);    font-weight: 600; }
-.kmap {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
-  align-items: center; min-height: 28px; max-width: 620px;
+
+.xform {
+  font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--r-window-line);
+  border-radius: 8px; padding: 7px 14px; max-width: 620px; text-align: center;
 }
-.kent {
-  font-family: var(--mono); font-size: 12px; padding: 2px 4px 2px 9px;
-  border-radius: 8px; display: inline-flex; align-items: center; gap: 7px;
-  border: 1px solid var(--r-window-line); background: var(--r-window-wash); color: var(--r-window);
-  transition: background .18s, border-color .18s, color .18s;
-}
-.kent .kv {
-  background: var(--r-window); color: var(--accent-fg); border-radius: 5px;
-  padding: 0 6px; font-weight: 600; font-size: 11px; line-height: 1.65;
-}
-.kent.fresh { border-width: 2px; }
-.kent.dec   { border-color: var(--r-left-line); background: var(--r-left-wash); color: var(--r-left); }
-.kent.dec .kv { background: var(--r-left); }
-.kent.zero  { border-color: var(--r-left); border-style: dashed; border-width: 2px; }
-.kent.dead {
-  border-style: dashed; border-color: var(--rule-hard); background: var(--bg-sunk);
-  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
-}
-.kent.dead .kv { background: var(--fg-dim); color: var(--bg); text-decoration: none; }
-.kmap .kempty {
-  font-family: var(--mono); font-size: 11.5px; color: var(--fg-dim);
-  border: 1px dashed var(--rule-hard); background: var(--bg-sunk);
-  border-radius: 8px; padding: 3px 11px;
-}
-.szbadge {
-  font-family: var(--mono); font-size: 12px; padding: 2px 10px; border-radius: 8px;
-  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
-  margin-left: 5px; white-space: nowrap;
-}
-.szbadge.ok  { border-color: var(--r-hit-line);  background: var(--r-hit-wash);  color: var(--r-hit);  font-weight: 600; }
-.szbadge.bad { border-color: var(--r-left-line); background: var(--r-left-wash); color: var(--r-left); font-weight: 600; }
-.message .del { color: var(--r-left); font-weight: 600; }
-.phase-pill.warn { color: var(--r-left); border-color: var(--r-left-line); background: var(--r-left-wash); }
+.xform b       { color: var(--r-window); font-weight: 600; }
+.xform .arrow  { color: var(--fg-dim); padding: 0 7px; }
+.xform .lc     { color: var(--accent); font-weight: 600; }
+.xform .dimtxt { color: var(--fg-dim); }
+.xform.off     { border-style: dashed; border-color: var(--rule-hard); opacity: .6; }
+
+.parlist { font-family: var(--mono); letter-spacing: .04em; }
+.parlist .o { color: var(--r-window); font-weight: 600; }
+.parlist .e { color: var(--fg-dim); }
 </style>
 <script>
 /* set the theme before first paint to avoid a flash.
@@ -540,34 +520,35 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
 
-  <div class="eyebrow">Sliding Window &middot; at&#8209;most&#8209;K &rarr; exactly&#8209;K <span class="tag">LeetCode 992</span></div>
-  <h1>Subarrays with K Different Integers <span class="thin">/ visualized</span></h1>
+  <div class="eyebrow">Sliding Window &middot; at&#8209;most&#8209;K &rarr; exactly&#8209;K <span class="tag">LeetCode 1248</span></div>
+  <h1>Count Number of Nice Subarrays <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    You cannot slide a window for <em>exactly</em> <code>k</code> distinct values. The predicate is not
-    monotone: at <code>distinct == k</code>, extending to the <span class="r">right</span> can jump to
-    <code>k+1</code>, and there is no shrink rule that lands you back &mdash; shrinking from the
-    <span class="l">left</span> can drop you to <code>k&minus;1</code> in the same move. But
-    <code>distinct &le; s</code> <em>is</em> monotone: once a window holds too many values, removing
-    from the left only ever removes values, and they never come back on their own. So
-    <span class="k">atMost(s)</span> is windowable, and
-    <span class="k">exactly(k) = atMost(k) &minus; atMost(k&minus;1)</span>. Run the same O(n) window
+    A subarray is <em>nice</em> when it holds <b>exactly k</b> odd numbers. The magnitudes are noise:
+    replace every value by <code>value &amp; 1</code> and the problem <em>is</em>
+    <span class="k">LeetCode 930</span> on a 0/1 array with <code>goal = k</code>. Recognising that
+    reduction is the whole skill here. And once reduced, the same wall appears: you cannot slide a
+    window for <em>exactly</em> k, because <code>odd == k</code> is not monotone &mdash; growing
+    <span class="r">right</span> can jump past it, shrinking <span class="l">left</span> can drop
+    below it. But <code>odd &le; s</code> <em>is</em> monotone, so
+    <span class="k">exactly(k) = atMost(k) &minus; atMost(k&minus;1)</span>: run the same O(n) window
     <b>twice</b> and subtract. Inside each pass a valid window <span class="w">[l..r]</span> banks
-    <span class="k">r &minus; l + 1</span> subarrays at once &mdash; one per suffix ending at
-    <span class="r">r</span>. The trap lives in the map: a count that falls to zero must have its
-    <b>key deleted</b>, or <code>size()</code> never falls and the loop never ends.
+    <span class="k">r &minus; l + 1</span> subarrays at once, one per suffix ending at
+    <span class="r">r</span>. The other standard solve is a prefix-count array &mdash; store how many
+    prefixes have each odd-count and read off <code>cnt[odd &minus; k]</code>, the LC 560 shape; it is
+    O(n) too, but it costs O(n) space and hides the monotonicity argument this page is about.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">nums &mdash; the array</label>
+      <label for="arrInput">nums &mdash; any integers</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="1,2,1,2,3" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="1,1,2,1,1" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div class="field" style="flex:0 0 230px; min-width:230px;">
-      <label for="kInput">k &mdash; distinct values, exactly</label>
+      <label for="kInput">k &mdash; odd numbers, exactly</label>
       <div class="input-shell">
-        <input id="kInput" type="text" value="2" spellcheck="false" autocomplete="off">
+        <input id="kInput" type="text" value="3" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
       </div>
     </div>
@@ -579,16 +560,14 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
       <div class="stage">
         <div class="board">
-          <div class="tapecap">the two passes, contribution by contribution</div>
+          <div class="tapecap">the reduction, then the two passes</div>
           <div class="brow"><div class="rowlab">nums</div><div class="tape fw" id="tape"></div></div>
+          <div class="brow"><div class="rowlab p">&amp; 1</div><div class="lrow" id="rowP"></div><div class="tot p dim" id="totP">odd &mdash;</div></div>
           <div class="brow"><div class="rowlab a" id="labA">&le; k</div><div class="lrow" id="rowA"></div><div class="tot a dim" id="totA">&Sigma; 0</div></div>
           <div class="brow"><div class="rowlab b" id="labB">&le; k&minus;1</div><div class="lrow" id="rowB"></div><div class="tot b dim" id="totB">&Sigma; 0</div></div>
           <div class="brow"><div class="rowlab d">exactly</div><div class="lrow" id="rowD"></div><div class="tot d dim" id="totD">&Sigma; &mdash;</div></div>
         </div>
-        <div class="kmapwrap">
-          <div class="kmapcap" id="kmapCap">&nbsp;</div>
-          <div class="kmap" id="kmap"></div>
-        </div>
+        <div class="xform off" id="xform">&nbsp;</div>
         <div class="ledger" id="ledger"></div>
         <div class="rulebar" id="ruleBar"></div>
         <div class="sfxwrap"><div class="sfxcap" id="sfxCap">&nbsp;</div><div class="suffixes" id="suffixes"></div></div>
@@ -613,61 +592,56 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot w"></i>inside the window &middot; live keys</span>
+        <span><i class="dot w"></i>inside the window &middot; odd bits</span>
         <span><i class="dot r"></i>entering on the right</span>
-        <span><i class="dot l"></i>evicted &middot; key decremented</span>
+        <span><i class="dot l"></i>evicted on the left</span>
         <span><i class="dot m"></i>suffixes just banked</span>
         <span><i class="dot a"></i>pass 1 &middot; atMost(k)</span>
         <span><i class="dot a2"></i>pass 2 &middot; atMost(k&minus;1)</span>
-        <span><i class="dot x"></i>fallen out &middot; key removed</span>
+        <span><i class="dot x"></i>fallen out</span>
       </div>
     </div>
   </div>
 
-  <div class="foot">O(n) time &middot; O(k) space &nbsp;&middot;&nbsp; two linear passes, still O(n). <code>exactly(k) = atMost(k) &minus; atMost(k&minus;1)</code> &mdash; it works only because <code>distinct &le; s</code> is monotone and <code>distinct == k</code> is not. Delete the key when its count hits zero, or <code>size()</code> lies.</div>
+  <div class="foot">O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; two linear passes, still O(n). <code>nums[i] &amp; 1</code> reduces this to <code>LC 930</code> with <code>goal = k</code>; then <code>exactly(k) = atMost(k) &minus; atMost(k&minus;1)</code>, because <code>odd &le; s</code> is monotone and <code>odd == k</code> is not.</div>
 
 <script>
 (function(){
   "use strict";
 
   const CODE = [
-    [['ty','int '],['fn','subarraysWithKDistinct'],['tx','('],['kw','int'],['tx','[] nums, '],['kw','int'],['tx',' k) {']],
-    [['tx','    '],['cm','// "exactly k distinct" is not windowable. "at most" is. So subtract.']],
+    [['ty','int '],['fn','numberOfSubarrays'],['tx','('],['kw','int'],['tx','[] nums, '],['kw','int'],['tx',' k) {']],
+    [['tx','    '],['cm','// nums[i] & 1 turns this into LC 930 on a 0/1 array, goal = k.']],
+    [['tx','    '],['cm','// "exactly k" is not windowable. "at most k" is. So subtract.']],
     [['tx','    '],['kw','return '],['fn','atMost'],['tx','(nums, k) - '],['fn','atMost'],['tx','(nums, k - 1);']],
     [['tx','}']],
     [['tx','']],
     [['ty','int '],['fn','atMost'],['tx','('],['kw','int'],['tx','[] nums, '],['kw','int'],['tx',' s) {']],
-    [['tx','    '],['ty','Map'],['tx','<'],['ty','Integer'],['tx',', '],['ty','Integer'],['tx','> freq = '],['kw','new '],['ty','HashMap'],['tx','<>();']],
-    [['tx','    '],['kw','int '],['tx','l = 0, count = 0;']],
+    [['tx','    '],['kw','if '],['tx','(s < 0) '],['kw','return '],['tx','0;                       '],['cm','// only reachable if k == 0']],
+    [['tx','    '],['kw','int '],['tx','l = 0, odd = 0, count = 0;']],
     [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {']],
-    [['tx','        freq.'],['fn','merge'],['tx','(nums[r], 1, '],['ty','Integer'],['tx','::sum);   '],['cm','// grow on the right']],
-    [['tx','        '],['kw','while '],['tx','(freq.'],['fn','size'],['tx','() > s) {              '],['cm','// too many distinct values']],
-    [['tx','            '],['kw','int '],['tx','v = nums[l++];                 '],['cm','// evict the leftmost cell']],
-    [['tx','            '],['kw','if '],['tx','(freq.'],['fn','merge'],['tx','(v, -1, '],['ty','Integer'],['tx','::sum) == 0)']],
-    [['tx','                freq.'],['fn','remove'],['tx','(v);                    '],['cm','// <-- drop the key, or size() never falls']],
-    [['tx','        }']],
+    [['tx','        odd += nums[r] & 1;                    '],['cm','// only the parity bit matters']],
+    [['tx','        '],['kw','while '],['tx','(odd > s) odd -= nums[l++] & 1;  '],['cm','// monotone: shrinking always helps']],
     [['tx','        count += r - l + 1;                    '],['cm','// every suffix of [l..r]']],
     [['tx','    }']],
     [['tx','    '],['kw','return '],['tx','count;']],
     [['tx','}']]
   ];
 
-  const RULE = `<b>exactly(k)</b> = <span class="a">atMost(k)</span> &minus; <span class="a2">atMost(k&minus;1)</span> &nbsp;&middot;&nbsp; <span class="x">distinct &le; s</span> is monotone, <span class="x">distinct == k</span> is not &nbsp;&middot;&nbsp; a valid <span class="w">[l..r]</span> banks <span class="m">r &minus; l + 1</span>`;
+  const RULE = `<b>exactly(k)</b> = <span class="a">atMost(k)</span> &minus; <span class="a2">atMost(k&minus;1)</span> &nbsp;&middot;&nbsp; <span class="x">odd &le; s</span> is monotone, <span class="x">odd == k</span> is not &nbsp;&middot;&nbsp; a valid <span class="w">[l..r]</span> banks <span class="m">r &minus; l + 1</span>`;
 
   /* ---------------- the simulation ---------------- */
   function buildFrames(nums, k){
     const n = nums.length, F = [];
+    const par = nums.map(v => Math.abs(v) % 2);
     const cA = new Array(n).fill(null), cB = new Array(n).fill(null);
     let totA = 0, totB = 0, doneA = false, doneB = false;
-    let pass = 0, cap = k, lo = -1, hi = -1, count = 0,
-        enter = -1, leave = -1, sfx = null,
-        keys = [], freq = {}, decKey = null, freshKey = null, ghost = null;
+    let pass = 0, cap = k, lo = -1, hi = -1, odd = 0, count = 0,
+        enter = -1, leave = -1, sfx = null, parOn = false;
 
     const snap = o => F.push(Object.assign({
-      nums, n, k, pass, cap, lo, hi, count, enter, leave,
+      nums, par, n, k, pass, cap, lo, hi, odd, count, enter, leave, parOn,
       sfx: sfx ? sfx.slice() : null,
-      map: keys.map(x => [x, freq[x]]),
-      decKey, freshKey, ghost: ghost ? {key:ghost.key, at:ghost.at} : null,
       cA: cA.slice(), cB: cB.slice(), totA, totB, doneA, doneB, done: false
     }, o));
 
@@ -676,66 +650,51 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       return F;
     }
 
-    const uniq = new Set(nums).size;
+    const totalOdd = par.reduce((a,b)=>a+b, 0);
+    const parTxt = par.map((b,i)=>`<span class="${b?'o':'e'}">${b}</span>`).join(',');
+    const numTxt = nums.map((v,i)=>`<span class="${par[i]?'o':'e'}">${v}</span>`).join(',');
 
-    /* ---- the framing ---- */
+    /* ---- the reduction ---- */
     snap({phase:'intro', code:0,
-      msg:`Target: subarrays holding <b>exactly ${k}</b> distinct value${k===1?'':'s'}. Try to slide a window for that directly and it breaks. Sitting at <span class="w">distinct == ${k}</span>, growing right can take you to <span class="x">${k+1}</span>; shrinking from the left to fix it can take you straight to <span class="x">${k-1}</span>. <b>There is no shrink rule that restores "exactly".</b> The predicate is not monotone, so it is not windowable.`});
+      msg:`Target: subarrays holding <b>exactly ${k}</b> odd number${k===1?'':'s'} &mdash; LeetCode calls those <em>nice</em>. Notice what the problem never asks about: the actual values. <b>7</b> and <b>3</b> and <b>10001</b> are interchangeable; so are <b>2</b> and <b>8</b>. Only one bit of each element matters.`});
+    parOn = true;
     snap({phase:'intro', code:1,
-      msg:`But <span class="k">distinct &le; s</span> <b>is</b> monotone. Drop an element from the left and the distinct count either stays the same or falls &mdash; never rises. So once a window is legal it stays legal as it shrinks, and one left pointer that never moves backwards is enough: <span class="k">atMost(s)</span> runs in O(n).`});
+      msg:`<b>The reduction.</b> Map every element through <span class="k">value &amp; 1</span>: <span class="parlist">[${numTxt}]</span> &rarr; <span class="parlist">[${parTxt}]</span>. A subarray with exactly ${k} odd values is now a 0/1 subarray with <b>sum = ${k}</b>. This <em>is</em> <span class="k">LC 930 &middot; Binary Subarrays With Sum</span>, goal = ${k}. The second row above is the only array the algorithm actually reads.`});
     snap({phase:'intro', code:2,
-      msg:`Every subarray with <span class="a">&le; ${k}</span> distinct either has <span class="a2">&le; ${k-1}</span> distinct or has exactly <b>${k}</b> &mdash; no overlap, no gaps. Subtract and only the exact ones survive: <span class="k">answer = atMost(${k}) &minus; atMost(${k-1})</span>. We now run the same window <b>twice</b>, once per cap.`});
+      msg:`And now the familiar wall. At <span class="w">odd == ${k}</span>, growing to the right can jump to <span class="x">${k+1}</span>, and shrinking from the left to repair it can drop straight to <span class="x">${k-1}</span>. <b>There is no shrink rule that restores "exactly".</b> The predicate is not monotone, so a single window cannot count it.`});
+    snap({phase:'intro', code:3,
+      msg:`But <span class="k">odd &le; s</span> <b>is</b> monotone: drop an element from the left and the odd count can only stay or fall. So <span class="k">atMost(s)</span> is windowable in O(n). Every subarray with <span class="a">&le; ${k}</span> odds either has <span class="a2">&le; ${k-1}</span> or has exactly <b>${k}</b> &mdash; no overlap, no gaps. Subtract: <span class="k">answer = atMost(${k}) &minus; atMost(${k-1})</span>. Same window, run <b>twice</b>.`});
 
     /* ---- the two passes ---- */
     for(let p = 1; p <= 2; p++){
       pass = p;
       cap = (p === 1) ? k : k - 1;
-      lo = -1; hi = -1; count = 0; enter = -1; leave = -1; sfx = null;
-      keys = []; freq = {}; decKey = null; freshKey = null; ghost = null;
+      lo = -1; hi = -1; odd = 0; count = 0; enter = -1; leave = -1; sfx = null;
       const col = (p === 1) ? cA : cB;
       const tag = (p === 1) ? 'a' : 'a2';
 
-      snap({phase:'head', code:5,
-        msg:`<span class="${tag}">Pass ${p} of 2</span> &mdash; call <span class="k">atMost(s = ${cap})</span>: how many subarrays hold <b>at most ${cap}</b> distinct value${cap===1?'':'s'}?`});
-
       snap({phase:'head', code:6,
-        msg:`A fresh <span class="k">HashMap&lt;value, count&gt;</span> is the window's census: which values are present, and how many copies of each. <span class="k">freq.size()</span> &mdash; the number of <em>keys</em>, not the number of cells &mdash; is the distinct count the loop tests.` +
-          (cap === 0 ? ` Note <span class="a2">s = 0</span> here: no guard is needed, the loop simply evicts everything it admits, so every window is empty and every contribution is <b>0</b>.` : ``)});
+        msg:`<span class="${tag}">Pass ${p} of 2</span> &mdash; call <span class="k">atMost(s = ${cap})</span>: how many subarrays hold <b>at most ${cap}</b> odd number${cap===1?'':'s'}?` +
+          (cap === 0 ? ` With <span class="${tag}">s = 0</span> this counts the all-even runs, and it is a real pass, not the guard case &mdash; <span class="k">if (s &lt; 0)</span> only fires when k could be 0, which LC 930 hits with <code>goal = 0</code> but this problem never does.` : ``)});
 
       lo = 0;
-      snap({phase:'head', code:7, lo:0, hi:-1,
-        msg:`Reset: <span class="l">l = 0</span>, <span class="k">count = 0</span>, map empty. The window starts empty at the left edge.`});
+      snap({phase:'head', code:8, lo:0, hi:-1,
+        msg:`Reset: <span class="l">l = 0</span>, <span class="w">odd = 0</span>, <span class="k">count = 0</span>. The window starts empty at the left edge, and from here on only the <span class="w">&amp; 1</span> row is read.`});
 
       for(let r = 0; r < n; r++){
-        hi = r; enter = r; leave = -1; sfx = null; decKey = null; ghost = null;
-        const v = nums[r], had = freq[v] !== undefined;
-        if(had) freq[v]++; else { freq[v] = 1; keys.push(v); }
-        freshKey = v;
-        snap({phase:'grow', code:9,
-          msg:`<span class="r">nums[${r}] = ${v}</span> enters on the right. <span class="k">freq.merge(${v}, 1, sum)</span> &rarr; ${had
-            ? `${v} was already present, its count rises to <b>${freq[v]}</b> and <span class="k">size()</span> is unchanged at <b>${keys.length}</b>.`
-            : `${v} is <b>new</b>, so a key is created and <span class="k">size()</span> rises to <b>${keys.length}</b>.`} Cap is <span class="${tag}">s = ${cap}</span>.`});
-        enter = -1; freshKey = null;
+        hi = r; odd += par[r]; enter = r; leave = -1; sfx = null;
+        snap({phase:'grow', code:10,
+          msg:`<span class="r">nums[${r}] = ${nums[r]}</span> enters on the right. <span class="k">${nums[r]} &amp; 1 = ${par[r]}</span> &mdash; ${par[r] ? `<b>odd</b>, so <span class="k">odd += 1</span>` : `<b>even</b>, so it adds nothing`} &rarr; <span class="w">odd = ${odd}</span> over <span class="w">[${lo}..${r}]</span>. Cap is <span class="${tag}">s = ${cap}</span>.`});
+        enter = -1;
 
-        while(keys.length > cap){
-          const out = lo, ov = nums[out];
-          freq[ov]--; lo++; leave = out; decKey = ov;
-          const hitZero = freq[ov] === 0;
-          snap({phase:'shrink', code:12,
-            msg:`<span class="k">size() = ${keys.length} &gt; s = ${cap}</span>, so evict the leftmost cell: <span class="l">nums[${out}] = ${ov}</span> leaves, <span class="l">l = ${lo}</span>. <span class="k">freq.merge(${ov}, -1, sum)</span> &rarr; <b>${freq[ov]}</b>. ${hitZero
-              ? `It has reached <b>zero</b> &mdash; no copy of ${ov} remains inside <span class="w">[${lo}..${r}]</span>.`
-              : `Still <b>${freq[ov]}</b> cop${freq[ov]===1?'y':'ies'} of ${ov} inside the window, so ${ov} is <em>still</em> a distinct value here and <span class="k">size()</span> does <b>not</b> move: it stays at <b>${keys.length}</b>. Decrementing is not deleting.`}`});
+        while(odd > cap){
+          const out = lo, ob = par[out];
+          odd -= ob; lo++; leave = out;
+          snap({phase:'shrink', code:11,
+            msg:`<span class="w">odd = ${odd + ob}</span> exceeds <span class="${tag}">s = ${cap}</span>, so evict from the left: <span class="l">nums[${out}] = ${nums[out]}</span> falls out, <span class="k">odd -= ${nums[out]} &amp; 1 = ${ob}</span> &rarr; <b>${odd}</b>, <span class="l">l = ${lo}</span>. ${odd > cap
+              ? `Still too many odds &mdash; keep evicting.`
+              : `Valid again. <b>Shrinking never has to be undone</b> &mdash; that is the monotonicity the whole method rests on, and it is why <span class="l">l</span> only ever moves forward.`}`});
           leave = -1;
-
-          if(hitZero){
-            const at = keys.indexOf(ov);
-            keys.splice(at, 1); delete freq[ov];
-            ghost = {key: ov, at: at};
-            snap({phase:'del', code:13,
-              msg:`<b>The deletion.</b> <span class="k">freq.remove(${ov})</span> &mdash; the count hit zero, so the <em>key</em> must go too. Only now does <span class="k">size()</span> fall: <span class="del">${keys.length + 1} &rarr; ${keys.length}</span>. <b>This is the bug everyone writes once:</b> leave a zero-count key in the map and <span class="k">size()</span> never drops below <span class="${tag}">s = ${cap}</span>+1, the <span class="k">while</span> never exits, <span class="l">l</span> walks off the end and the count is garbage. A zero entry is not an absent entry.`});
-            ghost = null;
-          }
-          decKey = null;
         }
 
         const add = r - lo + 1;
@@ -743,23 +702,23 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
         if(p === 1) totA = count; else totB = count;
         sfx = []; for(let a = lo; a <= r; a++) sfx.push(a);
         const listing = sfx.map(a => `[${a}..${r}]`).join(' ');
-        snap({phase:'count', code:15,
+        snap({phase:'count', code:12,
           msg: add === 0
-            ? `The window is <b>empty</b> (<span class="l">l = ${lo}</span> has passed <span class="r">r = ${r}</span>): <span class="k">r &minus; l + 1 = 0</span>. No subarray <em>ending at ${r}</em> holds &le; ${cap} distinct values, so this index banks nothing.`
-            : `<b>The counting trick.</b> <span class="w">[${lo}..${r}]</span> is the longest window ending at <span class="r">r = ${r}</span> with &le; ${cap} distinct. Every subarray inside it that also ends at ${r} is a sub-range of a legal window, so it is legal too &mdash; that is <span class="m">r &minus; l + 1 = ${add}</span> new subarrays, ${listing}, banked in a single addition instead of a loop. <span class="${tag}">count = ${count}</span>.`});
+            ? `The window is <b>empty</b> (<span class="l">l = ${lo}</span> has passed <span class="r">r = ${r}</span>): <span class="k">r &minus; l + 1 = 0</span>. No subarray <em>ending at ${r}</em> holds &le; ${cap} odd number${cap===1?'':'s'}, so this index banks nothing.`
+            : `<b>The counting trick.</b> <span class="w">[${lo}..${r}]</span> is the longest window ending at <span class="r">r = ${r}</span> with &le; ${cap} odd${cap===1?'':'s'}. Any subarray inside it that also ends at ${r} contains a subset of those odds, so it is valid too &mdash; that is <span class="m">r &minus; l + 1 = ${add}</span> new subarrays, ${listing}, banked in one addition instead of a loop. <span class="${tag}">count = ${count}</span>.`});
         sfx = null;
       }
 
       if(p === 1) doneA = true; else doneB = true;
       lo = -1; hi = -1;
-      snap({phase:'passdone', code:17,
+      snap({phase:'passdone', code:14,
         msg:`Pass ${p} complete: <span class="${tag}">atMost(${cap}) = ${count}</span> &mdash; the sum of the whole <span class="${tag}">${p === 1 ? '&le; k' : '&le; k&minus;1'}</span> row above: ${col.filter(x=>x!==null).join(' + ')} = ${count}.`});
     }
 
     const ans = totA - totB;
-    lo = -1; hi = -1; enter = -1; leave = -1; sfx = null; keys = []; freq = {};
-    snap({phase:'final', code:2, done:true, ans,
-      msg:`<span class="a">atMost(${k}) = ${totA}</span> &minus; <span class="a2">atMost(${k-1}) = ${totB}</span> = <span class="m"><b>${ans}</b></span>. Column by column the difference is meaningful too: at each <span class="r">r</span>, <span class="a">(&le; k)</span> &minus; <span class="a2">(&le; k&minus;1)</span> is exactly the number of subarrays <em>ending at r</em> with precisely ${k} distinct values. ${uniq < k ? `Here the array holds only ${uniq} distinct value${uniq===1?'':'s'} in total, so nothing can reach ${k} and the two passes cancel. ` : ``}<b>Answer: ${ans}.</b>`});
+    lo = -1; hi = -1; enter = -1; leave = -1; sfx = null; odd = 0;
+    snap({phase:'final', code:3, done:true, ans,
+      msg:`<span class="a">atMost(${k}) = ${totA}</span> &minus; <span class="a2">atMost(${k-1}) = ${totB}</span> = <span class="m"><b>${ans}</b></span>. Column by column the difference is meaningful too: at each <span class="r">r</span>, <span class="a">(&le; k)</span> &minus; <span class="a2">(&le; k&minus;1)</span> is the number of nice subarrays <em>ending at r</em>. ${totalOdd < k ? `Here the array holds only ${totalOdd} odd number${totalOdd===1?'':'s'} in total, so nothing can reach ${k} and the two passes cancel exactly. ` : ``}<b>Answer: ${ans}.</b>`});
     return F;
   }
 
@@ -768,11 +727,10 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
         countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), kEl=$('kInput'),
         statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
-        rowAEl=$('rowA'), rowBEl=$('rowB'), rowDEl=$('rowD'),
-        totAEl=$('totA'), totBEl=$('totB'), totDEl=$('totD'),
+        rowPEl=$('rowP'), rowAEl=$('rowA'), rowBEl=$('rowB'), rowDEl=$('rowD'),
+        totPEl=$('totP'), totAEl=$('totA'), totBEl=$('totB'), totDEl=$('totD'),
         labAEl=$('labA'), labBEl=$('labB'), ledgerEl=$('ledger'),
-        sfxEl=$('suffixes'), sfxCapEl=$('sfxCap'),
-        kmapEl=$('kmap'), kmapCapEl=$('kmapCap');
+        sfxEl=$('suffixes'), sfxCapEl=$('sfxCap'), xformEl=$('xform');
   let frames=[], idx=0, playing=false, timer=null;
 
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -789,10 +747,10 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     for(const t of raw){
       const v = parseInt(t.replace(/[^0-9-]/g,''), 10);
       if(isNaN(v)) continue;
-      out.push(Math.max(-99, Math.min(99, v)));
+      out.push(Math.max(-999, Math.min(999, v)));
       if(out.length >= 9) break;
     }
-    return out.length ? out : [1,2,1,2,3];
+    return out.length ? out : [1,1,2,1,1];
   }
   function parseK(str, n){
     let g = parseInt(String(str).replace(/[^0-9-]/g,''), 10);
@@ -810,7 +768,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
         `<div class="idx" data-idx="${c}">${c}</div>`;
       tapeEl.appendChild(col);
     });
-    [rowAEl,rowBEl,rowDEl].forEach(row=>{
+    [rowPEl,rowAEl,rowBEl,rowDEl].forEach(row=>{
       row.innerHTML='';
       for(let i=0;i<n;i++){
         const d=document.createElement('div'); d.className='lcell pend'; d.textContent='';
@@ -823,7 +781,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   function render(){
     const f = frames[idx]; if(!f) return;
     const n = f.n, active = (f.pass === 1 || f.pass === 2);
-    const tag = f.pass === 2 ? 'b' : 'a';
+    const hasWin = active && f.lo>=0 && f.hi>=f.lo;
 
     for(let c=0;c<n;c++){
       const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
@@ -831,7 +789,6 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       const idxLbl=tapeEl.querySelector(`[data-idx="${c}"]`);
       if(!cell) continue;
       cell.textContent = f.nums[c];
-      const hasWin = active && f.lo>=0 && f.hi>=f.lo;
       const inWin = hasWin && c>=f.lo && c<=f.hi;
       let cls='cell';
       if(c===f.enter)              cls+=' entering';
@@ -840,6 +797,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       else if(active && f.lo>=0 && c<f.lo) cls+=' gone';
       else                          cls+=' ahead';
       if(f.sfx && f.sfx.indexOf(c)>=0) cls+=' contrib';
+      if(f.parOn && f.par[c]) cls+=' oddv';
       cell.className=cls;
 
       let ct='';
@@ -851,6 +809,20 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       caret.innerHTML=ct; caret.style.opacity = ct ? '1':'0';
       idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
     }
+
+    /* the parity row — the reduction, held alongside the original */
+    for(let c=0;c<n;c++){
+      const pc=rowPEl.querySelector(`[data-l="${c}"]`);
+      if(!pc) continue;
+      if(!f.parOn){ pc.className='lcell pend'; pc.textContent=''; continue; }
+      const inWin = hasWin && c>=f.lo && c<=f.hi;
+      let cl = 'lcell ' + (f.par[c] ? 'p1' : 'p0');
+      if(active && !inWin) cl += ' dimout';
+      if(inWin) cl += ' hot';
+      pc.className = cl; pc.textContent = f.par[c];
+    }
+    totPEl.className = 'tot p' + (active ? '' : ' dim');
+    totPEl.innerHTML = active ? `odd ${f.odd}` : `odd &mdash;`;
 
     /* contribution rows */
     labAEl.innerHTML = `&le; ${f.k}`;
@@ -872,31 +844,16 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     totDEl.className='tot d'+(bothDone?'':' dim');
     totDEl.innerHTML = bothDone ? `&Sigma; ${f.totA-f.totB}` : `&Sigma; &mdash;`;
 
-    /* the freq map — the distinct-value census, with the deletion made visible */
-    const items = f.map.map(e => [e[0], e[1], '']);
-    if(f.ghost) items.splice(Math.min(f.ghost.at, items.length), 0, [f.ghost.key, 0, 'dead']);
-    if(active){
-      kmapEl.innerHTML = items.length
-        ? items.map(function(e){
-            let cl = 'kent';
-            if(e[2]==='dead') cl += ' dead';
-            else {
-              if(e[0]===f.decKey) cl += ' dec';
-              if(e[1]===0)        cl += ' zero';
-              if(e[0]===f.freshKey) cl += ' fresh';
-            }
-            return `<span class="${cl}">${e[0]}<span class="kv">&times;${e[1]}</span></span>`;
-          }).join('')
-        : `<span class="kempty">freq is empty &mdash; no values in the window</span>`;
-      const size = f.map.length, over = size > f.cap;
-      const winTxt = (f.lo>=0 && f.hi>=f.lo) ? `[${f.lo}..${f.hi}]` : `empty`;
-      kmapCapEl.innerHTML =
-        `freq &mdash; the distinct-value census of <b>${winTxt}</b>` +
-        `<span class="szbadge ${over?'bad':'ok'}">size() = ${size} ${over?'&gt;':'&le;'} s = ${f.cap}</span>` +
-        (over ? ` <span class="ov">&larr; must shrink</span>` : ``);
+    /* the reduction banner */
+    if(f.parOn){
+      const pt = f.par.map(b=>`<span class="${b?'o':'e'}">${b}</span>`).join(',');
+      xformEl.className = 'xform';
+      xformEl.innerHTML = `nums[i] <b>&amp; 1</b><span class="arrow">&rarr;</span>` +
+        `<span class="parlist">[${pt}]</span><span class="arrow">&rArr;</span>` +
+        `<span class="lc">LC 930</span> <span class="dimtxt">on a 0/1 array with goal = ${f.k}</span>`;
     } else {
-      kmapEl.innerHTML = `<span class="kempty">freq &mdash; built fresh at the start of each pass</span>`;
-      kmapCapEl.innerHTML = `<span class="k">HashMap&lt;value, count&gt;</span>: keys = distinct values present, counts = copies inside the window`;
+      xformEl.className = 'xform off';
+      xformEl.innerHTML = `<span class="dimtxt">the values themselves are noise &mdash; one bit each is all the algorithm needs</span>`;
     }
 
     /* the subtraction, as three boxes */
@@ -905,7 +862,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       `<div class="op">&minus;</div>`+
       `<div class="pbox b${f.doneB?'':(f.pass===2?' run':' dim')}"><div class="pl">atMost(${f.k-1})</div><div class="pv">${f.pass===2||f.doneB?f.totB:'&mdash;'}</div></div>`+
       `<div class="op">=</div>`+
-      `<div class="pbox res${bothDone?'':' dim'}"><div class="pl">exactly ${f.k}</div><div class="pv">${bothDone?(f.totA-f.totB):'&mdash;'}</div></div>`;
+      `<div class="pbox res${bothDone?'':' dim'}"><div class="pl">exactly ${f.k} odd</div><div class="pv">${bothDone?(f.totA-f.totB):'&mdash;'}</div></div>`;
 
     /* the suffixes this frame banked */
     if(f.sfx && f.sfx.length){
@@ -920,25 +877,26 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     }
 
     /* stats */
-    const winTxt2 = (active && f.lo>=0 && f.hi>=f.lo) ? `[${f.lo}..${f.hi}]` : (active && f.lo>=0 ? 'empty' : '&mdash;');
+    const winTxt = hasWin ? `[${f.lo}..${f.hi}]` : (active && f.lo>=0 ? 'empty' : '&mdash;');
+    const totalOdd = f.par.reduce((a,b)=>a+b, 0);
     statsEl.innerHTML = active
       ? `<span class="stat ${f.pass===1?'a':'a2'}">pass <b>${f.pass}</b> &middot; s = <b>${f.cap}</b></span>`+
-        `<span class="stat w">window ${winTxt2} &middot; distinct <b>${f.map.length}</b></span>`+
+        `<span class="stat w">window ${winTxt} &middot; odd <b>${f.odd}</b></span>`+
         `<span class="stat ${f.pass===1?'a':'a2'}">count <b>${f.count}</b></span>`+
         `<span class="stat mute">n = <b>${f.n}</b> &middot; total subarrays <b>${f.n*(f.n+1)/2}</b></span>`
       : `<span class="stat mute">k = <b>${f.k}</b> &middot; n = <b>${f.n}</b></span>`+
+        `<span class="stat w">odd values in nums: <b>${totalOdd}</b></span>`+
         `<span class="stat mute">total subarrays <b>${f.n*(f.n+1)/2}</b></span>`;
 
     ruleEl.innerHTML = RULE;
     msgEl.innerHTML = f.msg;
     verdictEl.innerHTML = f.done && typeof f.ans === 'number'
       ? `<span class="trip big">${f.totA} &minus; ${f.totB} = ${f.ans}</span>`+
-        `<span class="trip neutral">${f.ans} subarray${f.ans===1?'':'s'} hold exactly ${f.k} distinct value${f.k===1?'':'s'}</span>`
+        `<span class="trip neutral">${f.ans} nice subarray${f.ans===1?'':'s'} &mdash; exactly ${f.k} odd number${f.k===1?'':'s'}</span>`
       : '';
 
-    const pmap={intro:['','&#9656; the idea'],head:['sort','&#9656; pass start'],
+    const pmap={intro:['','&#9656; the reduction'],head:['sort','&#9656; pass start'],
                 grow:['scan','&#9679; grow right'],shrink:['scan','&#9664; shrink left'],
-                del:['warn','&#10005; remove key'],
                 count:['found','+ r&minus;l+1'],passdone:['sort','&#9632; pass done'],
                 final:['done','&#10003; subtract'],done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
@@ -971,11 +929,11 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
 
   /* every chip below is checked against an independent brute-force count */
   const EX=[
-    ['1,2,1,2,3','2','LC sample &middot; 12 &minus; 5 = 7'],
-    ['1,2,1,3,4','3','LC sample &middot; 13 &minus; 10 = 3'],
-    ['1,1,1,1','1','k = 1 &middot; atMost(0) = 0, no guard needed'],
-    ['2,1,1,2,1,3','2','pass 1: 4 evictions, only 1 key removed &rarr; 10'],
-    ['1,2,3,4,5','2','all distinct &middot; every eviction drops a key &rarr; 4']
+    ['1,1,2,1,1','3','LC sample &middot; 14 &minus; 12 = 2'],
+    ['2,4,6','1','no odds at all &middot; 6 &minus; 6 = 0'],
+    ['2,2,2,1,2,2,1,2,2','2','LC sample &middot; evens inflate both passes &rarr; 12'],
+    ['3,8,5,2,7','1','k = 1 &middot; pass 2 counts the all-even runs &rarr; 8'],
+    ['1,3,5,7','2','all odd &middot; parity row is all 1s = LC 930 &rarr; 3']
   ];
   (function chips(){
     const box=$('examples');

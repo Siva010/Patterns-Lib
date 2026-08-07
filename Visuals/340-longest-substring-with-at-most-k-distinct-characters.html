@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>LeetCode 209 &middot; Minimum Size Subarray Sum &mdash; visual guide</title>
-<meta name="description" content="Interactive walkthrough of LeetCode 209: the minimise-length sliding window, where best is recorded inside the shrink loop and positivity is the precondition that makes the window sound.">
+<title>LeetCode 340 &middot; Longest Substring with At Most K Distinct Characters &mdash; visual guide</title>
+<meta name="description" content="Interactive walkthrough of LeetCode 340: a maximise-length sliding window over a char-to-count map, with the removal of a key at count zero shown as its own visible event.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -429,24 +429,56 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .code .ln.recpoint.exec { background: var(--accent-wash); }
 
-/* --- 209 only: the sum gauge, target as a hard threshold --- */
-.gauge { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; max-width: 420px; }
-.gaugetrack {
-  position: relative; width: 100%; height: 11px; border-radius: 6px;
-  background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+/* --- 340 only: the live char -> count map, and the removal event --- */
+.mapwrap { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; }
+.maphead {
+  font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim);
 }
-.gaugefill {
-  position: absolute; left: 1px; top: 1px; bottom: 1px; border-radius: 5px;
-  background: var(--r-window); opacity: .55; transition: width .18s;
+.mappanel {
+  display: flex; flex-wrap: wrap; gap: 7px; justify-content: center;
+  min-height: 34px; align-items: center; max-width: 600px;
 }
-.gaugetrack.hit .gaugefill { background: var(--r-hit); opacity: .7; }
-.gaugethr { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg-mid); }
-.gaugelab {
-  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
-  display: flex; justify-content: space-between; width: 100%;
+.mapkey {
+  font-family: var(--mono); font-size: 13px; line-height: 1.5;
+  border: 1px solid var(--r-window-line); background: var(--r-window-wash);
+  color: var(--r-window); border-radius: 8px; padding: 4px 11px;
+  transition: background .18s, border-color .18s, color .18s, opacity .18s;
 }
-.gaugelab .m { color: var(--r-hit); font-weight: 600; }
-.gaugelab .w { color: var(--r-window); font-weight: 600; }
+.mapkey b { font-weight: 600; }
+.mapkey .ch { font-weight: 600; }
+.mapkey.up    { border-color: var(--r-right); background: var(--r-right-wash); color: var(--r-right); border-width: 2px; padding: 3px 10px; }
+.mapkey.down  { border-color: var(--r-left);  background: var(--r-left-wash);  color: var(--r-left);  border-width: 2px; padding: 3px 10px; }
+/* count hit zero but the key is still in the map — the bug state */
+.mapkey.zero  { border-color: var(--r-anchor); background: var(--r-anchor-wash); color: var(--r-anchor); border-width: 2px; padding: 3px 10px; }
+/* the frame in which remove() actually fires */
+.mapkey.ghost {
+  border-style: dashed; border-color: var(--rule); background: var(--bg-sunk);
+  color: var(--fg-dim); opacity: .5; text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+.mapempty { font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim); opacity: .6; }
+
+.sizebar {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim);
+  display: flex; gap: 9px; align-items: center; flex-wrap: wrap; justify-content: center;
+}
+.sizebox {
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk);
+  border-radius: 8px; padding: 4px 12px;
+}
+.sizebox b { color: var(--fg); font-weight: 600; }
+.sizebox.ok   { border-color: var(--r-hit-line);    background: var(--r-hit-wash);    color: var(--r-hit); }
+.sizebox.ok b { color: var(--r-hit); }
+.sizebox.bad  { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
+.sizebox.bad b{ color: var(--r-anchor); }
+
+/* the classic bug, stated once and permanently visible next to the map */
+.bugnote {
+  font-family: var(--sans); font-size: 11.5px; line-height: 1.5; color: var(--fg-dim);
+  border-left: 2px solid var(--r-anchor-line); padding: 2px 0 2px 10px; max-width: 560px;
+}
+.bugnote b { color: var(--r-anchor); font-weight: 600; }
 </style>
 <script>
 /* set the theme before first paint to avoid a flash.
@@ -464,31 +496,30 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant C &mdash; minimise <span class="tag">LeetCode 209</span></div>
-  <h1>Minimum Size Subarray Sum <span class="thin">/ visualized</span></h1>
+  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant B &mdash; maximise <span class="tag">LeetCode 340</span></div>
+  <h1>Longest Substring with At Most K Distinct Characters <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    This is the canonical <b>minimise</b> window, and the whole variant lives in one line's position.
-    <span class="r">r</span> always advances and adds. Then, <em>while the window is already valid</em>
-    (<span class="k">sum &ge; target</span>), you shrink from the <span class="l">left</span> &mdash; and you
-    record <span class="m">best</span> <em>inside</em> that shrink loop, before each eviction, because the
-    window is only as small as it will ever be at that instant. Move the record one line down, outside the
-    loop, and you measure windows that have already been broken. The machine is only sound because every
-    value is <b>positive</b>: adding on the right can only push the sum up, removing on the left can only
-    push it down, so &quot;valid&quot; is monotone in the boundaries. LC 862 allows negatives, that monotonicity
-    dies, and the sliding window dies with it &mdash; that problem needs a monotonic deque over prefix sums instead.
+    Same machine as every other maximise window, but the state carried along is no longer an integer &mdash;
+    it is a <b>char &rarr; count map</b>, and the invariant is <span class="k">map.size() &le; k</span>.
+    <span class="r">r</span> always advances and bumps a count. <em>While the window is invalid</em>
+    (<span class="k">size &gt; k</span>) the <span class="l">left</span> character is decremented, and
+    <b>when its count reaches zero the key must be removed from the map</b>. That one line is the entire
+    difficulty of this problem: <code>map.size()</code> counts <em>keys</em>, not positive counts, so a key
+    left behind at zero means the size never shrinks, the loop never exits, and the window eats the string.
+    <span class="m">best</span> is recorded <em>after</em> the shrink loop &mdash; sub-variant B.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">nums &mdash; positive integers, comma-separated</label>
+      <label for="sInput">s &mdash; the string</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="2,3,1,2,4,3" spellcheck="false" autocomplete="off">
+        <input id="sInput" type="text" value="eceba" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div class="field" style="flex:0 0 210px; min-width:210px;">
-      <label for="tInput">target</label>
+      <label for="kInput">k &mdash; distinct characters allowed</label>
       <div class="input-shell">
-        <input id="tInput" type="text" value="7" spellcheck="false" autocomplete="off">
+        <input id="kInput" type="text" value="2" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
       </div>
     </div>
@@ -500,19 +531,23 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
       <div class="stage">
         <div class="taperow">
-          <div class="tapecap">nums &nbsp;&middot;&nbsp; <em>teal</em> cells are inside the window</div>
+          <div class="tapecap">s &nbsp;&middot;&nbsp; <em>teal</em> cells are inside the window</div>
           <div class="tape fw" id="tape"></div>
         </div>
-        <div class="gauge">
-          <div class="gaugetrack" id="gaugeTrack">
-            <div class="gaugefill" id="gaugeFill"></div>
-            <div class="gaugethr" id="gaugeThr"></div>
-          </div>
-          <div class="gaugelab"><span>window sum</span><span id="gaugeTxt"></span></div>
+        <div class="mapwrap">
+          <div class="maphead">map &nbsp;&middot;&nbsp; char &rarr; count inside the window</div>
+          <div class="mappanel" id="mapPanel"></div>
+          <div class="sizebar" id="sizeBar"></div>
         </div>
         <div class="rulebar" id="ruleBar"></div>
         <div class="stats" id="stats"></div>
         <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="bugnote">
+          <b>The classic bug:</b> decrementing to zero but never calling <code>map.remove(c)</code>.
+          <code>size()</code> counts keys, so it stays above <code>k</code> forever and the shrink loop
+          cannot terminate. Watch for the amber &ldquo;count 0&rdquo; chip &mdash; that is the instant the
+          removal has to fire.
+        </div>
         <div class="triplets" id="verdict"></div>
       </div>
       <div class="transport">
@@ -532,19 +567,20 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot w"></i>inside the window</span>
-        <span><i class="dot r"></i>entering (sum +=)</span>
-        <span><i class="dot l"></i>evicted (sum &minus;=)</span>
-        <span><i class="dot m"></i>shortest window recorded</span>
-        <span><i class="dot x"></i>left behind</span>
+        <span><i class="dot w"></i>inside the window / live key</span>
+        <span><i class="dot r"></i>count incremented</span>
+        <span><i class="dot l"></i>count decremented</span>
+        <span><i class="dot a"></i>count hit 0 &mdash; remove now</span>
+        <span><i class="dot m"></i>longest window recorded</span>
+        <span><i class="dot x"></i>key deleted / left behind</span>
       </div>
     </div>
   </div>
 
   <div class="foot">
-    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; each index enters once and leaves once, so the inner
-    <code>while</code> is amortised O(1). Sub-variant <b>C</b>: record <code>best</code> <em>inside</em> the
-    shrink loop. All values positive is not a detail &mdash; it is the precondition that makes the window work.
+    O(n) time &middot; O(k) space &nbsp;&middot;&nbsp; every index is inserted once and erased once, and the
+    map holds at most <code>k+1</code> keys. Sub-variant <b>B</b>: record <code>best</code> <em>after</em> the
+    shrink loop. <code>map.size()</code> is the invariant &mdash; keep it honest by deleting keys at zero.
   </div>
 
 <script>
@@ -552,87 +588,109 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   "use strict";
 
   const CODE = [
-    [['ty','int '],['fn','minSubArrayLen'],['tx','('],['kw','int'],['tx',' target, '],['kw','int'],['tx','[] nums) {']],
-    [['tx','    '],['kw','int '],['tx','l = 0, sum = 0, best = Integer.MAX_VALUE;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {   '],['cm','// right always advances']],
-    [['tx','        sum += nums[r];                          '],['cm','// grow: sum can only rise']],
-    [['tx','        '],['kw','while '],['tx','(sum >= target) {                  '],['cm','// window is VALID -> shrink it']],
-    [['tx','            best = Math.min(best, r - l + 1);    '],['cm','// <<< RECORD INSIDE the loop']],
-    [['tx','            sum -= nums[l];                      '],['cm','// evict: sum can only fall']],
+    [['ty','int '],['fn','lengthOfLongestSubstringKDistinct'],['tx','(String s, '],['kw','int'],['tx',' k) {']],
+    [['tx','    Map<Character, Integer> map = '],['kw','new '],['ty','HashMap'],['tx','<>();']],
+    [['tx','    '],['kw','int '],['tx','l = 0, best = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < s.length(); r++) {    '],['cm','// right always advances']],
+    [['tx','        map.merge(s.charAt(r), 1, Integer::sum);   '],['cm','// grow']],
+    [['tx','        '],['kw','while '],['tx','(map.size() > k) {                   '],['cm','// INVALID -> shrink']],
+    [['tx','            '],['kw','char '],['tx','c = s.charAt(l);']],
+    [['tx','            '],['kw','int '],['tx','left = map.merge(c, -1, Integer::sum);']],
+    [['tx','            '],['kw','if '],['tx','(left == 0) map.remove(c);        '],['cm','// <<< the line people forget']],
     [['tx','            l++;']],
     [['tx','        }']],
+    [['tx','        best = Math.max(best, r - l + 1);          '],['cm','// <<< RECORD AFTER the loop']],
     [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best == Integer.MAX_VALUE ? 0 : best;']],
+    [['tx','    '],['kw','return '],['tx','best;']],
     [['tx','}']]
   ];
-  const REC_LINE = 5;
+  const REC_LINE = 11;
 
-  const RULE = `<span class="modechip c">Mode C &middot; minimise</span>` +
-    `grow <span class="r">r</span> always &middot; <b>while VALID</b> (sum &ge; target) shrink <span class="l">l</span> ` +
-    `&middot; record <span class="m">best</span> <b>INSIDE</b> the shrink loop`;
+  const RULE = `<span class="modechip b">Mode B &middot; maximise</span>` +
+    `grow <span class="r">r</span> always &middot; <b>while INVALID</b> (map.size &gt; k) shrink <span class="l">l</span> ` +
+    `&middot; record <span class="m">best</span> <b>AFTER</b> the shrink loop`;
 
-  function buildFrames(nums, target){
-    const n = nums.length, F = [];
-    let l = 0, sum = 0, best = Infinity, bestL = -1, bestR = -1, r = -1;
-    const INF = '&infin;';
+  function snap(map, extra){
+    const arr = [];
+    map.forEach((v,kk)=>arr.push([kk,v]));
+    if(extra) arr.push(extra);        // a key shown for one frame after removal
+    return arr;
+  }
+
+  function buildFrames(s, k){
+    const n = s.length, F = [];
+    const map = new Map();
+    let l = 0, best = 0, bestL = -1, bestR = -1, r = -1;
     const f = o => F.push(Object.assign({
-      nums, target, n, l, r, sum, best, bestL, bestR, enter:-1, leave:-1, shrinking:false
+      s, k, n, l, r, best, bestL, bestR, enter:-1, leave:-1,
+      up:null, down:null, zeroKey:null, ghost:null, shrinking:false,
+      keys: snap(map), size: map.size
     }, o));
 
     if(n === 0){
-      f({phase:'done', code:0, done:true, msg:`Empty array &mdash; nothing to slide over. <b>Return 0</b>.`});
+      f({phase:'done', code:0, done:true, msg:`Empty string &mdash; nothing to scan. <b>Return 0</b>.`});
       return F;
     }
 
-    f({phase:'seed', code:1,
-      msg:`<span class="l">l = 0</span>, <span class="k">sum = 0</span>, <span class="m">best = &infin;</span>. Every value is <b>positive</b>, so pushing <span class="r">r</span> right can only raise the sum and pulling <span class="l">l</span> right can only lower it. That monotonicity is the entire licence to slide.`});
+    f({phase:'seed', code:2,
+      msg:`<span class="l">l = 0</span>, <span class="m">best = 0</span>, and an empty <span class="k">map</span>. The invariant is <span class="k">map.size() &le; ${k}</span> &mdash; the number of <b>distinct keys</b> inside the window, which is not the same thing as the number of characters.`});
 
     for(r = 0; r < n; r++){
-      sum += nums[r];
-      f({phase:'grow', code:3, enter:r,
-        msg:`<span class="r">nums[${r}] = ${nums[r]}</span> enters on the right. <span class="k">sum = ${sum}</span>, window <span class="w">[${l}..${r}]</span> is ${r-l+1} wide.`});
+      const c = s[r];
+      map.set(c, (map.get(c) || 0) + 1);
+      f({phase:'grow', code:4, enter:r, up:c, keys:snap(map), size:map.size,
+        msg:`<span class="r">s[${r}] = '${c}'</span> enters. <span class="k">map['${c}'] = ${map.get(c)}</span>` +
+            (map.get(c) === 1 ? ` &mdash; a <b>new key</b>, so <span class="k">size</span> rises to <b>${map.size}</b>.`
+                              : ` &mdash; an existing key, so <span class="k">size</span> is unchanged at <b>${map.size}</b>.`)});
 
-      if(sum < target){
-        f({phase:'grow', code:4,
-          msg:`<span class="k">${sum} &lt; ${target}</span> &mdash; still <b>invalid</b>, too small to count. Nothing to record, nothing to shrink. Advance <span class="r">r</span>.`});
+      if(map.size <= k){
+        f({phase:'grow', code:5, keys:snap(map), size:map.size,
+          msg:`Check the invariant: <span class="k">size = ${map.size} &le; ${k}</span> &mdash; <b>valid</b>. The shrink loop does not run; <span class="l">l</span> stays at <b>${l}</b>.`});
       }
 
-      while(sum >= target){
-        const w = r - l + 1;
-        const improved = w < best;
-        if(improved){ best = w; bestL = l; bestR = r; }
-        f({phase:improved?'found':'shrink', code:REC_LINE, shrinking:true,
-          msg:`<span class="k">${sum} &ge; ${target}</span> &mdash; <b>valid</b>. Record <em>now</em>, at width <b>${w}</b>: ` +
-              (improved
-                ? `<span class="m">best = ${best}</span>, a new minimum at <span class="m">[${bestL}..${bestR}]</span>.`
-                : `<span class="m">best stays ${best}</span> &mdash; this window is not shorter.`) +
-              ` This is the line that makes it sub-variant C.`});
+      while(map.size > k){
+        const out = s[l], before = map.get(out), after = before - 1;
+        map.set(out, after);
+        f({phase:'shrink', code:7, leave:l, down:out, shrinking:true,
+          keys:snap(map), size:map.size, zeroKey: after === 0 ? out : null,
+          msg:`<span class="k">size = ${map.size} &gt; ${k}</span> &mdash; <b>invalid</b>. Decrement the left character <span class="l">s[${l}] = '${out}'</span>: <span class="k">${before} &rarr; ${after}</span>. ` +
+              (after === 0
+                ? `It has hit <span class="a">zero</span>, but the key is <b>still in the map</b> &mdash; <span class="k">size</span> is <em>still</em> <b>${map.size}</b>. This is the frame where the bug lives.`
+                : `<span class="k">size</span> is unchanged at <b>${map.size}</b>; <span class="k">'${out}'</span> still occurs elsewhere in the window, so the window is still invalid.`)});
 
-        const out = l;
-        sum -= nums[out];
+        if(after === 0){
+          map.delete(out);
+          f({phase:'delete', code:8, leave:l, shrinking:true,
+            keys:snap(map, [out, 0]), size:map.size, ghost:out,
+            msg:`<span class="k">left == 0</span>, so <b>map.remove('${out}')</b> fires. The key is gone and <span class="k">size</span> finally drops to <b>${map.size}</b>. ` +
+                (map.size <= k ? `Invariant restored &mdash; the shrink loop exits.` : `Still above <span class="k">${k}</span>; keep shrinking.`) +
+                ` <b>Skip this line and size never falls</b>, so the loop spins forever.`});
+        }
         l++;
-        f({phase:'shrink', code:6, leave:out, shrinking:true,
-          msg:`Evict <span class="l">nums[${out}] = ${nums[out]}</span> from the left &mdash; the only way to get shorter. <span class="k">sum = ${sum}</span>, window is now <span class="w">${l>r?'empty':`[${l}..${r}]`}</span>.` +
-              (sum < target ? ` It just fell below <span class="k">${target}</span>, so the shrink loop ends here.` : ` Still &ge; <span class="k">${target}</span> &mdash; loop again and record again.`)});
+        f({phase:'shrink', code:9, shrinking:true, keys:snap(map), size:map.size,
+          msg:`<span class="l">l++</span> &rarr; <b>${l}</b>. Window is now <span class="w">${l>r?'empty':`[${l}..${r}]`}</span>. <span class="l">l</span> only ever moves right, which is why the inner loop is amortised O(1) across the whole scan.`});
       }
+
+      const w = r - l + 1;
+      const improved = w > best;
+      if(improved){ best = w; bestL = l; bestR = r; }
+      f({phase:improved?'found':'grow', code:REC_LINE, keys:snap(map), size:map.size,
+        msg:`The window is legal again, so <em>now</em> measure it: <span class="w">[${l}..${r}]</span> = "<b>${s.slice(l,r+1).join('')}</b>", width <b>${w}</b>, holding <b>${map.size}</b> distinct character${map.size===1?'':'s'}. ` +
+            (improved ? `<span class="m">best = ${best}</span> &mdash; a new maximum.` : `<span class="m">best stays ${best}</span>.`)});
     }
 
     r = n - 1;
-    if(best === Infinity){
-      f({phase:'done', code:10, l:0, r:-1, done:true, none:true,
-        msg:`<span class="x">The sum never reached ${target}</span> &mdash; not even the whole array. <span class="m">best</span> is still ${INF}, so the contract says <b>return 0</b>, not ${INF}.`});
-    } else {
-      f({phase:'done', code:10, l:bestL, r:bestR, sum:nums.slice(bestL,bestR+1).reduce((a,b)=>a+b,0), done:true,
-        msg:`Scan complete. Shortest valid window is <span class="m">[${bestL}..${bestR}]</span> = [${nums.slice(bestL,bestR+1).join(', ')}], length <b>${best}</b>. <b>Return ${best}</b>.`});
-    }
+    f({phase:'done', code:13, l:bestL<0?0:bestL, r:bestL<0?-1:bestR, done:true,
+      keys:snap(map), size:map.size,
+      msg:`Scan complete. Longest window with at most <b>${k}</b> distinct characters is <span class="m">[${bestL}..${bestR}]</span> = "<b>${s.slice(bestL,bestR+1).join('')}</b>", width <b>${best}</b>. <b>Return ${best}</b>.`});
     return F;
   }
 
   const $ = id => document.getElementById(id);
   const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
-        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), tEl=$('tInput'),
+        countEl=$('stepCount'), codeEl=$('code'), sEl=$('sInput'), kEl=$('kInput'),
         statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
-        gTrack=$('gaugeTrack'), gFill=$('gaugeFill'), gThr=$('gaugeThr'), gTxt=$('gaugeTxt');
+        mapEl=$('mapPanel'), sizeEl=$('sizeBar');
   let frames=[], idx=0, playing=false, timer=null;
 
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -643,31 +701,29 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     }).join('');
   })();
 
-  function parseArr(str){
-    const a = String(str).split(/[^0-9]+/).filter(x=>x.length)
-      .map(x=>Math.max(1, Math.min(99, parseInt(x,10))));
-    return a.slice(0,12);
+  function parseS(str){
+    return String(str).toLowerCase().replace(/[^a-z]/g,'').split('').slice(0,12);
   }
-  function parseT(str){
-    let t = parseInt(String(str).replace(/[^0-9]/g,''), 10);
-    if(isNaN(t) || t < 1) t = 1;
-    return Math.min(999, t);
+  function parseK(str){
+    let k = parseInt(String(str).replace(/[^0-9]/g,''), 10);
+    if(isNaN(k) || k < 1) k = 1;
+    return Math.min(26, k);
   }
 
-  function buildTape(nums){
+  function buildTape(s){
     tapeEl.innerHTML='';
-    nums.forEach((v,k)=>{
+    s.forEach((ch,i)=>{
       const col=document.createElement('div'); col.className='col';
-      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
-        `<div class="cell" data-cell="${k}">${v}</div>`+
-        `<div class="idx" data-idx="${k}">${k}</div>`;
+      col.innerHTML = `<div class="caret" data-caret="${i}"></div>`+
+        `<div class="cell" data-cell="${i}">${ch}</div>`+
+        `<div class="idx" data-idx="${i}">${i}</div>`;
       tapeEl.appendChild(col);
     });
   }
 
   function render(){
     const f = frames[idx]; if(!f) return;
-    const nums = f.nums, n = nums.length;
+    const s = f.s, n = s.length;
     const live = f.l <= f.r && f.r >= 0;
     for(let c=0;c<n;c++){
       const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
@@ -694,35 +750,46 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
     }
 
-    const denom = Math.max(f.target*1.6, f.sum, 1);
-    gFill.style.width = Math.max(0, Math.min(100, f.sum/denom*100)) + '%';
-    gThr.style.left = (f.target/denom*100) + '%';
-    const valid = f.sum >= f.target;
-    gTrack.classList.toggle('hit', valid);
-    gTxt.innerHTML = `<span class="${valid?'m':'w'}">${f.sum}</span> &nbsp;/&nbsp; target ${f.target} &nbsp;&middot;&nbsp; ${valid?'VALID &mdash; shrink':'invalid &mdash; grow'}`;
+    // --- the live map ---
+    if(!f.keys.length){
+      mapEl.innerHTML = `<span class="mapempty">{ }&nbsp; empty</span>`;
+    } else {
+      mapEl.innerHTML = f.keys.map(function(pair){
+        const key = pair[0], val = pair[1];
+        let cls = 'mapkey';
+        if(f.ghost === key && val === 0) cls += ' ghost';
+        else if(f.zeroKey === key)       cls += ' zero';
+        else if(f.up === key)            cls += ' up';
+        else if(f.down === key)          cls += ' down';
+        return `<span class="${cls}"><span class="ch">'${key}'</span> &rarr; <b>${val}</b>${f.ghost===key&&val===0?' &nbsp;removed':''}${f.zeroKey===key?' &nbsp;count 0':''}</span>`;
+      }).join('');
+    }
+    const bad = f.size > f.k;
+    sizeEl.innerHTML =
+      `<span class="sizebox ${bad?'bad':'ok'}">map.size() <b>${f.size}</b> ${bad?'&gt;':'&le;'} k = ${f.k} &nbsp;&middot;&nbsp; ${bad?'INVALID':'valid'}</span>`;
 
     const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
     const width = live ? (f.r-f.l+1) : 0;
     statsEl.innerHTML =
       `<span class="stat w">window ${winTxt} &middot; width <b>${width}</b></span>`+
-      `<span class="stat ${valid?'h':'mute'}">sum <b>${f.sum}</b> ${valid?'&ge;':'&lt;'} ${f.target}</span>`+
-      (f.best===Infinity
-        ? `<span class="stat mute">best <b>&infin;</b> &mdash; nothing recorded yet</span>`
-        : `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`)+
+      `<span class="stat">k <b>${f.k}</b></span>`+
+      (f.best>0
+        ? `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`
+        : `<span class="stat mute">best <b>0</b></span>`)+
       `<span class="stat ${f.shrinking?'minus':'mute'}">l <b>${f.l}</b></span>`+
       `<span class="stat ${f.enter>=0?'plus':'mute'}">r <b>${f.r<0?'&mdash;':f.r}</b></span>`;
 
     ruleEl.innerHTML = RULE;
     msgEl.innerHTML = f.msg;
     verdictEl.innerHTML = f.done
-      ? (f.best === Infinity
-          ? `<span class="trip no">answer = 0${f.n ? ` &middot; no window ever reached the target` : ` &middot; empty input`}</span>`
-          : `<span class="trip">answer = ${f.best}</span><span class="trip neutral">shortest window [${f.bestL}..${f.bestR}]</span>`)
+      ? (f.best>0
+          ? `<span class="trip">answer = ${f.best}</span><span class="trip neutral">"${s.slice(f.bestL,f.bestR+1).join('')}"</span>`
+          : `<span class="trip no">answer = 0</span>`)
       : '';
 
     const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
-                shrink:['sort','&#8592; shrinking l'],found:['found','&#10003; new minimum'],
-                done:['done','&#9632; complete']};
+                shrink:['sort','&#8592; shrinking l'],delete:['sort','&#10005; map.remove'],
+                found:['found','&#10003; new maximum'],done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
     pillEl.className='phase-pill '+pe[0]; pillEl.innerHTML=pe[1];
 
@@ -734,13 +801,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(arrRaw, tRaw){
+  function run(sRaw, kRaw){
     stop();
-    const nums = parseArr(arrRaw);
-    const target = parseT(tRaw);
-    arrEl.value = nums.join(','); tEl.value = target;
-    buildTape(nums);
-    frames = buildFrames(nums, target);
+    const s = parseS(sRaw);
+    const k = parseK(kRaw);
+    sEl.value = s.join(''); kEl.value = k;
+    buildTape(s);
+    frames = buildFrames(s, k);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
@@ -752,36 +819,36 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   function togglePlay(){ playing?stop():play(); }
 
   const EX=[
-    ['2,3,1,2,4,3','7','the textbook run &mdash; answer 2'],
-    ['1,4,4','4','one element already clears the bar'],
-    ['1,1,1,1,1,1,1,1','11','never valid &rarr; return 0, not &infin;'],
-    ['5,1,3,5,10,7,4,9,2,8','15','shrink fires repeatedly, deep in the array'],
-    ['1,2,3,4,5','15','only the whole array qualifies']
+    ['eceba','2','the textbook case &mdash; answer 3'],
+    ['aabbcc','2',"'a' goes 2&rarr;1&rarr;0 &mdash; remove fires only at zero"],
+    ['abcadcacacac','3','a key is deleted mid-scan, then a long run &rarr; 10'],
+    ['aaabbbccc','1','k = 1: the map holds exactly one key'],
+    ['world','9','k &ge; distinct &mdash; never invalid, no shrink at all']
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(function(e){
       const c=document.createElement('button'); c.className='chip';
-      c.innerHTML=`[${e[0]}], t=${e[1]}<b>${e[2]}</b>`;
+      c.innerHTML=`"${e[0]}", k=${e[1]}<b>${e[2]}</b>`;
       c.onclick=function(){ run(e[0], e[1]); };
       box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(arrEl.value, tEl.value);
-  [arrEl,tEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, tEl.value); }));
+  $('runBtn').onclick=()=>run(sEl.value, kEl.value);
+  [sEl,kEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(sEl.value, kEl.value); }));
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
   $('playBtn').onclick=togglePlay;
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
-    if(document.activeElement===arrEl||document.activeElement===tEl) return;
+    if(document.activeElement===sEl||document.activeElement===kEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
     if(e.key===' '){e.preventDefault();togglePlay();}
   });
 
-  run(arrEl.value, tEl.value);
+  run(sEl.value, kEl.value);
 })();
 </script>
 

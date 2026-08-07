@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>LeetCode 209 &middot; Minimum Size Subarray Sum &mdash; visual guide</title>
-<meta name="description" content="Interactive walkthrough of LeetCode 209: the minimise-length sliding window, where best is recorded inside the shrink loop and positivity is the precondition that makes the window sound.">
+<title>LeetCode 713 &middot; Subarray Product Less Than K &mdash; visual guide</title>
+<meta name="description" content="Interactive sliding-window visualizer for LeetCode 713: a counting window where count += r - l + 1 banks every suffix ending at r, with the k <= 1 guard and the empty-window case shown explicitly.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -325,14 +325,13 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 /* ============================================================
    VARIABLE-SIZE WINDOW — shared page-local additions
    The window grows on the right and shrinks on the left, so the
-   tape needs the same five states the fixed-width pages use, all
+   tape needs the same five states the other window pages use, all
    built from shared tokens — no new hue is introduced below:
      .wbody     settled interior of the window   -> --r-window
      .wl / .wr  the two boundaries               -> --r-left / --r-right
      .entering  the cell added on this step      -> --r-right, lifted
      .leaving   the cell evicted on this step    -> --r-left, dashed, sunk
      .gone      already evicted past l           -> hue-less, dim + dashed
-   plus .bestmark, a --r-hit underline for the best window recorded.
    ============================================================ */
 .tape.fw { gap: 5px; }
 .tape.fw .col { width: 38px; }
@@ -356,9 +355,12 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .caret .pW   { color: var(--accent-fg); background: var(--r-window); }
 .caret .pIn  { color: var(--accent-fg); background: var(--r-right); }
 .caret .pOut { color: var(--accent-fg); background: var(--r-left); }
+.caret .pA   { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pM   { color: var(--accent-fg); background: var(--r-hit); }
+.caret .pDim { color: var(--bg); background: var(--fg-dim); }
 
 /* the running statistic — one chip per quantity that rides the frame */
-.stats { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 620px; }
+.stats { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 640px; }
 .stat {
   font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
   border: 1px solid var(--rule-hard); background: var(--bg-sunk);
@@ -376,12 +378,14 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .stat.minus { border-color: var(--r-left-line);   background: var(--r-left-wash);   color: var(--r-left); }
 .stat.minus b { color: var(--r-left); }
 .stat.mute  { border-style: dashed; }
+.stat.stale { border-color: var(--r-anchor-line); background: var(--bg-sunk); color: var(--r-anchor); border-style: dashed; }
+.stat.stale b { color: var(--r-anchor); }
 
 /* the governing rule, restated under the stage on every frame */
 .rulebar {
   font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
   background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
-  border-radius: 8px; padding: 7px 13px; max-width: 620px; text-align: center;
+  border-radius: 8px; padding: 7px 13px; max-width: 640px; text-align: center;
 }
 .rulebar b { color: var(--fg-mid); font-weight: 600; }
 .rulebar .w { color: var(--r-window); font-weight: 600; }
@@ -391,7 +395,7 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .rulebar .a { color: var(--r-anchor); font-weight: 600; }
 .rulebar .x { color: var(--fg-dim);   font-weight: 600; }
 
-/* B-vs-C mode badge — every variable-window page declares which it is */
+/* sub-variant mode badge — every variable-window page declares which it is */
 .modechip {
   display: inline-block; font-family: var(--sans); font-size: 10px; font-weight: 600;
   letter-spacing: .09em; text-transform: uppercase; padding: 2px 8px;
@@ -399,11 +403,16 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .modechip.b { color: var(--r-hit);    background: var(--r-hit-wash);    border: 1px solid var(--r-hit-line); }
 .modechip.c { color: var(--r-window); background: var(--r-window-wash); border: 1px solid var(--r-window-line); }
+.modechip.d { color: var(--r-anchor); background: var(--r-anchor-wash); border: 1px solid var(--r-anchor-line); }
+.modechip.f { color: var(--r-hit);    background: var(--r-hit-wash);    border: 1px solid var(--r-hit-line); }
 
 .message .w { color: var(--r-window); font-weight: 600; }
 .message .a { color: var(--r-anchor); font-weight: 600; }
 .sum-line .w { color: var(--r-window); }
 .sum-line .m { color: var(--r-hit); }
+.lede .w { color: var(--r-window); font-weight: 600; }
+.lede .m { color: var(--r-hit);    font-weight: 600; }
+.lede .a { color: var(--r-anchor); font-weight: 600; }
 
 .taperow { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
 .tapecap {
@@ -411,6 +420,8 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
   letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); text-align: center;
 }
 .tapecap em { font-style: normal; color: var(--r-window); }
+.tapecap .m { color: var(--r-hit); }
+.tapecap .a { color: var(--r-anchor); }
 
 .dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
 .dot.a { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
@@ -419,8 +430,8 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .trip.bank { color: var(--r-anchor); background: var(--r-anchor-wash); border-color: var(--r-anchor-line); }
 .code .cm { color: var(--t-com); font-style: italic; }
 
-/* the record point, pinned in the source so the B/C difference is
-   visible without stepping: this is the line where `best` is written. */
+/* the record point, pinned in the source so the sub-variant is
+   visible without stepping: this is the line where the answer is written. */
 .code .ln.recpoint { background: var(--r-hit-wash); }
 .code .ln.recpoint::after {
   content: "RECORD"; position: absolute; right: 12px; top: 1px;
@@ -429,24 +440,48 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .code .ln.recpoint.exec { background: var(--accent-wash); }
 
-/* --- 209 only: the sum gauge, target as a hard threshold --- */
-.gauge { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; max-width: 420px; }
-.gaugetrack {
-  position: relative; width: 100%; height: 11px; border-radius: 6px;
-  background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+
+/* --- 713 only: the suffix ladder ----------------------------
+   The whole lesson of a counting window is that `count += r-l+1`
+   is not a formula, it is a list. Each row below is one of the
+   subarrays that one statement just banked: a --r-hit bar spanning
+   exactly [s..r], aligned column-for-column with the tape above.
+   ------------------------------------------------------------ */
+.sufwrap { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
+.sufrows { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.sufrow  { display: flex; gap: 5px; align-items: center; }
+.sufc    { width: 38px; height: 13px; border-radius: 4px; flex: 0 0 auto; }
+@media (max-width: 560px) { .sufc { width: 29px; height: 11px; } }
+.sufc.on {
+  background: var(--r-hit-wash); border: 1.5px solid var(--r-hit-line);
 }
-.gaugefill {
-  position: absolute; left: 1px; top: 1px; bottom: 1px; border-radius: 5px;
-  background: var(--r-window); opacity: .55; transition: width .18s;
+.sufc.head { background: var(--r-hit); border: 1.5px solid var(--r-hit); }
+.sufc.off  { border: 1.5px solid transparent; }
+.sufnote {
+  font-family: var(--mono); font-size: 11px; color: var(--r-hit);
+  padding-left: 10px; white-space: nowrap;
 }
-.gaugetrack.hit .gaugefill { background: var(--r-hit); opacity: .7; }
-.gaugethr { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg-mid); }
-.gaugelab {
-  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
-  display: flex; justify-content: space-between; width: 100%;
+.sufnote.none { color: var(--fg-dim); }
+.sufempty {
+  font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+  border: 1px dashed var(--rule-hard); border-radius: 8px; padding: 5px 12px;
+  background: var(--bg-sunk);
 }
-.gaugelab .m { color: var(--r-hit); font-weight: 600; }
-.gaugelab .w { color: var(--r-window); font-weight: 600; }
+
+/* the product, written out as its factors so the divide-out is legible */
+.prodline {
+  font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--fg-dim);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; justify-content: center;
+  max-width: 620px; text-align: center;
+}
+.prodline .f  { color: var(--r-window); font-weight: 600; }
+.prodline .fin  { color: var(--r-right); font-weight: 600; }
+.prodline .fout { color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.prodline .eq { color: var(--fg); font-weight: 600; }
+.prodline .ok { color: var(--r-hit); font-weight: 600; }
+.prodline .bad { color: var(--r-left); font-weight: 600; }
+.prodline .one { color: var(--fg-dim); font-style: italic; }
+
 </style>
 <script>
 /* set the theme before first paint to avoid a flash.
@@ -464,31 +499,34 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant C &mdash; minimise <span class="tag">LeetCode 209</span></div>
-  <h1>Minimum Size Subarray Sum <span class="thin">/ visualized</span></h1>
+  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant F &mdash; count <span class="tag">LeetCode 713</span></div>
+  <h1>Subarray Product Less Than K <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    This is the canonical <b>minimise</b> window, and the whole variant lives in one line's position.
-    <span class="r">r</span> always advances and adds. Then, <em>while the window is already valid</em>
-    (<span class="k">sum &ge; target</span>), you shrink from the <span class="l">left</span> &mdash; and you
-    record <span class="m">best</span> <em>inside</em> that shrink loop, before each eviction, because the
-    window is only as small as it will ever be at that instant. Move the record one line down, outside the
-    loop, and you measure windows that have already been broken. The machine is only sound because every
-    value is <b>positive</b>: adding on the right can only push the sum up, removing on the left can only
-    push it down, so &quot;valid&quot; is monotone in the boundaries. LC 862 allows negatives, that monotonicity
-    dies, and the sliding window dies with it &mdash; that problem needs a monotonic deque over prefix sums instead.
+    A <b>counting</b> window does not look for one best answer &mdash; it banks a number at every step and
+    never looks back. <span class="r">r</span> advances and multiplies in; while the product is
+    <span class="k">&ge; k</span> the window is invalid, so <span class="l">l</span> divides out from the left
+    until it is valid again. Then comes the line that <em>is</em> the sub-variant:
+    <span class="m">count += r &minus; l + 1</span>. That is not an off-by-one incantation &mdash; it is the exact
+    number of <b>new</b> subarrays that end at <span class="r">r</span>, one for each start in
+    <span class="w">[l..r]</span>, drawn as a ladder under the tape. Every shorter suffix of a valid window is
+    itself valid, because all values are <b>&ge; 1</b> and dropping a factor can only make the product smaller.
+    Two edges the machine has to survive: <span class="k">k &le; 1</span> returns <b>0</b> outright &mdash; no
+    product of positive integers is below 1 &mdash; and a single element that already exceeds
+    <span class="k">k</span> drives <span class="l">l</span> past <span class="r">r</span>, leaving the window
+    <b>empty</b> and contributing <span class="x">r &minus; l + 1 = 0</span>.
   </p>
 
   <div class="controls-top">
     <div class="field">
       <label for="arrInput">nums &mdash; positive integers, comma-separated</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="2,3,1,2,4,3" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="10,5,2,6" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div class="field" style="flex:0 0 210px; min-width:210px;">
-      <label for="tInput">target</label>
+      <label for="kInput">k (strict upper bound)</label>
       <div class="input-shell">
-        <input id="tInput" type="text" value="7" spellcheck="false" autocomplete="off">
+        <input id="kInput" type="text" value="100" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
       </div>
     </div>
@@ -503,15 +541,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
           <div class="tapecap">nums &nbsp;&middot;&nbsp; <em>teal</em> cells are inside the window</div>
           <div class="tape fw" id="tape"></div>
         </div>
-        <div class="gauge">
-          <div class="gaugetrack" id="gaugeTrack">
-            <div class="gaugefill" id="gaugeFill"></div>
-            <div class="gaugethr" id="gaugeThr"></div>
-          </div>
-          <div class="gaugelab"><span>window sum</span><span id="gaugeTxt"></span></div>
-        </div>
+        <div class="prodline" id="prodLine"></div>
         <div class="rulebar" id="ruleBar"></div>
         <div class="stats" id="stats"></div>
+        <div class="sufwrap">
+          <div class="tapecap" id="sufCap">the subarrays this step banks</div>
+          <div class="sufrows" id="sufRows"></div>
+        </div>
         <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
         <div class="triplets" id="verdict"></div>
       </div>
@@ -533,18 +569,19 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="code" id="code"></div>
       <div class="legend">
         <span><i class="dot w"></i>inside the window</span>
-        <span><i class="dot r"></i>entering (sum +=)</span>
-        <span><i class="dot l"></i>evicted (sum &minus;=)</span>
-        <span><i class="dot m"></i>shortest window recorded</span>
+        <span><i class="dot r"></i>entering (prod &times;=)</span>
+        <span><i class="dot l"></i>evicted (prod &divide;=)</span>
+        <span><i class="dot m"></i>subarray counted</span>
         <span><i class="dot x"></i>left behind</span>
       </div>
     </div>
   </div>
 
   <div class="foot">
-    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; each index enters once and leaves once, so the inner
-    <code>while</code> is amortised O(1). Sub-variant <b>C</b>: record <code>best</code> <em>inside</em> the
-    shrink loop. All values positive is not a detail &mdash; it is the precondition that makes the window work.
+    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; each index is multiplied in once and divided out at most once,
+    so the inner <code>while</code> is amortised O(1). Sub-variant <b>F</b>: the answer is not a best window, it is a
+    <code>count</code> accumulated by <code>r - l + 1</code> at every <code>r</code>. Guard <code>k &lt;= 1</code>
+    first, or the shrink loop runs the window empty and the arithmetic still reads as if it worked.
   </div>
 
 <script>
@@ -552,87 +589,98 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   "use strict";
 
   const CODE = [
-    [['ty','int '],['fn','minSubArrayLen'],['tx','('],['kw','int'],['tx',' target, '],['kw','int'],['tx','[] nums) {']],
-    [['tx','    '],['kw','int '],['tx','l = 0, sum = 0, best = Integer.MAX_VALUE;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {   '],['cm','// right always advances']],
-    [['tx','        sum += nums[r];                          '],['cm','// grow: sum can only rise']],
-    [['tx','        '],['kw','while '],['tx','(sum >= target) {                  '],['cm','// window is VALID -> shrink it']],
-    [['tx','            best = Math.min(best, r - l + 1);    '],['cm','// <<< RECORD INSIDE the loop']],
-    [['tx','            sum -= nums[l];                      '],['cm','// evict: sum can only fall']],
-    [['tx','            l++;']],
+    [['ty','int '],['fn','numSubarrayProductLessThanK'],['tx','('],['kw','int'],['tx','[] nums, '],['kw','int'],['tx',' k) {']],
+    [['tx','    '],['kw','if '],['tx','(k <= 1) '],['kw','return '],['tx','0;                    '],['cm','// no product of positives is < 1']],
+    [['tx','    '],['kw','int '],['tx','l = 0, count = 0;']],
+    [['tx','    '],['kw','long '],['tx','prod = 1;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {']],
+    [['tx','        prod *= nums[r];                        '],['cm','// grow on the right']],
+    [['tx','        '],['kw','while '],['tx','(prod >= k) {                     '],['cm','// invalid -> evict from the left']],
+    [['tx','            prod /= nums[l];']],
+    [['tx','            l++;                                '],['cm','// l may pass r: window goes empty']],
     [['tx','        }']],
+    [['tx','        count += r - l + 1;                     '],['cm','// <<< every suffix ending at r']],
     [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best == Integer.MAX_VALUE ? 0 : best;']],
+    [['tx','    '],['kw','return '],['tx','count;']],
     [['tx','}']]
   ];
-  const REC_LINE = 5;
+  const REC_LINE = 10;
 
-  const RULE = `<span class="modechip c">Mode C &middot; minimise</span>` +
-    `grow <span class="r">r</span> always &middot; <b>while VALID</b> (sum &ge; target) shrink <span class="l">l</span> ` +
-    `&middot; record <span class="m">best</span> <b>INSIDE</b> the shrink loop`;
+  const RULE = `<span class="modechip f">Mode F &middot; count</span>` +
+    `grow <span class="r">r</span> always &middot; <b>while INVALID</b> (prod &ge; k) shrink <span class="l">l</span> ` +
+    `&middot; then <span class="m">count += r &minus; l + 1</span> &mdash; one per start in <span class="w">[l..r]</span>`;
 
-  function buildFrames(nums, target){
+  function factors(nums, l, r){
+    if(r < l) return '<span class="one">1 (empty window)</span>';
+    const out = [];
+    for(let c=l;c<=r;c++) out.push(`<span class="f">${nums[c]}</span>`);
+    return out.join(' <span class="x">&times;</span> ');
+  }
+
+  function buildFrames(nums, k){
     const n = nums.length, F = [];
-    let l = 0, sum = 0, best = Infinity, bestL = -1, bestR = -1, r = -1;
-    const INF = '&infin;';
+    let l = 0, r = -1, prod = 1, count = 0;
     const f = o => F.push(Object.assign({
-      nums, target, n, l, r, sum, best, bestL, bestR, enter:-1, leave:-1, shrinking:false
+      nums, k, n, l, r, prod, count, enter:-1, leave:-1, shrinking:false, suf:null, contrib:null, dead:false
     }, o));
 
     if(n === 0){
-      f({phase:'done', code:0, done:true, msg:`Empty array &mdash; nothing to slide over. <b>Return 0</b>.`});
+      f({phase:'done', code:12, done:true, msg:`Empty array &mdash; there are no subarrays at all. <b>Return 0</b>.`});
       return F;
     }
 
-    f({phase:'seed', code:1,
-      msg:`<span class="l">l = 0</span>, <span class="k">sum = 0</span>, <span class="m">best = &infin;</span>. Every value is <b>positive</b>, so pushing <span class="r">r</span> right can only raise the sum and pulling <span class="l">l</span> right can only lower it. That monotonicity is the entire licence to slide.`});
+    if(k <= 1){
+      f({phase:'dead', code:1, done:true, dead:true, l:0, r:-1,
+        msg:`<span class="k">k = ${k}</span>, so the guard on line 2 fires immediately. Every value is a positive integer, so every product is <b>&ge; 1</b> &mdash; nothing can be <em>strictly</em> below ${k}. <b>Return 0</b> before the loop ever starts. Delete this line and the shrink loop below would divide the window down to empty on every step, quietly returning 0 anyway &mdash; but only by accident, and only if <span class="k">prod /= nums[l]</span> never sees an empty window first.`});
+      return F;
+    }
+
+    f({phase:'seed', code:3,
+      msg:`<span class="l">l = 0</span>, <span class="k">prod = 1</span>, <span class="m">count = 0</span>. The empty product is 1, and every <span class="k">nums[i] &ge; 1</span> &mdash; so multiplying on the right can only push <span class="k">prod</span> <b>up</b> and dividing on the left can only push it <b>down</b>. That monotonicity is what licenses a two-pointer sweep instead of an O(n&sup2;) double loop.`});
 
     for(r = 0; r < n; r++){
-      sum += nums[r];
-      f({phase:'grow', code:3, enter:r,
-        msg:`<span class="r">nums[${r}] = ${nums[r]}</span> enters on the right. <span class="k">sum = ${sum}</span>, window <span class="w">[${l}..${r}]</span> is ${r-l+1} wide.`});
+      prod *= nums[r];
+      f({phase:'grow', code:5, enter:r,
+        msg:`<span class="r">nums[${r}] = ${nums[r]}</span> multiplies in. <span class="k">prod = ${prod}</span> over window <span class="w">[${l}..${r}]</span>.`});
 
-      if(sum < target){
-        f({phase:'grow', code:4,
-          msg:`<span class="k">${sum} &lt; ${target}</span> &mdash; still <b>invalid</b>, too small to count. Nothing to record, nothing to shrink. Advance <span class="r">r</span>.`});
+      if(prod < k){
+        f({phase:'grow', code:6,
+          msg:`<span class="k">${prod} &lt; ${k}</span> &mdash; already <b>valid</b>, the shrink loop does not run. <span class="l">l</span> stays at ${l}.`});
       }
 
-      while(sum >= target){
-        const w = r - l + 1;
-        const improved = w < best;
-        if(improved){ best = w; bestL = l; bestR = r; }
-        f({phase:improved?'found':'shrink', code:REC_LINE, shrinking:true,
-          msg:`<span class="k">${sum} &ge; ${target}</span> &mdash; <b>valid</b>. Record <em>now</em>, at width <b>${w}</b>: ` +
-              (improved
-                ? `<span class="m">best = ${best}</span>, a new minimum at <span class="m">[${bestL}..${bestR}]</span>.`
-                : `<span class="m">best stays ${best}</span> &mdash; this window is not shorter.`) +
-              ` This is the line that makes it sub-variant C.`});
-
+      while(prod >= k){
         const out = l;
-        sum -= nums[out];
+        const before = prod;
+        prod = Math.round(prod / nums[out]);
         l++;
-        f({phase:'shrink', code:6, leave:out, shrinking:true,
-          msg:`Evict <span class="l">nums[${out}] = ${nums[out]}</span> from the left &mdash; the only way to get shorter. <span class="k">sum = ${sum}</span>, window is now <span class="w">${l>r?'empty':`[${l}..${r}]`}</span>.` +
-              (sum < target ? ` It just fell below <span class="k">${target}</span>, so the shrink loop ends here.` : ` Still &ge; <span class="k">${target}</span> &mdash; loop again and record again.`)});
+        f({phase:'shrink', code:7, leave:out, shrinking:true, prod:prod, l:l,
+          msg:`<span class="k">${before} &ge; ${k}</span> &mdash; <b>invalid</b>. Divide out <span class="l">nums[${out}] = ${nums[out]}</span>: <span class="k">prod = ${prod}</span>, <span class="l">l = ${l}</span>. ` +
+              (l > r
+                ? `<span class="x">l has passed r &mdash; the window is now empty.</span> <span class="k">nums[${r}] = ${nums[r]}</span> is on its own already &ge; ${k}, so no subarray ending here can ever qualify. <b>prod resets to 1</b>, the empty product.`
+                : (prod < k
+                    ? `Now below ${k}, so the loop stops with window <span class="w">[${l}..${r}]</span>.`
+                    : `Still &ge; ${k} &mdash; keep evicting.`))});
       }
+
+      const width = r - l + 1;
+      count += width;
+      f({phase: width>0 ? 'count' : 'zero', code:REC_LINE, suf:{l:l, r:r}, contrib:width, count:count,
+        msg: width > 0
+          ? `Window <span class="w">[${l}..${r}]</span> is valid, so <b>every suffix of it that ends at ${r}</b> is valid too &mdash; dropping a leading factor only shrinks the product. There are exactly <b>${width}</b> of them, one per start index in <span class="w">${l}..${r}</span>, and they are all brand new because no earlier step ended at ${r}. <span class="m">count += ${width}</span> &rarr; <span class="m">${count}</span>.`
+          : `The window is <span class="x">empty</span>, so <span class="k">r &minus; l + 1 = ${r} &minus; ${l} + 1 = 0</span>. <span class="m">count += 0</span> &mdash; the same line still runs, and it still says the right thing. No special case needed.`});
     }
 
     r = n - 1;
-    if(best === Infinity){
-      f({phase:'done', code:10, l:0, r:-1, done:true, none:true,
-        msg:`<span class="x">The sum never reached ${target}</span> &mdash; not even the whole array. <span class="m">best</span> is still ${INF}, so the contract says <b>return 0</b>, not ${INF}.`});
-    } else {
-      f({phase:'done', code:10, l:bestL, r:bestR, sum:nums.slice(bestL,bestR+1).reduce((a,b)=>a+b,0), done:true,
-        msg:`Scan complete. Shortest valid window is <span class="m">[${bestL}..${bestR}]</span> = [${nums.slice(bestL,bestR+1).join(', ')}], length <b>${best}</b>. <b>Return ${best}</b>.`});
-    }
+    f({phase:'done', code:12, done:true, l:l, r:r, suf:null,
+      msg:`Sweep complete. Every subarray was counted exactly once, at the moment its <b>right end</b> was reached. <b>Return ${count}</b>.`});
     return F;
   }
 
   const $ = id => document.getElementById(id);
   const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
-        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), tEl=$('tInput'),
+        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), kEl=$('kInput'),
         statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
-        gTrack=$('gaugeTrack'), gFill=$('gaugeFill'), gThr=$('gaugeThr'), gTxt=$('gaugeTxt');
+        prodEl=$('prodLine'), sufEl=$('sufRows'), sufCap=$('sufCap');
   let frames=[], idx=0, playing=false, timer=null;
 
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -648,27 +696,30 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       .map(x=>Math.max(1, Math.min(99, parseInt(x,10))));
     return a.slice(0,12);
   }
-  function parseT(str){
-    let t = parseInt(String(str).replace(/[^0-9]/g,''), 10);
-    if(isNaN(t) || t < 1) t = 1;
-    return Math.min(999, t);
+  function parseK(str){
+    let v = parseInt(String(str).replace(/[^0-9]/g,''), 10);
+    if(isNaN(v) || v < 0) v = 0;
+    return Math.min(100000, v);
   }
 
   function buildTape(nums){
     tapeEl.innerHTML='';
-    nums.forEach((v,k)=>{
+    nums.forEach((v,c)=>{
       const col=document.createElement('div'); col.className='col';
-      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
-        `<div class="cell" data-cell="${k}">${v}</div>`+
-        `<div class="idx" data-idx="${k}">${k}</div>`;
+      col.innerHTML = `<div class="caret" data-caret="${c}"></div>`+
+        `<div class="cell" data-cell="${c}">${v}</div>`+
+        `<div class="idx" data-idx="${c}">${c}</div>`;
       tapeEl.appendChild(col);
     });
   }
 
+  const MAXROWS = 7;
+
   function render(){
     const f = frames[idx]; if(!f) return;
     const nums = f.nums, n = nums.length;
-    const live = f.l <= f.r && f.r >= 0;
+    const live = !f.dead && f.l <= f.r && f.r >= 0;
+
     for(let c=0;c<n;c++){
       const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
       const caret=tapeEl.querySelector(`[data-caret="${c}"]`);
@@ -676,17 +727,18 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       if(!cell) continue;
       const inWin = live && c>=f.l && c<=f.r;
       let cls='cell';
-      if(c===f.enter)        cls+=' entering';
+      if(f.dead)             cls+=' gone';
+      else if(c===f.enter)   cls+=' entering';
       else if(c===f.leave)   cls+=' leaving';
       else if(inWin)         cls += (f.l===f.r ? ' wr' : (c===f.l ? ' wl' : (c===f.r ? ' wr' : ' wbody')));
       else if(c < f.l)       cls+=' gone';
       else                   cls+=' ahead';
-      if(f.bestL>=0 && c>=f.bestL && c<=f.bestR) cls+=' bestmark';
       cell.className=cls;
 
       let ct='';
-      if(c===f.enter)      ct='<span class="p pIn">+in</span>';
-      else if(c===f.leave) ct='<span class="p pOut">&minus;out</span>';
+      if(f.dead)                  ct='';
+      else if(c===f.enter)        ct='<span class="p pIn">&times;in</span>';
+      else if(c===f.leave)        ct='<span class="p pOut">&divide;out</span>';
       else if(inWin && f.l===f.r) ct='<span class="p pR">l r</span>';
       else if(inWin && c===f.l)   ct='<span class="p pL">l</span>';
       else if(inWin && c===f.r)   ct='<span class="p pR">r</span>';
@@ -694,34 +746,67 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
     }
 
-    const denom = Math.max(f.target*1.6, f.sum, 1);
-    gFill.style.width = Math.max(0, Math.min(100, f.sum/denom*100)) + '%';
-    gThr.style.left = (f.target/denom*100) + '%';
-    const valid = f.sum >= f.target;
-    gTrack.classList.toggle('hit', valid);
-    gTxt.innerHTML = `<span class="${valid?'m':'w'}">${f.sum}</span> &nbsp;/&nbsp; target ${f.target} &nbsp;&middot;&nbsp; ${valid?'VALID &mdash; shrink':'invalid &mdash; grow'}`;
+    /* the product, written as its factors */
+    if(f.dead){
+      prodEl.innerHTML = `<span class="bad">k = ${f.k} &le; 1 &mdash; the loop never runs</span>`;
+    } else if(f.r < 0){
+      prodEl.innerHTML = `<span class="one">prod = 1</span> <span class="x">&mdash; the empty product</span>`;
+    } else {
+      const valid = f.prod < f.k;
+      const body = (f.leave >= 0)
+        ? `<span class="fout">${nums[f.leave]}</span> <span class="x">&divide;&rarr;</span> ${factors(nums, f.l, f.r)}`
+        : factors(nums, f.l, f.r);
+      prodEl.innerHTML = `${body} <span class="eq">= ${f.prod}</span> ` +
+        (valid ? `<span class="ok">&lt; k = ${f.k} &nbsp;VALID</span>` : `<span class="bad">&ge; k = ${f.k} &nbsp;INVALID &mdash; evict</span>`);
+    }
 
-    const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
+    const winTxt = live ? `[${f.l}..${f.r}]` : (f.dead ? '&mdash;' : 'empty');
     const width = live ? (f.r-f.l+1) : 0;
+    const valid = !f.dead && f.prod < f.k;
     statsEl.innerHTML =
-      `<span class="stat w">window ${winTxt} &middot; width <b>${width}</b></span>`+
-      `<span class="stat ${valid?'h':'mute'}">sum <b>${f.sum}</b> ${valid?'&ge;':'&lt;'} ${f.target}</span>`+
-      (f.best===Infinity
-        ? `<span class="stat mute">best <b>&infin;</b> &mdash; nothing recorded yet</span>`
-        : `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`)+
+      `<span class="stat ${live?'w':'mute'}">window ${winTxt} &middot; width <b>${width}</b></span>`+
+      `<span class="stat ${f.dead?'mute':(valid?'h':'minus')}">prod <b>${f.dead?'&mdash;':f.prod}</b> ${f.dead?'':(valid?'&lt;':'&ge;')} ${f.dead?'':f.k}</span>`+
+      `<span class="stat ${f.contrib!==null?'h':'mute'}">count <b>${f.count}</b>${f.contrib!==null?` &nbsp;(+${f.contrib})`:''}</span>`+
       `<span class="stat ${f.shrinking?'minus':'mute'}">l <b>${f.l}</b></span>`+
       `<span class="stat ${f.enter>=0?'plus':'mute'}">r <b>${f.r<0?'&mdash;':f.r}</b></span>`;
+
+    /* the suffix ladder */
+    if(f.suf && f.suf.r >= f.suf.l){
+      const s0=f.suf.l, s1=f.suf.r, total=s1-s0+1;
+      const shown=Math.min(total, MAXROWS);
+      let h='';
+      for(let t=0;t<shown;t++){
+        const s=s0+t;
+        let row='<div class="sufrow">';
+        for(let c=0;c<n;c++){
+          const on = c>=s && c<=s1;
+          row += `<div class="sufc ${on?(c===s?'on head':'on'):'off'}"></div>`;
+        }
+        row += `<span class="sufnote">[${s}..${s1}] = ${nums.slice(s,s1+1).join('&middot;')}</span></div>`;
+        h+=row;
+      }
+      if(total>shown) h += `<div class="sufrow"><span class="sufnote">&hellip; and ${total-shown} more, ${total} in all</span></div>`;
+      sufEl.innerHTML=h;
+      sufCap.innerHTML = `<span class="m">${total}</span> new subarray${total===1?'':'s'} end at index ${s1} &mdash; this is what <span class="m">r &minus; l + 1</span> means`;
+    } else if(f.suf){
+      sufEl.innerHTML = `<div class="sufempty">window empty &rarr; 0 subarrays end at index ${f.suf.r}</div>`;
+      sufCap.innerHTML = `<span class="a">r &minus; l + 1 = 0</span> &mdash; the count line runs and adds nothing`;
+    } else {
+      sufEl.innerHTML = `<div class="sufempty">${f.dead ? 'the count line is never reached' : 'the count line has not fired yet for this r'}</div>`;
+      sufCap.innerHTML = `the subarrays this step banks`;
+    }
 
     ruleEl.innerHTML = RULE;
     msgEl.innerHTML = f.msg;
     verdictEl.innerHTML = f.done
-      ? (f.best === Infinity
-          ? `<span class="trip no">answer = 0${f.n ? ` &middot; no window ever reached the target` : ` &middot; empty input`}</span>`
-          : `<span class="trip">answer = ${f.best}</span><span class="trip neutral">shortest window [${f.bestL}..${f.bestR}]</span>`)
+      ? `<span class="trip">answer = ${f.count}</span>` +
+        (f.dead ? `<span class="trip no">k &le; 1 &mdash; short-circuited before the sweep</span>`
+                : `<span class="trip neutral">${f.count} subarrays with product &lt; ${f.k}</span>`)
       : '';
 
     const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
-                shrink:['sort','&#8592; shrinking l'],found:['found','&#10003; new minimum'],
+                shrink:['sort','&#8592; evicting l'],count:['found','&#43; banking r&minus;l+1'],
+                zero:['sort','&#43; banking 0'],dead:['done','&#9632; k &le; 1'],
                 done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
     pillEl.className='phase-pill '+pe[0]; pillEl.innerHTML=pe[1];
@@ -734,13 +819,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(arrRaw, tRaw){
+  function run(arrRaw, kRaw){
     stop();
     const nums = parseArr(arrRaw);
-    const target = parseT(tRaw);
-    arrEl.value = nums.join(','); tEl.value = target;
+    const k = parseK(kRaw);
+    arrEl.value = nums.join(','); kEl.value = k;
     buildTape(nums);
-    frames = buildFrames(nums, target);
+    frames = buildFrames(nums, k);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
@@ -752,36 +837,36 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   function togglePlay(){ playing?stop():play(); }
 
   const EX=[
-    ['2,3,1,2,4,3','7','the textbook run &mdash; answer 2'],
-    ['1,4,4','4','one element already clears the bar'],
-    ['1,1,1,1,1,1,1,1','11','never valid &rarr; return 0, not &infin;'],
-    ['5,1,3,5,10,7,4,9,2,8','15','shrink fires repeatedly, deep in the array'],
-    ['1,2,3,4,5','15','only the whole array qualifies']
+    ['10,5,2,6','100','the textbook run &mdash; answer 8'],
+    ['1,2,3','0','k &le; 1 &rarr; return 0 before the loop'],
+    ['5,2,7','5','a single element &ge; k empties the window'],
+    ['1,1,1,1','2','every subarray qualifies &mdash; n(n+1)/2'],
+    ['10,9,10,4,3,8,3,3,6,2','19','shrink fires deep and often']
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(function(e){
       const c=document.createElement('button'); c.className='chip';
-      c.innerHTML=`[${e[0]}], t=${e[1]}<b>${e[2]}</b>`;
+      c.innerHTML=`[${e[0]}], k=${e[1]}<b>${e[2]}</b>`;
       c.onclick=function(){ run(e[0], e[1]); };
       box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(arrEl.value, tEl.value);
-  [arrEl,tEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, tEl.value); }));
+  $('runBtn').onclick=()=>run(arrEl.value, kEl.value);
+  [arrEl,kEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, kEl.value); }));
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
   $('playBtn').onclick=togglePlay;
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
-    if(document.activeElement===arrEl||document.activeElement===tEl) return;
+    if(document.activeElement===arrEl||document.activeElement===kEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
     if(e.key===' '){e.preventDefault();togglePlay();}
   });
 
-  run(arrEl.value, tEl.value);
+  run(arrEl.value, kEl.value);
 })();
 </script>
 

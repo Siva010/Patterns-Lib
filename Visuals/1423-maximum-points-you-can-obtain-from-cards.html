@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>LeetCode 209 &middot; Minimum Size Subarray Sum &mdash; visual guide</title>
-<meta name="description" content="Interactive walkthrough of LeetCode 209: the minimise-length sliding window, where best is recorded inside the shrink loop and positivity is the precondition that makes the window sound.">
+<title>LeetCode 1423 &middot; Maximum Points You Can Obtain from Cards &mdash; visual guide</title>
+<meta name="description" content="Sliding window sub-variant H: the k cards you take sit at both ends, so window their complement - the fixed-width middle block of size n-k - and minimise it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -323,10 +323,9 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 
 
 /* ============================================================
-   VARIABLE-SIZE WINDOW — shared page-local additions
-   The window grows on the right and shrinks on the left, so the
-   tape needs the same five states the fixed-width pages use, all
-   built from shared tokens — no new hue is introduced below:
+   COMPLEMENT / DEQUE WINDOWS — shared page-local additions
+   Same five tape states the other window pages use, all built
+   from shared tokens — no new hue is introduced below:
      .wbody     settled interior of the window   -> --r-window
      .wl / .wr  the two boundaries               -> --r-left / --r-right
      .entering  the cell added on this step      -> --r-right, lifted
@@ -356,6 +355,7 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .caret .pW   { color: var(--accent-fg); background: var(--r-window); }
 .caret .pIn  { color: var(--accent-fg); background: var(--r-right); }
 .caret .pOut { color: var(--accent-fg); background: var(--r-left); }
+.caret .pT   { color: var(--accent-fg); background: var(--r-anchor); }
 
 /* the running statistic — one chip per quantity that rides the frame */
 .stats { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 620px; }
@@ -371,6 +371,8 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .stat.h b   { color: var(--r-hit); }
 .stat.a     { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
 .stat.a b   { color: var(--r-anchor); }
+.stat.a2    { border-color: var(--r-anchor2-line);background: var(--r-anchor2-wash);color: var(--r-anchor2); }
+.stat.a2 b  { color: var(--r-anchor2); }
 .stat.plus  { border-color: var(--r-right-line);  background: var(--r-right-wash);  color: var(--r-right); }
 .stat.plus b{ color: var(--r-right); }
 .stat.minus { border-color: var(--r-left-line);   background: var(--r-left-wash);   color: var(--r-left); }
@@ -389,9 +391,10 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .rulebar .r { color: var(--r-right);  font-weight: 600; }
 .rulebar .m { color: var(--r-hit);    font-weight: 600; }
 .rulebar .a { color: var(--r-anchor); font-weight: 600; }
+.rulebar .a2{ color: var(--r-anchor2);font-weight: 600; }
 .rulebar .x { color: var(--fg-dim);   font-weight: 600; }
 
-/* B-vs-C mode badge — every variable-window page declares which it is */
+/* variant badge — every window page declares which kind it is */
 .modechip {
   display: inline-block; font-family: var(--sans); font-size: 10px; font-weight: 600;
   letter-spacing: .09em; text-transform: uppercase; padding: 2px 8px;
@@ -399,9 +402,12 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .modechip.b { color: var(--r-hit);    background: var(--r-hit-wash);    border: 1px solid var(--r-hit-line); }
 .modechip.c { color: var(--r-window); background: var(--r-window-wash); border: 1px solid var(--r-window-line); }
+.modechip.h { color: var(--r-anchor); background: var(--r-anchor-wash); border: 1px solid var(--r-anchor-line); }
+.modechip.i { color: var(--r-anchor2);background: var(--r-anchor2-wash);border: 1px solid var(--r-anchor2-line); }
 
 .message .w { color: var(--r-window); font-weight: 600; }
 .message .a { color: var(--r-anchor); font-weight: 600; }
+.message .a2{ color: var(--r-anchor2); font-weight: 600; }
 .sum-line .w { color: var(--r-window); }
 .sum-line .m { color: var(--r-hit); }
 
@@ -410,17 +416,20 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
   font-family: var(--sans); font-size: 10.5px; font-weight: 600;
   letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); text-align: center;
 }
-.tapecap em { font-style: normal; color: var(--r-window); }
+.tapecap em  { font-style: normal; color: var(--r-window); }
+.tapecap i   { font-style: normal; color: var(--r-anchor); }
+.tapecap u   { text-decoration: none; color: var(--r-anchor2); }
 
-.dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
-.dot.a { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.w  { background: var(--r-window-wash);  border-color: var(--r-window); }
+.dot.a  { background: var(--r-anchor-wash);  border-color: var(--r-anchor); }
+.dot.a2 { background: var(--r-anchor2-wash); border-color: var(--r-anchor2); }
 .trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
-.trip.no { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
+.trip.no   { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
 .trip.bank { color: var(--r-anchor); background: var(--r-anchor-wash); border-color: var(--r-anchor-line); }
 .code .cm { color: var(--t-com); font-style: italic; }
 
-/* the record point, pinned in the source so the B/C difference is
-   visible without stepping: this is the line where `best` is written. */
+/* the record point, pinned in the source so the variant is visible
+   without stepping: this is the line where the answer is written. */
 .code .ln.recpoint { background: var(--r-hit-wash); }
 .code .ln.recpoint::after {
   content: "RECORD"; position: absolute; right: 12px; top: 1px;
@@ -429,24 +438,55 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .code .ln.recpoint.exec { background: var(--accent-wash); }
 
-/* --- 209 only: the sum gauge, target as a hard threshold --- */
-.gauge { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; max-width: 420px; }
-.gaugetrack {
-  position: relative; width: 100%; height: 11px; border-radius: 6px;
-  background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+/* --- sub-variant H only: the complement view -----------------
+   The tape shows BOTH readings of the same picture at once:
+   the cells at the two ends are the set you TAKE / REMOVE
+   (--r-anchor), the unbroken middle is the window (--r-window).
+   The bracket row underneath measures them in INDICES; the
+   ledger bar measures the same split in VALUE.
+   ------------------------------------------------------------ */
+.cell.taken {
+  background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor);
+  transform: translateY(3px);
 }
-.gaugefill {
-  position: absolute; left: 1px; top: 1px; bottom: 1px; border-radius: 5px;
-  background: var(--r-window); opacity: .55; transition: width .18s;
+.cell.taken.wonmark { border-width: 2.5px; }
+
+.brackets { display: flex; justify-content: center; align-items: flex-start; margin-top: 2px; }
+.brk { display: inline-block; vertical-align: top; }
+.brk .bar {
+  height: 7px; border: 1px solid; border-top: none; border-radius: 0 0 6px 6px;
+  transition: width .18s;
 }
-.gaugetrack.hit .gaugefill { background: var(--r-hit); opacity: .7; }
-.gaugethr { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg-mid); }
-.gaugelab {
+.brk .lbl {
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; text-align: center; margin-top: 4px; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.brk.take .bar { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.brk.take .lbl { color: var(--r-anchor); }
+.brk.mid  .bar { border-color: var(--r-window-line); background: var(--r-window-wash); }
+.brk.mid  .lbl { color: var(--r-window); }
+.brk.mid.good .bar { border-color: var(--r-hit-line); background: var(--r-hit-wash); }
+.brk.mid.good .lbl { color: var(--r-hit); }
+
+.eqwrap { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
+.eqbar {
+  display: flex; width: 100%; max-width: 470px; height: 15px;
+  border: 1px solid var(--rule-hard); border-radius: 8px; overflow: hidden; background: var(--bg-sunk);
+}
+.eqbar .seg { transition: flex-grow .2s; min-width: 0; }
+.eqbar .seg.t { background: var(--r-anchor); opacity: .5; }
+.eqbar .seg.m { background: var(--r-window); opacity: .5; }
+.eqbar.won .seg.t { background: var(--r-hit); opacity: .62; }
+.eqlab {
   font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
-  display: flex; justify-content: space-between; width: 100%;
+  display: flex; justify-content: space-between; gap: 12px; width: 100%; max-width: 470px;
 }
-.gaugelab .m { color: var(--r-hit); font-weight: 600; }
-.gaugelab .w { color: var(--r-window); font-weight: 600; }
+.eqlab .a { color: var(--r-anchor); font-weight: 600; }
+.eqlab .w { color: var(--r-window); font-weight: 600; }
+.eqlab .m { color: var(--r-hit);    font-weight: 600; }
+.dot.t { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+
 </style>
 <script>
 /* set the theme before first paint to avoid a flash.
@@ -464,31 +504,30 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant C &mdash; minimise <span class="tag">LeetCode 209</span></div>
-  <h1>Minimum Size Subarray Sum <span class="thin">/ visualized</span></h1>
+  <div class="eyebrow">Sliding Window &middot; sub-variant H &mdash; complement / inverse window <span class="tag">LeetCode 1423</span></div>
+  <h1>Maximum Points You Can Obtain from Cards <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    This is the canonical <b>minimise</b> window, and the whole variant lives in one line's position.
-    <span class="r">r</span> always advances and adds. Then, <em>while the window is already valid</em>
-    (<span class="k">sum &ge; target</span>), you shrink from the <span class="l">left</span> &mdash; and you
-    record <span class="m">best</span> <em>inside</em> that shrink loop, before each eviction, because the
-    window is only as small as it will ever be at that instant. Move the record one line down, outside the
-    loop, and you measure windows that have already been broken. The machine is only sound because every
-    value is <b>positive</b>: adding on the right can only push the sum up, removing on the left can only
-    push it down, so &quot;valid&quot; is monotone in the boundaries. LC 862 allows negatives, that monotonicity
-    dies, and the sliding window dies with it &mdash; that problem needs a monotonic deque over prefix sums instead.
+    You take exactly <span class="k">k</span> cards, each one off the <b>front</b> or the <b>back</b>. That set
+    straddles the two <span class="a">ends</span> of the array, so it is not contiguous and no window can hold it.
+    Its <b>complement</b> can: whatever you leave behind is one unbroken <span class="w">middle block</span> of
+    width exactly <span class="k">n &minus; k</span>. So stop solving the stated problem and solve the inverse
+    &mdash; slide a <b>fixed-width</b> window of size <span class="k">n &minus; k</span>, find its
+    <em>minimum</em> sum, and read the answer off as <span class="k">total &minus; minSum</span>. Maximising the
+    ends and minimising the middle are the same instruction seen from opposite sides, which is why the tape below
+    paints both at once. Its partner LC 1658 has the same complement trick with a <em>variable</em>-width middle.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">nums &mdash; positive integers, comma-separated</label>
+      <label for="arrInput">cardPoints &mdash; comma-separated</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="2,3,1,2,4,3" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="1,2,3,4,5,6,1" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div class="field" style="flex:0 0 210px; min-width:210px;">
-      <label for="tInput">target</label>
+      <label for="kInput">k &mdash; cards taken</label>
       <div class="input-shell">
-        <input id="tInput" type="text" value="7" spellcheck="false" autocomplete="off">
+        <input id="kInput" type="text" value="3" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
       </div>
     </div>
@@ -500,15 +539,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
       <div class="stage">
         <div class="taperow">
-          <div class="tapecap">nums &nbsp;&middot;&nbsp; <em>teal</em> cells are inside the window</div>
+          <div class="tapecap">one picture, two readings &nbsp;&middot;&nbsp; <i>orange ends = cards TAKEN</i> &nbsp;&middot;&nbsp; <em>teal middle = the window you LEAVE</em></div>
           <div class="tape fw" id="tape"></div>
+          <div class="brackets" id="brackets"></div>
         </div>
-        <div class="gauge">
-          <div class="gaugetrack" id="gaugeTrack">
-            <div class="gaugefill" id="gaugeFill"></div>
-            <div class="gaugethr" id="gaugeThr"></div>
-          </div>
-          <div class="gaugelab"><span>window sum</span><span id="gaugeTxt"></span></div>
+        <div class="eqwrap">
+          <div class="eqbar" id="eqBar"><div class="seg t" id="segT"></div><div class="seg m" id="segM"></div></div>
+          <div class="eqlab"><span id="eqLeft"></span><span id="eqRight"></span></div>
         </div>
         <div class="rulebar" id="ruleBar"></div>
         <div class="stats" id="stats"></div>
@@ -532,19 +569,20 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot w"></i>inside the window</span>
-        <span><i class="dot r"></i>entering (sum +=)</span>
-        <span><i class="dot l"></i>evicted (sum &minus;=)</span>
-        <span><i class="dot m"></i>shortest window recorded</span>
-        <span><i class="dot x"></i>left behind</span>
+        <span><i class="dot t"></i>taken (front + back)</span>
+        <span><i class="dot w"></i>the middle window</span>
+        <span><i class="dot r"></i>entering the middle</span>
+        <span><i class="dot l"></i>leaving the middle</span>
+        <span><i class="dot m"></i>minimum middle recorded</span>
       </div>
     </div>
   </div>
 
   <div class="foot">
-    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; each index enters once and leaves once, so the inner
-    <code>while</code> is amortised O(1). Sub-variant <b>C</b>: record <code>best</code> <em>inside</em> the
-    shrink loop. All values positive is not a detail &mdash; it is the precondition that makes the window work.
+    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; one pass for <code>total</code>, one fixed-width slide.
+    Sub-variant <b>H</b>: the asked-for set is split across both ends, so you invert the question and window its
+    complement. <code>answer = total &minus; min(sum of any n&minus;k contiguous cells)</code>, and when
+    <code>k == n</code> the window has width 0 and the answer is the whole <code>total</code>.
   </div>
 
 <script>
@@ -552,87 +590,100 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   "use strict";
 
   const CODE = [
-    [['ty','int '],['fn','minSubArrayLen'],['tx','('],['kw','int'],['tx',' target, '],['kw','int'],['tx','[] nums) {']],
-    [['tx','    '],['kw','int '],['tx','l = 0, sum = 0, best = Integer.MAX_VALUE;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {   '],['cm','// right always advances']],
-    [['tx','        sum += nums[r];                          '],['cm','// grow: sum can only rise']],
-    [['tx','        '],['kw','while '],['tx','(sum >= target) {                  '],['cm','// window is VALID -> shrink it']],
-    [['tx','            best = Math.min(best, r - l + 1);    '],['cm','// <<< RECORD INSIDE the loop']],
-    [['tx','            sum -= nums[l];                      '],['cm','// evict: sum can only fall']],
-    [['tx','            l++;']],
-    [['tx','        }']],
+    [['ty','int '],['fn','maxScore'],['tx','('],['kw','int'],['tx','[] cardPoints, '],['kw','int'],['tx',' k) {']],
+    [['tx','    '],['kw','int '],['tx','n = cardPoints.length, total = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','v : cardPoints) total += v;      '],['cm','// the whole pile']],
+    [['tx','    '],['kw','int '],['tx','w = n - k;                             '],['cm','// the block you LEAVE']],
+    [['tx','    '],['kw','if '],['tx','(w == 0) '],['kw','return '],['tx','total;                 '],['cm','// k == n: take everything']],
+    [['tx','    '],['kw','int '],['tx','sum = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 0; i < w; i++) sum += cardPoints[i];']],
+    [['tx','    '],['kw','int '],['tx','minSum = sum;                          '],['cm','// minimise the middle...']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = w; r < n; r++) {']],
+    [['tx','        sum += cardPoints[r] - cardPoints[r - w];   '],['cm','// slide, width fixed']],
+    [['tx','        minSum = Math.min(minSum, sum);']],
     [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best == Integer.MAX_VALUE ? 0 : best;']],
+    [['tx','    '],['kw','return '],['tx','total - minSum;                        '],['cm','// ...to maximise the ends']],
     [['tx','}']]
   ];
-  const REC_LINE = 5;
+  const REC_LINE = 10;
 
-  const RULE = `<span class="modechip c">Mode C &middot; minimise</span>` +
-    `grow <span class="r">r</span> always &middot; <b>while VALID</b> (sum &ge; target) shrink <span class="l">l</span> ` +
-    `&middot; record <span class="m">best</span> <b>INSIDE</b> the shrink loop`;
+  const RULE = `<span class="modechip h">Sub-variant H &middot; complement</span>` +
+    `the <span class="a">k taken</span> cards sit at BOTH ENDS &mdash; not a window &middot; ` +
+    `the <span class="w">n&minus;k left behind</span> are one block &mdash; that IS one &middot; ` +
+    `<span class="m">answer = total &minus; minSum</span>`;
 
-  function buildFrames(nums, target){
+  function buildFrames(nums, kRaw){
     const n = nums.length, F = [];
-    let l = 0, sum = 0, best = Infinity, bestL = -1, bestR = -1, r = -1;
-    const INF = '&infin;';
+    if(n === 0){
+      F.push({nums:[], n:0, k:0, w:0, total:0, l:0, r:-1, sum:0, minSum:0, minL:-1, minR:-1,
+              enter:-1, leave:-1, hasWin:false, building:false, allTaken:false,
+              phase:'done', code:0, done:true, ans:0,
+              msg:`Empty deck &mdash; nothing to take. <b>Return 0</b>.`});
+      return F;
+    }
+    const k = Math.max(1, Math.min(n, kRaw));
+    const total = nums.reduce((a,b)=>a+b,0);
+    const w = n - k;
+
+    let l = 0, r = -1, sum = 0, minSum = Infinity, minL = -1, minR = -1,
+        enter = -1, leave = -1, hasWin = false, building = false;
     const f = o => F.push(Object.assign({
-      nums, target, n, l, r, sum, best, bestL, bestR, enter:-1, leave:-1, shrinking:false
+      nums, n, k, w, total, l, r, sum, minSum, minL, minR,
+      enter, leave, hasWin, building, allTaken:false, done:false, ans:null
     }, o));
 
-    if(n === 0){
-      f({phase:'done', code:0, done:true, msg:`Empty array &mdash; nothing to slide over. <b>Return 0</b>.`});
+    f({phase:'seed', code:2,
+      msg:`Total the whole deck once: <span class="k">total = ${total}</span>. Every card ends up in exactly one of two piles &mdash; <span class="a">taken</span> or <span class="w">left behind</span> &mdash; so <b>taken = total &minus; left behind</b> on every single step from here on.`});
+
+    f({phase:'seed', code:3,
+      msg:`You take <b>k = ${k}</b> cards, each off an end. That set is <span class="a">split across the two ends</span>: it is not contiguous, and no window can hold it. What you <em>leave</em> is: one unbroken middle block of width <span class="w">n &minus; k = ${w}</span>. Invert the question &mdash; <b>maximise the ends</b> becomes <b>minimise that middle</b>.`});
+
+    if(w === 0){
+      hasWin = true; l = 0; r = -1;
+      f({phase:'done', code:4, done:true, allTaken:true, ans:total, minSum:0, minL:-1, minR:-1,
+        msg:`Edge case <b>k == n</b>. The middle block has width <span class="w">0</span> &mdash; there is no window left to slide, and no card left behind. Everything is taken, so <span class="m">answer = total = ${total}</span>. The formula still holds with <span class="k">minSum = 0</span>; it just has nothing to subtract.`});
       return F;
     }
 
-    f({phase:'seed', code:1,
-      msg:`<span class="l">l = 0</span>, <span class="k">sum = 0</span>, <span class="m">best = &infin;</span>. Every value is <b>positive</b>, so pushing <span class="r">r</span> right can only raise the sum and pulling <span class="l">l</span> right can only lower it. That monotonicity is the entire licence to slide.`});
+    hasWin = true; building = true; l = 0;
+    for(let i = 0; i < w; i++){
+      sum += nums[i]; r = i; enter = i;
+      f({phase:'grow', code:6,
+        msg:`Seed the first middle block: <span class="r">cardPoints[${i}] = ${nums[i]}</span> joins it. <span class="k">sum = ${sum}</span> over <span class="w">[0..${i}]</span> &mdash; ${i+1} of the ${w} cells it needs.`});
+    }
+    enter = -1; building = false;
+    minSum = sum; minL = 0; minR = w - 1;
+    f({phase:'found', code:7, ans: total - minSum,
+      msg:`The first window of the fixed width <b>${w}</b> is <span class="w">[0..${w-1}]</span>, sum <b>${sum}</b>. Record it: <span class="m">minSum = ${minSum}</span>. Read the same picture the other way &mdash; leaving the front ${w} means taking the <b>back ${k}</b>, worth <span class="m">${total} &minus; ${minSum} = ${total-minSum}</span>.`});
 
-    for(r = 0; r < n; r++){
-      sum += nums[r];
-      f({phase:'grow', code:3, enter:r,
-        msg:`<span class="r">nums[${r}] = ${nums[r]}</span> enters on the right. <span class="k">sum = ${sum}</span>, window <span class="w">[${l}..${r}]</span> is ${r-l+1} wide.`});
+    for(let rr = w; rr < n; rr++){
+      const out = rr - w;
+      sum += nums[rr] - nums[out];
+      enter = rr; leave = out; l = out + 1; r = rr;
+      f({phase:'slide', code:9,
+        msg:`Slide one cell. <span class="r">+cardPoints[${rr}] = ${nums[rr]}</span> and <span class="l">&minus;cardPoints[${out}] = ${nums[out]}</span>, so the width stays pinned at <b>${w}</b> and <span class="k">sum = ${sum}</span>. In take-terms this moved one card from the <b>back</b> pile to the <b>front</b> pile: now <span class="a">front ${l} + back ${n-1-rr} = ${k}</span>.`});
 
-      if(sum < target){
-        f({phase:'grow', code:4,
-          msg:`<span class="k">${sum} &lt; ${target}</span> &mdash; still <b>invalid</b>, too small to count. Nothing to record, nothing to shrink. Advance <span class="r">r</span>.`});
-      }
-
-      while(sum >= target){
-        const w = r - l + 1;
-        const improved = w < best;
-        if(improved){ best = w; bestL = l; bestR = r; }
-        f({phase:improved?'found':'shrink', code:REC_LINE, shrinking:true,
-          msg:`<span class="k">${sum} &ge; ${target}</span> &mdash; <b>valid</b>. Record <em>now</em>, at width <b>${w}</b>: ` +
-              (improved
-                ? `<span class="m">best = ${best}</span>, a new minimum at <span class="m">[${bestL}..${bestR}]</span>.`
-                : `<span class="m">best stays ${best}</span> &mdash; this window is not shorter.`) +
-              ` This is the line that makes it sub-variant C.`});
-
-        const out = l;
-        sum -= nums[out];
-        l++;
-        f({phase:'shrink', code:6, leave:out, shrinking:true,
-          msg:`Evict <span class="l">nums[${out}] = ${nums[out]}</span> from the left &mdash; the only way to get shorter. <span class="k">sum = ${sum}</span>, window is now <span class="w">${l>r?'empty':`[${l}..${r}]`}</span>.` +
-              (sum < target ? ` It just fell below <span class="k">${target}</span>, so the shrink loop ends here.` : ` Still &ge; <span class="k">${target}</span> &mdash; loop again and record again.`)});
-      }
+      enter = -1; leave = -1;
+      const prevMin = minSum;
+      const improved = sum < minSum;
+      if(improved){ minSum = sum; minL = l; minR = r; }
+      f({phase: improved ? 'found' : 'slide', code:REC_LINE, ans: total - minSum,
+        msg: improved
+          ? `<span class="k">${sum} &lt; ${prevMin}</span> &mdash; a <b>cheaper</b> block to leave behind. <span class="m">minSum = ${minSum}</span> at <span class="m">[${minL}..${minR}]</span>, so the running answer climbs to <span class="m">${total - minSum}</span> (take front ${minL} + back ${n-1-minR}).`
+          : `<span class="k">${sum} &ge; ${minSum}</span> &mdash; this block is not cheaper to abandon, so <span class="m">minSum stays ${minSum}</span> and the answer stays <span class="m">${total - minSum}</span>. Keep sliding.`});
     }
 
-    r = n - 1;
-    if(best === Infinity){
-      f({phase:'done', code:10, l:0, r:-1, done:true, none:true,
-        msg:`<span class="x">The sum never reached ${target}</span> &mdash; not even the whole array. <span class="m">best</span> is still ${INF}, so the contract says <b>return 0</b>, not ${INF}.`});
-    } else {
-      f({phase:'done', code:10, l:bestL, r:bestR, sum:nums.slice(bestL,bestR+1).reduce((a,b)=>a+b,0), done:true,
-        msg:`Scan complete. Shortest valid window is <span class="m">[${bestL}..${bestR}]</span> = [${nums.slice(bestL,bestR+1).join(', ')}], length <b>${best}</b>. <b>Return ${best}</b>.`});
-    }
+    l = minL; r = minR; sum = minSum; enter = -1; leave = -1;
+    f({phase:'done', code:12, done:true, ans: total - minSum,
+      msg:`Every position of the width-<b>${w}</b> window has been seen. The cheapest middle is <span class="m">[${minL}..${minR}]</span> = [${nums.slice(minL, minR+1).join(', ')}] summing <b>${minSum}</b>. <b>Return total &minus; minSum = ${total} &minus; ${minSum} = ${total - minSum}</b> &mdash; take the front <b>${minL}</b> and the back <b>${n-1-minR}</b>.`});
     return F;
   }
 
   const $ = id => document.getElementById(id);
   const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
-        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), tEl=$('tInput'),
-        statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
-        gTrack=$('gaugeTrack'), gFill=$('gaugeFill'), gThr=$('gaugeThr'), gTxt=$('gaugeTxt');
+        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), kEl=$('kInput'),
+        statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'), brkEl=$('brackets'),
+        eqBar=$('eqBar'), segT=$('segT'), segM=$('segM'), eqL=$('eqLeft'), eqR=$('eqRight');
   let frames=[], idx=0, playing=false, timer=null;
 
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -645,13 +696,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
 
   function parseArr(str){
     const a = String(str).split(/[^0-9]+/).filter(x=>x.length)
-      .map(x=>Math.max(1, Math.min(99, parseInt(x,10))));
+      .map(x=>Math.max(1, Math.min(999, parseInt(x,10))));
     return a.slice(0,12);
   }
-  function parseT(str){
-    let t = parseInt(String(str).replace(/[^0-9]/g,''), 10);
-    if(isNaN(t) || t < 1) t = 1;
-    return Math.min(999, t);
+  function parseK(str, n){
+    let v = parseInt(String(str).replace(/[^0-9]/g,''), 10);
+    if(isNaN(v) || v < 1) v = 1;
+    return Math.max(1, Math.min(Math.max(n,1), v));
   }
 
   function buildTape(nums){
@@ -665,23 +716,46 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     });
   }
 
+  const GAP = 5;
+  function segWidth(count, cw){ return count <= 0 ? 0 : count*cw + (count-1)*GAP; }
+
+  function renderBrackets(f){
+    const first = tapeEl.querySelector('.col');
+    if(!first || !f.hasWin){ brkEl.innerHTML=''; return; }
+    const cw = first.offsetWidth || 38;
+    const frontN = f.allTaken ? f.n : f.l;
+    const midN   = f.allTaken ? 0 : (f.r - f.l + 1);
+    const backN  = f.allTaken ? 0 : (f.n - 1 - f.r);
+    const parts = [];
+    const push = (cls, cnt, lbl) => {
+      if(cnt <= 0) return;
+      parts.push(`<div class="brk ${cls}" style="width:${segWidth(cnt,cw)}px"><div class="bar"></div><div class="lbl">${lbl}</div></div>`);
+    };
+    const good = f.done && !f.allTaken;
+    push('take', frontN, frontN ? `take ${frontN} &uarr;` : '');
+    push('mid' + (good?' good':''), midN, `leave ${midN}`);
+    push('take', backN, `take ${backN} &uarr;`);
+    brkEl.innerHTML = parts.join(`<div style="width:${GAP}px"></div>`);
+  }
+
   function render(){
     const f = frames[idx]; if(!f) return;
     const nums = f.nums, n = nums.length;
-    const live = f.l <= f.r && f.r >= 0;
     for(let c=0;c<n;c++){
       const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
       const caret=tapeEl.querySelector(`[data-caret="${c}"]`);
       const idxLbl=tapeEl.querySelector(`[data-idx="${c}"]`);
       if(!cell) continue;
-      const inWin = live && c>=f.l && c<=f.r;
+      const inWin = f.hasWin && !f.allTaken && c>=f.l && c<=f.r;
+      const taken = f.allTaken || (f.hasWin && !f.building && !inWin);
       let cls='cell';
       if(c===f.enter)        cls+=' entering';
       else if(c===f.leave)   cls+=' leaving';
       else if(inWin)         cls += (f.l===f.r ? ' wr' : (c===f.l ? ' wl' : (c===f.r ? ' wr' : ' wbody')));
-      else if(c < f.l)       cls+=' gone';
+      else if(taken)         cls+=' taken';
       else                   cls+=' ahead';
-      if(f.bestL>=0 && c>=f.bestL && c<=f.bestR) cls+=' bestmark';
+      if(f.done && taken) cls+=' wonmark';
+      if(f.minL>=0 && c>=f.minL && c<=f.minR) cls+=' bestmark';
       cell.className=cls;
 
       let ct='';
@@ -690,38 +764,46 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       else if(inWin && f.l===f.r) ct='<span class="p pR">l r</span>';
       else if(inWin && c===f.l)   ct='<span class="p pL">l</span>';
       else if(inWin && c===f.r)   ct='<span class="p pR">r</span>';
+      else if(taken)              ct='<span class="p pT">take</span>';
       caret.innerHTML=ct; caret.style.opacity = ct ? '1':'0';
       idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
     }
+    renderBrackets(f);
 
-    const denom = Math.max(f.target*1.6, f.sum, 1);
-    gFill.style.width = Math.max(0, Math.min(100, f.sum/denom*100)) + '%';
-    gThr.style.left = (f.target/denom*100) + '%';
-    const valid = f.sum >= f.target;
-    gTrack.classList.toggle('hit', valid);
-    gTxt.innerHTML = `<span class="${valid?'m':'w'}">${f.sum}</span> &nbsp;/&nbsp; target ${f.target} &nbsp;&middot;&nbsp; ${valid?'VALID &mdash; shrink':'invalid &mdash; grow'}`;
+    const mid = f.allTaken ? 0 : f.sum;
+    const tak = f.total - mid;
+    segT.style.flexGrow = Math.max(tak, 0);
+    segM.style.flexGrow = Math.max(mid, 0);
+    eqBar.classList.toggle('won', !!f.done);
+    eqL.innerHTML = `<span class="${f.done?'m':'a'}">taken ${tak}</span>`;
+    eqR.innerHTML = `<span class="w">middle ${mid}</span> &nbsp;&middot;&nbsp; total ${f.total}`;
 
-    const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
-    const width = live ? (f.r-f.l+1) : 0;
+    const winTxt = (f.hasWin && !f.allTaken && f.r>=f.l) ? `[${f.l}..${f.r}]` : '&mdash;';
+    const width  = (f.hasWin && !f.allTaken && f.r>=f.l) ? (f.r-f.l+1) : 0;
+    const haveMin = f.minSum !== Infinity && f.minL >= 0;
     statsEl.innerHTML =
-      `<span class="stat w">window ${winTxt} &middot; width <b>${width}</b></span>`+
-      `<span class="stat ${valid?'h':'mute'}">sum <b>${f.sum}</b> ${valid?'&ge;':'&lt;'} ${f.target}</span>`+
-      (f.best===Infinity
-        ? `<span class="stat mute">best <b>&infin;</b> &mdash; nothing recorded yet</span>`
-        : `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`)+
-      `<span class="stat ${f.shrinking?'minus':'mute'}">l <b>${f.l}</b></span>`+
-      `<span class="stat ${f.enter>=0?'plus':'mute'}">r <b>${f.r<0?'&mdash;':f.r}</b></span>`;
+      `<span class="stat a">total <b>${f.total}</b></span>`+
+      `<span class="stat">k <b>${f.k}</b> &middot; width n&minus;k <b>${f.w}</b></span>`+
+      `<span class="stat ${f.hasWin && !f.allTaken ? 'w':'mute'}">middle ${winTxt} &middot; sum <b>${f.allTaken?0:f.sum}</b></span>`+
+      (haveMin
+        ? `<span class="stat h">minSum <b>${f.minSum}</b> @ [${f.minL}..${f.minR}]</span>`
+        : `<span class="stat mute">minSum <b>&infin;</b> &mdash; nothing recorded yet</span>`)+
+      (f.ans === null
+        ? `<span class="stat mute">answer <b>&mdash;</b></span>`
+        : `<span class="stat h">answer = total &minus; minSum = <b>${f.ans}</b></span>`);
 
     ruleEl.innerHTML = RULE;
     msgEl.innerHTML = f.msg;
     verdictEl.innerHTML = f.done
-      ? (f.best === Infinity
-          ? `<span class="trip no">answer = 0${f.n ? ` &middot; no window ever reached the target` : ` &middot; empty input`}</span>`
-          : `<span class="trip">answer = ${f.best}</span><span class="trip neutral">shortest window [${f.bestL}..${f.bestR}]</span>`)
+      ? (f.allTaken
+          ? `<span class="trip">answer = ${f.ans}</span><span class="trip bank">k == n &middot; window width 0 &middot; take the whole deck</span>`
+          : `<span class="trip">answer = ${f.ans}</span>`+
+            `<span class="trip bank">take front ${f.minL} + back ${f.n-1-f.minR}</span>`+
+            `<span class="trip neutral">leave [${f.minL}..${f.minR}] worth ${f.minSum}</span>`)
       : '';
 
-    const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
-                shrink:['sort','&#8592; shrinking l'],found:['found','&#10003; new minimum'],
+    const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; seeding the middle'],
+                slide:['scan','&#9679; sliding, width fixed'],found:['found','&#10003; cheaper middle'],
                 done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
     pillEl.className='phase-pill '+pe[0]; pillEl.innerHTML=pe[1];
@@ -734,13 +816,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(arrRaw, tRaw){
+  function run(arrRaw, kRaw){
     stop();
     const nums = parseArr(arrRaw);
-    const target = parseT(tRaw);
-    arrEl.value = nums.join(','); tEl.value = target;
+    const k = parseK(kRaw, nums.length);
+    arrEl.value = nums.join(','); kEl.value = k;
     buildTape(nums);
-    frames = buildFrames(nums, target);
+    frames = buildFrames(nums, k);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
@@ -752,36 +834,37 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   function togglePlay(){ playing?stop():play(); }
 
   const EX=[
-    ['2,3,1,2,4,3','7','the textbook run &mdash; answer 2'],
-    ['1,4,4','4','one element already clears the bar'],
-    ['1,1,1,1,1,1,1,1','11','never valid &rarr; return 0, not &infin;'],
-    ['5,1,3,5,10,7,4,9,2,8','15','shrink fires repeatedly, deep in the array'],
-    ['1,2,3,4,5','15','only the whole array qualifies']
+    ['1,2,3,4,5,6,1','3','the textbook run &mdash; answer 12'],
+    ['9,7,7,9,7,7,9','7','k == n &rarr; width-0 window, answer = total'],
+    ['2,2,2','2','flat deck &mdash; every split ties'],
+    ['1,1000,1','1','both ends are junk; the fat card must stay'],
+    ['100,40,17,9,73,75','3','best split is 1 from the front, 2 from the back']
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(function(e){
       const c=document.createElement('button'); c.className='chip';
-      c.innerHTML=`[${e[0]}], t=${e[1]}<b>${e[2]}</b>`;
+      c.innerHTML=`[${e[0]}], k=${e[1]}<b>${e[2]}</b>`;
       c.onclick=function(){ run(e[0], e[1]); };
       box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(arrEl.value, tEl.value);
-  [arrEl,tEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, tEl.value); }));
+  $('runBtn').onclick=()=>run(arrEl.value, kEl.value);
+  [arrEl,kEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, kEl.value); }));
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
   $('playBtn').onclick=togglePlay;
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  window.addEventListener('resize',()=>{ const f=frames[idx]; if(f) renderBrackets(f); });
   document.addEventListener('keydown',e=>{
-    if(document.activeElement===arrEl||document.activeElement===tEl) return;
+    if(document.activeElement===arrEl||document.activeElement===kEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
     if(e.key===' '){e.preventDefault();togglePlay();}
   });
 
-  run(arrEl.value, tEl.value);
+  run(arrEl.value, kEl.value);
 })();
 </script>
 

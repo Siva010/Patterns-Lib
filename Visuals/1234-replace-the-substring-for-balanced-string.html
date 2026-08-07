@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>LeetCode 209 &middot; Minimum Size Subarray Sum &mdash; visual guide</title>
-<meta name="description" content="Interactive walkthrough of LeetCode 209: the minimise-length sliding window, where best is recorded inside the shrink loop and positivity is the precondition that makes the window sound.">
+<title>LeetCode 1234 &middot; Replace the Substring for Balanced String &mdash; visual guide</title>
+<meta name="description" content="Interactive walkthrough of LeetCode 1234: the shortest window whose complement is already balanced, with the four outside counts tracked live against the n/4 ceiling.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -429,24 +429,47 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .code .ln.recpoint.exec { background: var(--accent-wash); }
 
-/* --- 209 only: the sum gauge, target as a hard threshold --- */
-.gauge { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; max-width: 420px; }
-.gaugetrack {
-  position: relative; width: 100%; height: 11px; border-radius: 6px;
-  background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+/* --- 1234 only: the OUTSIDE counts, with n/4 marked as a hard ceiling ---
+   The statistic that matters is not what the window contains but what it
+   leaves behind, so this panel reads the complement of the window.        */
+.balwrap { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; }
+.balhead {
+  font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); text-align: center;
 }
-.gaugefill {
-  position: absolute; left: 1px; top: 1px; bottom: 1px; border-radius: 5px;
-  background: var(--r-window); opacity: .55; transition: width .18s;
+.balhead em { font-style: normal; color: var(--r-anchor); }
+.bal { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; }
+.balcol {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; width: 92px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk);
+  border-radius: 9px; padding: 7px 9px 8px;
+  transition: border-color .18s, background .18s;
 }
-.gaugetrack.hit .gaugefill { background: var(--r-hit); opacity: .7; }
-.gaugethr { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg-mid); }
-.gaugelab {
-  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
-  display: flex; justify-content: space-between; width: 100%;
+.balcol.ok   { border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+.balcol.over { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.balcol .bch { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--fg-mid); }
+.balcol.ok   .bch { color: var(--r-hit); }
+.balcol.over .bch { color: var(--r-anchor); }
+.balcol .bnum { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+.balcol.over .bnum { color: var(--r-anchor); font-weight: 600; }
+.baltrack {
+  position: relative; width: 100%; height: 9px; border-radius: 5px;
+  background: var(--bg); border: 1px solid var(--rule);
 }
-.gaugelab .m { color: var(--r-hit); font-weight: 600; }
-.gaugelab .w { color: var(--r-window); font-weight: 600; }
+.balfill {
+  position: absolute; left: 1px; top: 1px; bottom: 1px; border-radius: 4px;
+  background: var(--r-hit); opacity: .6; transition: width .18s;
+}
+.balcol.over .balfill { background: var(--r-anchor); opacity: .7; }
+.balthr { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg-mid); }
+
+/* cells outside the window are the ones being counted — say so */
+.cell.counted { background: var(--bg-sunk); border-color: var(--rule-hard); color: var(--fg-mid); }
+.omark {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .04em;
+  height: 12px; line-height: 12px; color: var(--fg-dim); opacity: .4;
+}
+.omark.on { color: var(--r-window); opacity: 1; font-weight: 600; }
 </style>
 <script>
 /* set the theme before first paint to avoid a flash.
@@ -464,31 +487,25 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant C &mdash; minimise <span class="tag">LeetCode 209</span></div>
-  <h1>Minimum Size Subarray Sum <span class="thin">/ visualized</span></h1>
+  <div class="eyebrow">Sliding Window &middot; variable window, sub-variant C &mdash; minimise <span class="tag">LeetCode 1234</span></div>
+  <h1>Replace the Substring for Balanced String <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    This is the canonical <b>minimise</b> window, and the whole variant lives in one line's position.
-    <span class="r">r</span> always advances and adds. Then, <em>while the window is already valid</em>
-    (<span class="k">sum &ge; target</span>), you shrink from the <span class="l">left</span> &mdash; and you
-    record <span class="m">best</span> <em>inside</em> that shrink loop, before each eviction, because the
-    window is only as small as it will ever be at that instant. Move the record one line down, outside the
-    loop, and you measure windows that have already been broken. The machine is only sound because every
-    value is <b>positive</b>: adding on the right can only push the sum up, removing on the left can only
-    push it down, so &quot;valid&quot; is monotone in the boundaries. LC 862 allows negatives, that monotonicity
-    dies, and the sliding window dies with it &mdash; that problem needs a monotonic deque over prefix sums instead.
+    The reframing is the whole problem. You are <em>not</em> hunting for a balanced substring &mdash; the
+    window is the part you are allowed to overwrite, and you may write anything you like into it. So the
+    only question is whether what is <b>outside</b> the window can still be balanced, and that is true
+    exactly when every character&rsquo;s <b>outside count is &le; n/4</b>. Flip the statistic and the
+    machine is ordinary: <span class="r">r</span> always advances, pulling a character <em>out</em> of the
+    outside tally; <em>while the outside is already balanced</em> the window is valid, so shrink
+    <span class="l">l</span> &mdash; which pushes a character <em>back</em> into the tally &mdash; and record
+    <span class="m">best</span> <em>inside</em> that loop. Sub-variant C. An input that is already balanced
+    needs no window at all and returns <code>0</code>.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">nums &mdash; positive integers, comma-separated</label>
+      <label for="sInput">s &mdash; letters Q W E R only, length a multiple of 4</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="2,3,1,2,4,3" spellcheck="false" autocomplete="off">
-      </div>
-    </div>
-    <div class="field" style="flex:0 0 210px; min-width:210px;">
-      <label for="tInput">target</label>
-      <div class="input-shell">
-        <input id="tInput" type="text" value="7" spellcheck="false" autocomplete="off">
+        <input id="sInput" type="text" value="QWERQQEE" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
       </div>
     </div>
@@ -500,15 +517,12 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
       <div class="stage">
         <div class="taperow">
-          <div class="tapecap">nums &nbsp;&middot;&nbsp; <em>teal</em> cells are inside the window</div>
+          <div class="tapecap">s &nbsp;&middot;&nbsp; <em>teal</em> is the window you may overwrite &mdash; plain cells are the ones being counted</div>
           <div class="tape fw" id="tape"></div>
         </div>
-        <div class="gauge">
-          <div class="gaugetrack" id="gaugeTrack">
-            <div class="gaugefill" id="gaugeFill"></div>
-            <div class="gaugethr" id="gaugeThr"></div>
-          </div>
-          <div class="gaugelab"><span>window sum</span><span id="gaugeTxt"></span></div>
+        <div class="balwrap">
+          <div class="balhead">counts <em>outside</em> the window &nbsp;&middot;&nbsp; the tick is the ceiling n/4 = <span id="kLabel">2</span></div>
+          <div class="bal" id="bal"></div>
         </div>
         <div class="rulebar" id="ruleBar"></div>
         <div class="stats" id="stats"></div>
@@ -532,19 +546,20 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot w"></i>inside the window</span>
-        <span><i class="dot r"></i>entering (sum +=)</span>
-        <span><i class="dot l"></i>evicted (sum &minus;=)</span>
+        <span><i class="dot w"></i>the window &mdash; free to overwrite</span>
+        <span><i class="dot r"></i>r enters (count leaves the outside)</span>
+        <span><i class="dot l"></i>l exits (count rejoins the outside)</span>
+        <span><i class="dot a"></i>a count above n/4</span>
         <span><i class="dot m"></i>shortest window recorded</span>
-        <span><i class="dot x"></i>left behind</span>
       </div>
     </div>
   </div>
 
   <div class="foot">
-    O(n) time &middot; O(1) space &nbsp;&middot;&nbsp; each index enters once and leaves once, so the inner
-    <code>while</code> is amortised O(1). Sub-variant <b>C</b>: record <code>best</code> <em>inside</em> the
-    shrink loop. All values positive is not a detail &mdash; it is the precondition that makes the window work.
+    O(n) time &middot; O(1) space (four counters) &nbsp;&middot;&nbsp; Sub-variant <b>C</b>: record
+    <code>best</code> <em>inside</em> the shrink loop. The window is the part you overwrite; the invariant
+    lives in its <em>complement</em>. If the string is already balanced the answer is <code>0</code>, which
+    is why that case is tested before the loop ever starts.
   </div>
 
 <script>
@@ -552,87 +567,117 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   "use strict";
 
   const CODE = [
-    [['ty','int '],['fn','minSubArrayLen'],['tx','('],['kw','int'],['tx',' target, '],['kw','int'],['tx','[] nums) {']],
-    [['tx','    '],['kw','int '],['tx','l = 0, sum = 0, best = Integer.MAX_VALUE;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {   '],['cm','// right always advances']],
-    [['tx','        sum += nums[r];                          '],['cm','// grow: sum can only rise']],
-    [['tx','        '],['kw','while '],['tx','(sum >= target) {                  '],['cm','// window is VALID -> shrink it']],
-    [['tx','            best = Math.min(best, r - l + 1);    '],['cm','// <<< RECORD INSIDE the loop']],
-    [['tx','            sum -= nums[l];                      '],['cm','// evict: sum can only fall']],
+    [['ty','int '],['fn','balancedString'],['tx','(String s) {']],
+    [['tx','    '],['kw','int '],['tx','n = s.length(), k = n / 4;']],
+    [['tx','    '],['kw','int'],['tx','[] cnt = '],['kw','new int'],['tx','[128];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','char '],['tx','c : s.toCharArray()) cnt[c]++;   '],['cm','// window empty: outside = all of s']],
+    [['tx','    '],['kw','if '],['tx','(ok(cnt, k)) '],['kw','return '],['tx','0;                     '],['cm','// already balanced']],
+    [['tx','    '],['kw','int '],['tx','l = 0, best = n;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < n; r++) {              '],['cm','// right always advances']],
+    [['tx','        cnt[s.charAt(r)]--;                        '],['cm','// r joins the window -> leaves the outside']],
+    [['tx','        '],['kw','while '],['tx','(l <= r && ok(cnt, k)) {             '],['cm','// outside balanced -> VALID -> shrink']],
+    [['tx','            best = Math.min(best, r - l + 1);      '],['cm','// <<< RECORD INSIDE the loop']],
+    [['tx','            cnt[s.charAt(l)]++;                    '],['cm','// l leaves the window -> rejoins the outside']],
     [['tx','            l++;']],
     [['tx','        }']],
     [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best == Integer.MAX_VALUE ? 0 : best;']],
+    [['tx','    '],['kw','return '],['tx','best;']],
+    [['tx','}']],
+    [['tx','']],
+    [['ty','boolean '],['fn','ok'],['tx','('],['kw','int'],['tx','[] cnt, '],['kw','int'],['tx',' k) {                   '],['cm','// every OUTSIDE count within quota']],
+    [['tx','    '],['kw','return '],['tx',"cnt['Q'] <= k && cnt['W'] <= k"]],
+    [['tx','        && '],['tx',"cnt['E'] <= k && cnt['R'] <= k;"]],
     [['tx','}']]
   ];
-  const REC_LINE = 5;
+  const REC_LINE = 9;
+  const LETTERS = ['Q','W','E','R'];
 
   const RULE = `<span class="modechip c">Mode C &middot; minimise</span>` +
-    `grow <span class="r">r</span> always &middot; <b>while VALID</b> (sum &ge; target) shrink <span class="l">l</span> ` +
+    `grow <span class="r">r</span> always &middot; <b>while VALID</b> (every <em>outside</em> count &le; n/4) shrink <span class="l">l</span> ` +
     `&middot; record <span class="m">best</span> <b>INSIDE</b> the shrink loop`;
 
-  function buildFrames(nums, target){
-    const n = nums.length, F = [];
-    let l = 0, sum = 0, best = Infinity, bestL = -1, bestR = -1, r = -1;
-    const INF = '&infin;';
+  function buildFrames(s){
+    const n = s.length, F = [], k = n / 4;
+    const cnt = {Q:0, W:0, E:0, R:0};
+    let l = 0, best = n, bestL = -1, bestR = -1, r = -1;
+    const okNow = () => LETTERS.every(c => cnt[c] <= k);
+    const snap = () => ({Q:cnt.Q, W:cnt.W, E:cnt.E, R:cnt.R});
     const f = o => F.push(Object.assign({
-      nums, target, n, l, r, sum, best, bestL, bestR, enter:-1, leave:-1, shrinking:false
+      s, n, k, l, r, best, bestL, bestR, cnt: snap(),
+      enter:-1, leave:-1, shrinking:false, live:false
     }, o));
 
     if(n === 0){
-      f({phase:'done', code:0, done:true, msg:`Empty array &mdash; nothing to slide over. <b>Return 0</b>.`});
+      f({phase:'done', code:0, done:true, ans:0,
+        msg:`Empty string &mdash; already balanced by vacuum. <b>Return 0</b>.`});
       return F;
     }
 
-    f({phase:'seed', code:1,
-      msg:`<span class="l">l = 0</span>, <span class="k">sum = 0</span>, <span class="m">best = &infin;</span>. Every value is <b>positive</b>, so pushing <span class="r">r</span> right can only raise the sum and pulling <span class="l">l</span> right can only lower it. That monotonicity is the entire licence to slide.`});
+    for(const c of s) cnt[c]++;
+    f({phase:'seed', code:3,
+      msg:`The window starts <b>empty</b>, so &ldquo;outside&rdquo; is the entire string. Tally it once: ` +
+          LETTERS.map(c=>`<span class="k">${c}=${cnt[c]}</span>`).join(' ') +
+          `. Balance means every one of these is <b>&le; n/4 = ${k}</b>.`});
+
+    if(okNow()){
+      f({phase:'done', code:4, done:true, ans:0, balanced:true,
+        msg:`Every count is already <span class="m">&le; ${k}</span> &mdash; the string is <b>balanced as it stands</b>. No characters need replacing, so the shortest window is the <b>empty</b> one. <b>Return 0</b>. This check has to happen before the loop, because a loop that shrinks <code>l</code> only while <code>l &le; r</code> can never produce a window of width zero.`});
+      return F;
+    }
+
+    f({phase:'seed', code:5,
+      msg:`<span class="x">Not balanced</span>: ` +
+          LETTERS.filter(c=>cnt[c]>k).map(c=>`<span class="a">${c}=${cnt[c]} &gt; ${k}</span>`).join(', ') +
+          `. Those surplus characters are exactly what the window must swallow. Seed <span class="m">best = n = ${n}</span> and start the scan.`});
 
     for(r = 0; r < n; r++){
-      sum += nums[r];
-      f({phase:'grow', code:3, enter:r,
-        msg:`<span class="r">nums[${r}] = ${nums[r]}</span> enters on the right. <span class="k">sum = ${sum}</span>, window <span class="w">[${l}..${r}]</span> is ${r-l+1} wide.`});
+      const cIn = s[r];
+      cnt[cIn]--;
+      f({phase:'grow', code:7, enter:r, live:true,
+        msg:`<span class="r">s[${r}] = '${cIn}'</span> joins the window &mdash; so it <b>leaves the outside</b>: <span class="k">${cIn}: ${cnt[cIn]+1} &rarr; ${cnt[cIn]}</span>. Widening the window can only <em>lower</em> outside counts, which is what makes the invariant monotone.`});
 
-      if(sum < target){
-        f({phase:'grow', code:4,
-          msg:`<span class="k">${sum} &lt; ${target}</span> &mdash; still <b>invalid</b>, too small to count. Nothing to record, nothing to shrink. Advance <span class="r">r</span>.`});
+      if(!(l <= r && okNow())){
+        const bad = LETTERS.filter(c=>cnt[c]>k);
+        f({phase:'grow', code:8, live:true,
+          msg:`Check the outside: ${bad.map(c=>`<span class="a">${c}=${cnt[c]} &gt; ${k}</span>`).join(', ')} &mdash; <b>still over quota</b>, so the window is <span class="x">not yet valid</span>. Nothing to record, nothing to shrink. Advance <span class="r">r</span>.`});
       }
 
-      while(sum >= target){
+      while(l <= r && okNow()){
         const w = r - l + 1;
         const improved = w < best;
         if(improved){ best = w; bestL = l; bestR = r; }
-        f({phase:improved?'found':'shrink', code:REC_LINE, shrinking:true,
-          msg:`<span class="k">${sum} &ge; ${target}</span> &mdash; <b>valid</b>. Record <em>now</em>, at width <b>${w}</b>: ` +
+        f({phase:improved?'found':'shrink', code:REC_LINE, shrinking:true, live:true,
+          msg:`Every outside count is <span class="m">&le; ${k}</span> &mdash; <b>valid</b>. Overwriting <span class="w">[${l}..${r}]</span> = "<b>${s.slice(l,r+1).join('')}</b>" would balance the string, so record <em>now</em>, at width <b>${w}</b>: ` +
               (improved
-                ? `<span class="m">best = ${best}</span>, a new minimum at <span class="m">[${bestL}..${bestR}]</span>.`
-                : `<span class="m">best stays ${best}</span> &mdash; this window is not shorter.`) +
-              ` This is the line that makes it sub-variant C.`});
+                ? `<span class="m">best = ${best}</span>, a new minimum.`
+                : `<span class="m">best stays ${best}</span>.`)});
 
-        const out = l;
-        sum -= nums[out];
+        const out = l, cOut = s[out];
+        cnt[cOut]++;
         l++;
-        f({phase:'shrink', code:6, leave:out, shrinking:true,
-          msg:`Evict <span class="l">nums[${out}] = ${nums[out]}</span> from the left &mdash; the only way to get shorter. <span class="k">sum = ${sum}</span>, window is now <span class="w">${l>r?'empty':`[${l}..${r}]`}</span>.` +
-              (sum < target ? ` It just fell below <span class="k">${target}</span>, so the shrink loop ends here.` : ` Still &ge; <span class="k">${target}</span> &mdash; loop again and record again.`)});
+        const stillOk = (l <= r) && okNow();
+        f({phase:'shrink', code:10, leave:out, shrinking:true, live:true,
+          msg:`Shrink: <span class="l">s[${out}] = '${cOut}'</span> falls out of the window and <b>rejoins the outside</b>: <span class="k">${cOut}: ${cnt[cOut]-1} &rarr; ${cnt[cOut]}</span>. ` +
+              (cnt[cOut] > k
+                ? `That pushes <span class="a">${cOut}</span> back over the quota &mdash; the outside is unbalanced again and the shrink loop ends.`
+                : (stillOk
+                   ? `The outside is <em>still</em> balanced, so loop again and record an even shorter window.`
+                   : (l > r ? `The window is now empty, so the loop stops here.` : `The outside is no longer balanced &mdash; loop ends.`)))});
       }
     }
 
     r = n - 1;
-    if(best === Infinity){
-      f({phase:'done', code:10, l:0, r:-1, done:true, none:true,
-        msg:`<span class="x">The sum never reached ${target}</span> &mdash; not even the whole array. <span class="m">best</span> is still ${INF}, so the contract says <b>return 0</b>, not ${INF}.`});
-    } else {
-      f({phase:'done', code:10, l:bestL, r:bestR, sum:nums.slice(bestL,bestR+1).reduce((a,b)=>a+b,0), done:true,
-        msg:`Scan complete. Shortest valid window is <span class="m">[${bestL}..${bestR}]</span> = [${nums.slice(bestL,bestR+1).join(', ')}], length <b>${best}</b>. <b>Return ${best}</b>.`});
-    }
+    f({phase:'done', code:14, l:bestL, r:bestR, live:bestL>=0, done:true, ans:best,
+      cnt: (function(){ const c={Q:0,W:0,E:0,R:0}; s.forEach((ch,i)=>{ if(i<bestL||i>bestR) c[ch]++; }); return c; })(),
+      msg:`Scan complete. The shortest window whose <em>complement</em> is balanced is <span class="m">[${bestL}..${bestR}]</span> = "<b>${s.slice(bestL,bestR+1).join('')}</b>", length <b>${best}</b>. Overwrite those ${best} character${best===1?'':'s'} with whatever the quota is short of. <b>Return ${best}</b>.`});
     return F;
   }
 
   const $ = id => document.getElementById(id);
   const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
-        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), tEl=$('tInput'),
+        countEl=$('stepCount'), codeEl=$('code'), sEl=$('sInput'),
         statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
-        gTrack=$('gaugeTrack'), gFill=$('gaugeFill'), gThr=$('gaugeThr'), gTxt=$('gaugeTxt');
+        balEl=$('bal'), kLabel=$('kLabel');
   let frames=[], idx=0, playing=false, timer=null;
 
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -643,46 +688,45 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     }).join('');
   })();
 
-  function parseArr(str){
-    const a = String(str).split(/[^0-9]+/).filter(x=>x.length)
-      .map(x=>Math.max(1, Math.min(99, parseInt(x,10))));
-    return a.slice(0,12);
-  }
-  function parseT(str){
-    let t = parseInt(String(str).replace(/[^0-9]/g,''), 10);
-    if(isNaN(t) || t < 1) t = 1;
-    return Math.min(999, t);
+  function parseS(str){
+    let a = String(str).toUpperCase().replace(/[^QWER]/g,'').split('').slice(0,12);
+    a = a.slice(0, a.length - (a.length % 4));   // length must be a multiple of 4
+    return a;
   }
 
-  function buildTape(nums){
+  function buildTape(s){
     tapeEl.innerHTML='';
-    nums.forEach((v,k)=>{
+    s.forEach((ch,i)=>{
       const col=document.createElement('div'); col.className='col';
-      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
-        `<div class="cell" data-cell="${k}">${v}</div>`+
-        `<div class="idx" data-idx="${k}">${k}</div>`;
+      col.innerHTML = `<div class="caret" data-caret="${i}"></div>`+
+        `<div class="cell" data-cell="${i}">${ch}</div>`+
+        `<div class="omark" data-om="${i}">out</div>`+
+        `<div class="idx" data-idx="${i}">${i}</div>`;
       tapeEl.appendChild(col);
     });
   }
 
   function render(){
     const f = frames[idx]; if(!f) return;
-    const nums = f.nums, n = nums.length;
-    const live = f.l <= f.r && f.r >= 0;
+    const s = f.s, n = s.length;
+    const live = f.live && f.l <= f.r && f.r >= 0;
     for(let c=0;c<n;c++){
       const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
       const caret=tapeEl.querySelector(`[data-caret="${c}"]`);
       const idxLbl=tapeEl.querySelector(`[data-idx="${c}"]`);
+      const om=tapeEl.querySelector(`[data-om="${c}"]`);
       if(!cell) continue;
       const inWin = live && c>=f.l && c<=f.r;
       let cls='cell';
       if(c===f.enter)        cls+=' entering';
       else if(c===f.leave)   cls+=' leaving';
       else if(inWin)         cls += (f.l===f.r ? ' wr' : (c===f.l ? ' wl' : (c===f.r ? ' wr' : ' wbody')));
-      else if(c < f.l)       cls+=' gone';
-      else                   cls+=' ahead';
+      else                   cls+=' counted';    // outside cells are never "dead" here — they are the statistic
       if(f.bestL>=0 && c>=f.bestL && c<=f.bestR) cls+=' bestmark';
       cell.className=cls;
+
+      om.className = 'omark' + (inWin || c===f.enter ? '' : ' on');
+      om.innerHTML = (inWin || c===f.enter) ? 'win' : 'out';
 
       let ct='';
       if(c===f.enter)      ct='<span class="p pIn">+in</span>';
@@ -694,33 +738,43 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
     }
 
-    const denom = Math.max(f.target*1.6, f.sum, 1);
-    gFill.style.width = Math.max(0, Math.min(100, f.sum/denom*100)) + '%';
-    gThr.style.left = (f.target/denom*100) + '%';
-    const valid = f.sum >= f.target;
-    gTrack.classList.toggle('hit', valid);
-    gTxt.innerHTML = `<span class="${valid?'m':'w'}">${f.sum}</span> &nbsp;/&nbsp; target ${f.target} &nbsp;&middot;&nbsp; ${valid?'VALID &mdash; shrink':'invalid &mdash; grow'}`;
+    // --- the four OUTSIDE counters, with n/4 marked ---
+    kLabel.textContent = f.k;
+    const maxCount = Math.max(f.cnt.Q, f.cnt.W, f.cnt.E, f.cnt.R, 1);
+    const denom = Math.max(f.k * 2, maxCount, 1);
+    balEl.innerHTML = ['Q','W','E','R'].map(function(ch){
+      const v = f.cnt[ch], over = v > f.k;
+      return `<div class="balcol ${over?'over':'ok'}">`+
+        `<span class="bch">${ch}</span>`+
+        `<div class="baltrack">`+
+          `<div class="balfill" style="width:${Math.max(0, Math.min(100, v/denom*100))}%"></div>`+
+          `<div class="balthr" style="left:${f.k/denom*100}%"></div>`+
+        `</div>`+
+        `<span class="bnum">${v} / ${f.k}${over?' &#9650;':''}</span>`+
+      `</div>`;
+    }).join('');
 
+    const allOk = ['Q','W','E','R'].every(c=>f.cnt[c] <= f.k);
     const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
     const width = live ? (f.r-f.l+1) : 0;
     statsEl.innerHTML =
       `<span class="stat w">window ${winTxt} &middot; width <b>${width}</b></span>`+
-      `<span class="stat ${valid?'h':'mute'}">sum <b>${f.sum}</b> ${valid?'&ge;':'&lt;'} ${f.target}</span>`+
-      (f.best===Infinity
-        ? `<span class="stat mute">best <b>&infin;</b> &mdash; nothing recorded yet</span>`
-        : `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`)+
-      `<span class="stat ${f.shrinking?'minus':'mute'}">l <b>${f.l}</b></span>`+
-      `<span class="stat ${f.enter>=0?'plus':'mute'}">r <b>${f.r<0?'&mdash;':f.r}</b></span>`;
+      `<span class="stat">n <b>${f.n}</b> &middot; n/4 <b>${f.k}</b></span>`+
+      `<span class="stat ${allOk?'h':'a'}">outside ${allOk?'balanced &mdash; VALID':'over quota &mdash; invalid'}</span>`+
+      (f.best < f.n || f.bestL>=0
+        ? `<span class="stat h">best <b>${f.best}</b>${f.bestL>=0?` @ [${f.bestL}..${f.bestR}]`:''}</span>`
+        : `<span class="stat mute">best <b>${f.best}</b> &mdash; the whole string, nothing better yet</span>`)+
+      `<span class="stat ${f.shrinking?'minus':'mute'}">l <b>${f.l}</b></span>`;
 
     ruleEl.innerHTML = RULE;
     msgEl.innerHTML = f.msg;
-    verdictEl.innerHTML = f.done
-      ? (f.best === Infinity
-          ? `<span class="trip no">answer = 0${f.n ? ` &middot; no window ever reached the target` : ` &middot; empty input`}</span>`
-          : `<span class="trip">answer = ${f.best}</span><span class="trip neutral">shortest window [${f.bestL}..${f.bestR}]</span>`)
+    verdictEl.innerHTML = (f.done && f.ans!==undefined)
+      ? (f.ans===0
+          ? `<span class="trip">answer = 0</span><span class="trip neutral">already balanced &mdash; the empty window works</span>`
+          : `<span class="trip">answer = ${f.ans}</span><span class="trip neutral">overwrite "${s.slice(f.bestL,f.bestR+1).join('')}" at [${f.bestL}..${f.bestR}]</span>`)
       : '';
 
-    const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
+    const pmap={seed:['sort','&#9656; tallying'],grow:['scan','&#9679; growing r'],
                 shrink:['sort','&#8592; shrinking l'],found:['found','&#10003; new minimum'],
                 done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
@@ -734,13 +788,12 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(arrRaw, tRaw){
+  function run(raw){
     stop();
-    const nums = parseArr(arrRaw);
-    const target = parseT(tRaw);
-    arrEl.value = nums.join(','); tEl.value = target;
-    buildTape(nums);
-    frames = buildFrames(nums, target);
+    const s = parseS(raw);
+    sEl.value = s.join('');
+    buildTape(s);
+    frames = buildFrames(s);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
@@ -752,36 +805,36 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   function togglePlay(){ playing?stop():play(); }
 
   const EX=[
-    ['2,3,1,2,4,3','7','the textbook run &mdash; answer 2'],
-    ['1,4,4','4','one element already clears the bar'],
-    ['1,1,1,1,1,1,1,1','11','never valid &rarr; return 0, not &infin;'],
-    ['5,1,3,5,10,7,4,9,2,8','15','shrink fires repeatedly, deep in the array'],
-    ['1,2,3,4,5','15','only the whole array qualifies']
+    ['QWER','already balanced &rarr; 0, no window needed'],
+    ['QQWE','one surplus Q &rarr; 1'],
+    ['QQQW','two-wide window &rarr; 2'],
+    ['QQQQ','worst case: n &minus; n/4 = 3'],
+    ['WQWRQQQW','outside drifts in and out of quota &rarr; 3']
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(function(e){
       const c=document.createElement('button'); c.className='chip';
-      c.innerHTML=`[${e[0]}], t=${e[1]}<b>${e[2]}</b>`;
-      c.onclick=function(){ run(e[0], e[1]); };
+      c.innerHTML=`"${e[0]}"<b>${e[1]}</b>`;
+      c.onclick=function(){ run(e[0]); };
       box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(arrEl.value, tEl.value);
-  [arrEl,tEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, tEl.value); }));
+  $('runBtn').onclick=()=>run(sEl.value);
+  sEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(sEl.value); });
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
   $('playBtn').onclick=togglePlay;
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
-    if(document.activeElement===arrEl||document.activeElement===tEl) return;
+    if(document.activeElement===sEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
     if(e.key===' '){e.preventDefault();togglePlay();}
   });
 
-  run(arrEl.value, tEl.value);
+  run(sEl.value);
 })();
 </script>
 

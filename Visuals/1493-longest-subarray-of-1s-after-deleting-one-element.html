@@ -574,7 +574,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     }, o));
 
     if(n === 0){
-      f({phase:'done', code:0, done:true, msg:`Empty array &mdash; nothing to scan. <b>Return 0</b>.`});
+      f({phase:'done', code:0, done:true, ans:0, msg:`Empty array &mdash; nothing to scan. <b>Return 0</b>.`});
       return F;
     }
 
@@ -621,7 +621,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     }
 
     r = n - 1;
-    f({phase:'done', code:REC_LINE, l:bestL<0?0:bestL, r:bestL<0?-1:bestR, done:false,
+    f({phase:'wrap', code:REC_LINE, l:bestL<0?0:bestL, r:bestL<0?-1:bestR, done:false,
       msg:`Scan finished. The longest window holding at most one zero is <span class="m">[${bestL}..${bestR}]</span>, width <b>${best}</b>. But <code>best</code> is <em>not</em> the answer yet.`});
 
     const ans = Math.max(0, best - 1);
@@ -630,9 +630,11 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       msg:`<b>The mandatory deletion.</b> You must remove exactly one element, even if the window is all 1s &mdash; so a window of width <b>${best}</b> yields a run of <span class="m">${best} &minus; 1 = ${ans}</span> ones. ` +
           (nums.every(v=>v===1)
             ? `This input is <b>all 1s</b>: the window is the whole array, and the answer is <span class="m">n &minus; 1 = ${ans}</span>, not ${n}. That is the trap. `
-            : (best>0 && nums.slice(bestL,bestR+1).indexOf(0)>=0
-               ? `Here the element deleted is the zero at <span class="a">index ${bestL + nums.slice(bestL,bestR+1).indexOf(0)}</span>, so the &minus;1 costs you nothing &mdash; but it is charged either way. `
-               : ``)) +
+            : (nums.every(v=>v===0)
+               ? `There are <b>no 1s anywhere</b>, so the best any window can hold is the single tolerated zero &mdash; delete it and nothing is left. `
+               : (best>0 && nums.slice(bestL,bestR+1).indexOf(0)>=0
+                  ? `Here the element deleted is the zero at <span class="a">index ${bestL + nums.slice(bestL,bestR+1).indexOf(0)}</span>, so the &minus;1 costs you nothing &mdash; but it is charged either way. `
+                  : ``))) +
           `<b>Return ${ans}</b>.`});
     return F;
   }
@@ -730,11 +732,14 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     msgEl.innerHTML = f.msg;
     verdictEl.innerHTML = (f.done && f.ans!==undefined)
       ? `<span class="trip">answer = ${f.ans}</span>`+
-        (f.ans===0 ? `<span class="trip no">no run of 1s survives the deletion</span>` : `<span class="trip neutral">from window [${f.bestL}..${f.bestR}] of width ${f.best}</span>`)
+        (f.ans===0
+          ? `<span class="trip no">${f.n===0 ? 'empty input' : 'no run of 1s survives the deletion'}</span>`
+          : `<span class="trip neutral">from window [${f.bestL}..${f.bestR}] of width ${f.best}</span>`)
       : '';
 
     const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
                 shrink:['sort','&#8592; shrinking l'],found:['found','&#10003; new maximum'],
+                wrap:['scan','&#9656; the &minus;1 is still owed'],
                 done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
     pillEl.className='phase-pill '+pe[0]; pillEl.innerHTML=pe[1];
