@@ -787,7 +787,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       }
       if(total>shown) h += `<div class="sufrow"><span class="sufnote">&hellip; and ${total-shown} more, ${total} in all</span></div>`;
       sufEl.innerHTML=h;
-      sufCap.innerHTML = `<span class="m">${total}</span> new subarray${total===1?'':'s'} end at index ${s1} &mdash; this is what <span class="m">r &minus; l + 1</span> means`;
+      sufCap.innerHTML = `<span class="m">${total}</span> new subarray${total===1?'':'s'} end${total===1?'s':''} at index ${s1} &mdash; this is what <span class="m">r &minus; l + 1</span> means`;
     } else if(f.suf){
       sufEl.innerHTML = `<div class="sufempty">window empty &rarr; 0 subarrays end at index ${f.suf.r}</div>`;
       sufCap.innerHTML = `<span class="a">r &minus; l + 1 = 0</span> &mdash; the count line runs and adds nothing`;

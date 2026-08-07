@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>107 interactive visualizers</title>
+<title>126 interactive visualizers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -71,7 +71,7 @@ a.card .d { font-family:var(--sans); font-size:12.5px; color:var(--fg-dim); marg
 <body>
 <div class="wrap">
 <h1>Interactive visualizers</h1>
-<p class="lede">107 pages, one house style. Every diagram is driven by a real,
+<p class="lede">126 pages, one house style. Every diagram is driven by a real,
 instrumented implementation of the algorithm it&rsquo;s showing &mdash; step through with the
 controls or the arrow keys, and the code pane highlights the exact line running at each frame.</p>
 
@@ -299,23 +299,38 @@ twelve mutations of it. What changes between sub-variants is never the traversal
 
 
 <h2 class="part" id="p4">Pattern 4 &mdash; Sliding Window</h2>
-<p class="partsub">One pass, two boundaries, and an invariant that decides when the window has to give ground. Eight pages.</p>
+<p class="partsub">One pass, two boundaries, and an invariant that decides when the window has to give ground. 27 pages.</p>
 
 <h3><span class="sv">A</span> Fixed-size window<span class="note">the frame never changes size</span></h3>
 <div class="grid">
 <a class="card" href="643-maximum-average-subarray-i.html"><span class="num">643</span><span class="t">Maximum Average Subarray I</span><span class="diff diff-easy">Easy</span><span class="d">Build the first window once, then slide — track the max&hellip;</span></a>
 <a class="card" href="2841-maximum-sum-of-distinct-subarrays-with-length-k.html"><span class="num">2841</span><span class="t">Maximum Sum of Distinct Subarrays With Length K</span><span class="diff diff-medium">Medium</span><span class="d">A running sum and a frequency map — the window only counts&hellip;</span></a>
+
+<a class="card" href="1456-maximum-number-of-vowels-in-a-substring-of-given-length.html"><span class="num">1456</span><span class="t">Maximum Number of Vowels in a Substring</span><span class="diff diff-medium">Medium</span><span class="d">add the entering, drop the leaving</span></a>
+<a class="card" href="1052-grumpy-bookstore-owner.html"><span class="num">1052</span><span class="t">Grumpy Bookstore Owner</span><span class="diff diff-medium">Medium</span><span class="d">banked + rescued, as two separate totals</span></a>
+<a class="card" href="2134-minimum-swaps-to-group-all-1s-together-ii.html"><span class="num">2134</span><span class="t">Minimum Swaps to Group All 1&rsquo;s Together II</span><span class="diff diff-medium">Medium</span><span class="d">width is derived, and the array is circular</span></a>
 </div>
 
 <h3><span class="sv">B</span> Variable window, maximize length<span class="note">grow greedily, shrink only when invalid</span></h3>
 <div class="grid">
 <a class="card" href="3-longest-substring-without-repeating-characters.html"><span class="num">3</span><span class="t">Longest Substring Without Repeating Characters</span><span class="diff diff-medium">Medium</span><span class="d">right always moves forward. left only moves when the&hellip;</span></a>
 <a class="card" href="1004-max-consecutive-ones-iii.html"><span class="num">1004</span><span class="t">Max Consecutive Ones III</span><span class="diff diff-medium">Medium</span><span class="d">Same shrink-when-forced shape — but a zeroCount replaces&hellip;</span></a>
+
+<a class="card" href="340-longest-substring-with-at-most-k-distinct-characters.html"><span class="num">340</span><span class="t">Longest Substring with At Most K Distinct</span><span class="diff diff-medium">Medium</span><span class="d">delete the key at count zero</span></a>
+<a class="card" href="1493-longest-subarray-of-1s-after-deleting-one-element.html"><span class="num">1493</span><span class="t">Longest Subarray of 1&rsquo;s After Deleting One</span><span class="diff diff-medium">Medium</span><span class="d">the &minus;1 you still owe</span></a>
 </div>
 
 <h3><span class="sv">C</span> Variable window, minimize length<span class="note">shrink as far as it will go, then record</span></h3>
 <div class="grid">
 <a class="card" href="76-minimum-window-substring.html"><span class="num">76</span><span class="t">Minimum Window Substring</span><span class="diff diff-hard">Hard</span><span class="d">Expand until valid, then contract as far as possible. A&hellip;</span></a>
+
+<a class="card" href="209-minimum-size-subarray-sum.html"><span class="num">209</span><span class="t">Minimum Size Subarray Sum</span><span class="diff diff-medium">Medium</span><span class="d">record inside the shrink loop</span></a>
+<a class="card" href="1234-replace-the-substring-for-balanced-string.html"><span class="num">1234</span><span class="t">Replace the Substring for Balanced String</span><span class="diff diff-medium">Medium</span><span class="d">test the counts outside the window</span></a>
+</div>
+
+<h3><span class="sv">D</span> Non-shrinking windows<span class="note">the window slides but never contracts</span></h3>
+<div class="grid">
+<a class="card" href="424-longest-repeating-character-replacement.html"><span class="num">424</span><span class="t">Longest Repeating Character Replacement</span><span class="diff diff-medium">Medium</span><span class="d">a stale maxCount that cannot corrupt the answer</span></a>
 </div>
 
 <h3><span class="sv">E</span> Frequency-map matching<span class="note">a matched counter beats rescanning the map</span></h3>
@@ -324,11 +339,38 @@ twelve mutations of it. What changes between sub-variants is never the traversal
 <a class="card" href="438-find-all-anagrams-in-a-string.html"><span class="num">438</span><span class="t">Find All Anagrams in a String</span><span class="diff diff-medium">Medium</span><span class="d">Identical machinery to Permutation in String — but collect&hellip;</span></a>
 </div>
 
+<h3><span class="sv">F</span> Counting windows<span class="note">a valid window contributes r &minus; l + 1</span></h3>
+<div class="grid">
+<a class="card" href="713-subarray-product-less-than-k.html"><span class="num">713</span><span class="t">Subarray Product Less Than K</span><span class="diff diff-medium">Medium</span><span class="d">every suffix of the window, banked at once</span></a>
+<a class="card" href="1358-number-of-substrings-containing-all-three-characters.html"><span class="num">1358</span><span class="t">Substrings Containing All Three Characters</span><span class="diff diff-medium">Medium</span><span class="d">min of the three last-occurrences is the boundary</span></a>
+</div>
+
+<h3><span class="sv">G</span> At-most-K &rarr; exactly-K<span class="note">exactly(k) = atMost(k) &minus; atMost(k&minus;1)</span></h3>
+<div class="grid">
+<a class="card" href="930-binary-subarrays-with-sum.html"><span class="num">930</span><span class="t">Binary Subarrays With Sum</span><span class="diff diff-medium">Medium</span><span class="d">run the window twice, subtract</span></a>
+<a class="card" href="992-subarrays-with-k-different-integers.html"><span class="num">992</span><span class="t">Subarrays with K Different Integers</span><span class="diff diff-hard">Hard</span><span class="d">the flagship of the decomposition</span></a>
+<a class="card" href="1248-count-number-of-nice-subarrays.html"><span class="num">1248</span><span class="t">Count Number of Nice Subarrays</span><span class="diff diff-medium">Medium</span><span class="d">map to parity and it becomes 930</span></a>
+</div>
+
+<h3><span class="sv">H</span> Complement / inverse windows<span class="note">the ends are not a window, but the middle is</span></h3>
+<div class="grid">
+<a class="card" href="1423-maximum-points-you-can-obtain-from-cards.html"><span class="num">1423</span><span class="t">Maximum Points You Can Obtain from Cards</span><span class="diff diff-medium">Medium</span><span class="d">minimise the fixed-width middle you leave</span></a>
+<a class="card" href="1658-minimum-operations-to-reduce-x-to-zero.html"><span class="num">1658</span><span class="t">Minimum Operations to Reduce X to Zero</span><span class="diff diff-medium">Medium</span><span class="d">maximise the variable-width middle you keep</span></a>
+</div>
+
 <h3><span class="sv">I</span> Monotonic deque windows<span class="note">the front is always the answer</span></h3>
 <div class="grid">
 <a class="card" href="239-sliding-window-maximum.html"><span class="num">239</span><span class="t">Sliding Window Maximum</span><span class="diff diff-hard">Hard</span><span class="d">A decreasing deque of indices — the front is always the&hellip;</span></a>
+
+<a class="card" href="1438-longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit.html"><span class="num">1438</span><span class="t">Longest Subarray with Absolute Diff &le; Limit</span><span class="diff diff-medium">Medium</span><span class="d">two deques: one for max, one for min</span></a>
 </div>
 
+<h3><span class="sv">K</span> &#9888; Anti-patterns &mdash; when the window is illegal<span class="note">each page runs the naive window until it visibly fails</span></h3>
+<div class="grid">
+<a class="card" href="862-shortest-subarray-with-sum-at-least-k.html"><span class="num">862</span><span class="t">Shortest Subarray with Sum at Least K</span><span class="diff diff-hard">Hard</span><span class="d">negatives break it; monotonic deque on prefixes</span></a>
+<a class="card" href="560-subarray-sum-equals-k.html"><span class="num">560</span><span class="t">Subarray Sum Equals K</span><span class="diff diff-medium">Medium</span><span class="d">no monotonicity, so no window at all</span></a>
+<a class="card" href="395-longest-substring-with-at-least-k-repeating-characters.html"><span class="num">395</span><span class="t">Longest Substring with At Least K Repeating</span><span class="diff diff-medium">Medium</span><span class="d">fix a parameter to restore monotonicity</span></a>
+</div>
 
 <h2 class="part" id="p5">Pattern 5 &mdash; Binary Search</h2>
 <p class="partsub">Halve the space each step &mdash; on an array, on a rotation, or on the answer itself. Nine pages.</p>

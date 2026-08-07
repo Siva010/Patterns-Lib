@@ -767,8 +767,16 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     eqBar.classList.toggle('won', !!f.done && f.ans !== -1);
     eqThr.style.left = (f.total > 0 ? Math.max(0, Math.min(100, (f.total - f.target)/f.total*100)) : 0) + '%';
     eqThr.style.display = (f.target >= 0 && f.target <= f.total) ? 'block' : 'none';
-    eqL.innerHTML = `<span class="a">removed ${rem}</span> / need x = ${f.x}`;
-    eqR.innerHTML = `<span class="${exact?'m':(over?'l':'w')}">kept ${mid}</span> / target ${f.target < 0 ? '&minus;' + Math.abs(f.target) : f.target}`;
+    if(f.dead){
+      /* no split exists at all — do not imply one with a live ledger */
+      segT.style.flexGrow = 1; segM.style.flexGrow = 0;
+      eqBar.classList.remove('exact','over','won');
+      eqL.innerHTML = `<span class="x">no split exists</span>`;
+      eqR.innerHTML = `target ${f.target < 0 ? '&minus;' + Math.abs(f.target) : f.target} is unreachable`;
+    } else {
+      eqL.innerHTML = `<span class="a">removed ${rem}</span> / need x = ${f.x}`;
+      eqR.innerHTML = `<span class="${exact?'m':(over?'l':'w')}">kept ${mid}</span> / target ${f.target < 0 ? '&minus;' + Math.abs(f.target) : f.target}`;
+    }
 
     const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
     const width  = live ? (f.r-f.l+1) : 0;

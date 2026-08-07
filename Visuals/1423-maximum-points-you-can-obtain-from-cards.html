@@ -723,6 +723,14 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     const first = tapeEl.querySelector('.col');
     if(!first || !f.hasWin){ brkEl.innerHTML=''; return; }
     const cw = first.offsetWidth || 38;
+    if(f.building){
+      /* the first block is still being filled — nothing is split into
+         piles yet, so do not claim a take-count that is not true. */
+      const seeded = f.r - f.l + 1;
+      brkEl.innerHTML = `<div class="brk mid" style="width:${segWidth(seeded,cw)}px">`+
+        `<div class="bar"></div><div class="lbl">seeding ${seeded} / ${f.w}</div></div>`;
+      return;
+    }
     const frontN = f.allTaken ? f.n : f.l;
     const midN   = f.allTaken ? 0 : (f.r - f.l + 1);
     const backN  = f.allTaken ? 0 : (f.n - 1 - f.r);
@@ -774,9 +782,14 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     const tak = f.total - mid;
     segT.style.flexGrow = Math.max(tak, 0);
     segM.style.flexGrow = Math.max(mid, 0);
-    eqBar.classList.toggle('won', !!f.done);
-    eqL.innerHTML = `<span class="${f.done?'m':'a'}">taken ${tak}</span>`;
-    eqR.innerHTML = `<span class="w">middle ${mid}</span> &nbsp;&middot;&nbsp; total ${f.total}`;
+    eqBar.classList.toggle('won', !!f.done && !f.building);
+    if(f.building){
+      eqL.innerHTML = `not split into piles yet`;
+      eqR.innerHTML = `<span class="w">block so far ${mid}</span> &nbsp;&middot;&nbsp; total ${f.total}`;
+    } else {
+      eqL.innerHTML = `<span class="${f.done?'m':'a'}">taken ${tak}</span>`;
+      eqR.innerHTML = `<span class="w">middle ${mid}</span> &nbsp;&middot;&nbsp; total ${f.total}`;
+    }
 
     const winTxt = (f.hasWin && !f.allTaken && f.r>=f.l) ? `[${f.l}..${f.r}]` : '&mdash;';
     const width  = (f.hasWin && !f.allTaken && f.r>=f.l) ? (f.r-f.l+1) : 0;
@@ -837,7 +850,7 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     ['1,2,3,4,5,6,1','3','the textbook run &mdash; answer 12'],
     ['9,7,7,9,7,7,9','7','k == n &rarr; width-0 window, answer = total'],
     ['2,2,2','2','flat deck &mdash; every split ties'],
-    ['1,1000,1','1','both ends are junk; the fat card must stay'],
+    ['1,999,1','1','both ends are junk; the fat card must stay'],
     ['100,40,17,9,73,75','3','best split is 1 from the front, 2 from the back']
   ];
   (function chips(){

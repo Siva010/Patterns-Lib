@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>LeetCode 424 &middot; Longest Repeating Character Replacement &mdash; visual guide</title>
-<meta name="description" content="Interactive visualizer for LeetCode 424: the non-shrinking sliding window, showing why a deliberately stale maxCount can never inflate the answer and why the window's width never falls.">
+<title>LeetCode 1438 &middot; Longest Continuous Subarray With Absolute Diff Less Than or Equal to Limit &mdash; visual guide</title>
+<meta name="description" content="Sliding window sub-variant I: two monotonic deques carry the window max and min so the spread test is O(1) per step.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -323,15 +323,15 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 
 
 /* ============================================================
-   VARIABLE-SIZE WINDOW — shared page-local additions
-   The window grows on the right and shrinks on the left, so the
-   tape needs the same five states the other window pages use, all
-   built from shared tokens — no new hue is introduced below:
+   COMPLEMENT / DEQUE WINDOWS — shared page-local additions
+   Same five tape states the other window pages use, all built
+   from shared tokens — no new hue is introduced below:
      .wbody     settled interior of the window   -> --r-window
      .wl / .wr  the two boundaries               -> --r-left / --r-right
      .entering  the cell added on this step      -> --r-right, lifted
      .leaving   the cell evicted on this step    -> --r-left, dashed, sunk
      .gone      already evicted past l           -> hue-less, dim + dashed
+   plus .bestmark, a --r-hit underline for the best window recorded.
    ============================================================ */
 .tape.fw { gap: 5px; }
 .tape.fw .col { width: 38px; }
@@ -355,12 +355,10 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .caret .pW   { color: var(--accent-fg); background: var(--r-window); }
 .caret .pIn  { color: var(--accent-fg); background: var(--r-right); }
 .caret .pOut { color: var(--accent-fg); background: var(--r-left); }
-.caret .pA   { color: var(--accent-fg); background: var(--r-anchor); }
-.caret .pM   { color: var(--accent-fg); background: var(--r-hit); }
-.caret .pDim { color: var(--bg); background: var(--fg-dim); }
+.caret .pT   { color: var(--accent-fg); background: var(--r-anchor); }
 
 /* the running statistic — one chip per quantity that rides the frame */
-.stats { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 640px; }
+.stats { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 620px; }
 .stat {
   font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
   border: 1px solid var(--rule-hard); background: var(--bg-sunk);
@@ -373,19 +371,19 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .stat.h b   { color: var(--r-hit); }
 .stat.a     { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
 .stat.a b   { color: var(--r-anchor); }
+.stat.a2    { border-color: var(--r-anchor2-line);background: var(--r-anchor2-wash);color: var(--r-anchor2); }
+.stat.a2 b  { color: var(--r-anchor2); }
 .stat.plus  { border-color: var(--r-right-line);  background: var(--r-right-wash);  color: var(--r-right); }
 .stat.plus b{ color: var(--r-right); }
 .stat.minus { border-color: var(--r-left-line);   background: var(--r-left-wash);   color: var(--r-left); }
 .stat.minus b { color: var(--r-left); }
 .stat.mute  { border-style: dashed; }
-.stat.stale { border-color: var(--r-anchor-line); background: var(--bg-sunk); color: var(--r-anchor); border-style: dashed; }
-.stat.stale b { color: var(--r-anchor); }
 
 /* the governing rule, restated under the stage on every frame */
 .rulebar {
   font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--fg-dim);
   background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
-  border-radius: 8px; padding: 7px 13px; max-width: 640px; text-align: center;
+  border-radius: 8px; padding: 7px 13px; max-width: 620px; text-align: center;
 }
 .rulebar b { color: var(--fg-mid); font-weight: 600; }
 .rulebar .w { color: var(--r-window); font-weight: 600; }
@@ -393,9 +391,10 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .rulebar .r { color: var(--r-right);  font-weight: 600; }
 .rulebar .m { color: var(--r-hit);    font-weight: 600; }
 .rulebar .a { color: var(--r-anchor); font-weight: 600; }
+.rulebar .a2{ color: var(--r-anchor2);font-weight: 600; }
 .rulebar .x { color: var(--fg-dim);   font-weight: 600; }
 
-/* sub-variant mode badge — every variable-window page declares which it is */
+/* variant badge — every window page declares which kind it is */
 .modechip {
   display: inline-block; font-family: var(--sans); font-size: 10px; font-weight: 600;
   letter-spacing: .09em; text-transform: uppercase; padding: 2px 8px;
@@ -403,35 +402,34 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .modechip.b { color: var(--r-hit);    background: var(--r-hit-wash);    border: 1px solid var(--r-hit-line); }
 .modechip.c { color: var(--r-window); background: var(--r-window-wash); border: 1px solid var(--r-window-line); }
-.modechip.d { color: var(--r-anchor); background: var(--r-anchor-wash); border: 1px solid var(--r-anchor-line); }
-.modechip.f { color: var(--r-hit);    background: var(--r-hit-wash);    border: 1px solid var(--r-hit-line); }
+.modechip.h { color: var(--r-anchor); background: var(--r-anchor-wash); border: 1px solid var(--r-anchor-line); }
+.modechip.i { color: var(--r-anchor2);background: var(--r-anchor2-wash);border: 1px solid var(--r-anchor2-line); }
 
 .message .w { color: var(--r-window); font-weight: 600; }
 .message .a { color: var(--r-anchor); font-weight: 600; }
+.message .a2{ color: var(--r-anchor2); font-weight: 600; }
 .sum-line .w { color: var(--r-window); }
 .sum-line .m { color: var(--r-hit); }
-.lede .w { color: var(--r-window); font-weight: 600; }
-.lede .m { color: var(--r-hit);    font-weight: 600; }
-.lede .a { color: var(--r-anchor); font-weight: 600; }
 
 .taperow { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
 .tapecap {
   font-family: var(--sans); font-size: 10.5px; font-weight: 600;
   letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); text-align: center;
 }
-.tapecap em { font-style: normal; color: var(--r-window); }
-.tapecap .m { color: var(--r-hit); }
-.tapecap .a { color: var(--r-anchor); }
+.tapecap em  { font-style: normal; color: var(--r-window); }
+.tapecap i   { font-style: normal; color: var(--r-anchor); }
+.tapecap u   { text-decoration: none; color: var(--r-anchor2); }
 
-.dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
-.dot.a { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.w  { background: var(--r-window-wash);  border-color: var(--r-window); }
+.dot.a  { background: var(--r-anchor-wash);  border-color: var(--r-anchor); }
+.dot.a2 { background: var(--r-anchor2-wash); border-color: var(--r-anchor2); }
 .trip.neutral { color: var(--fg-mid); background: var(--bg-sunk); border-color: var(--rule-hard); }
-.trip.no { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
+.trip.no   { color: var(--fg-dim); background: var(--bg-sunk); border-color: var(--rule-hard); border-style: dashed; }
 .trip.bank { color: var(--r-anchor); background: var(--r-anchor-wash); border-color: var(--r-anchor-line); }
 .code .cm { color: var(--t-com); font-style: italic; }
 
-/* the record point, pinned in the source so the sub-variant is
-   visible without stepping: this is the line where the answer is written. */
+/* the record point, pinned in the source so the variant is visible
+   without stepping: this is the line where the answer is written. */
 .code .ln.recpoint { background: var(--r-hit-wash); }
 .code .ln.recpoint::after {
   content: "RECORD"; position: absolute; right: 12px; top: 1px;
@@ -440,78 +438,68 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 }
 .code .ln.recpoint.exec { background: var(--accent-wash); }
 
-
-/* --- 424 only ------------------------------------------------
-   Three page-local components, all built from existing tokens:
-     .cell.mcsrc   the cell that last raised maxCount  -> --r-anchor
-                   underline. Goes dashed + dim when the statistic
-                   it produced has gone STALE.
-     .freq         the window's character-frequency map
-     .wstrip       one bar per step: the width, which never falls
-   ------------------------------------------------------------ */
-.cell.mcsrc::after {
-  content: ""; position: absolute; left: 10%; right: 10%; bottom: -5px;
-  height: 3px; border-radius: 2px; background: var(--r-anchor);
+/* --- 1438 only: two live monotonic deques ---------------------
+   maxDeque is decreasing, its front is the window max  -> --r-anchor
+   minDeque is increasing, its front is the window min  -> --r-anchor2
+   A chip that has been popped is hue-less: dim, dashed, struck.
+   No new hue below.
+   -------------------------------------------------------------- */
+.deques { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 640px; }
+.dq { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dqname {
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; line-height: 1.3; width: 118px; flex-shrink: 0; text-align: right;
 }
-.cell.mcstale::after {
-  background: transparent;
-  border-bottom: 3px dashed var(--r-anchor); opacity: .75; height: 0;
+.dq.mx .dqname { color: var(--r-anchor); }
+.dq.mn .dqname { color: var(--r-anchor2); }
+.dqname s { display: block; font-weight: 500; color: var(--fg-dim); text-decoration: none; }
+.dqq {
+  display: flex; gap: 5px; flex-wrap: wrap; align-items: center; flex: 1;
+  min-height: 32px; padding: 3px 7px; border-radius: 9px;
+  background: var(--bg-sunk); border: 1px dashed var(--rule-hard);
 }
-
-.freqs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 620px; align-items: center; }
-.freq {
-  font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
-  border: 1px solid var(--rule-hard); background: var(--bg-sunk);
-  border-radius: 7px; padding: 3px 10px; color: var(--fg-dim);
+.dqc {
+  font-family: var(--mono); font-size: 12px; line-height: 1.4;
+  border: 1.5px solid; border-radius: 7px; padding: 2px 8px; white-space: nowrap;
+  transition: opacity .18s, transform .18s;
 }
-.freq b { color: var(--fg); font-weight: 600; }
-.freq.top   { border-color: var(--r-window-line); background: var(--r-window-wash); color: var(--r-window); }
-.freq.top b { color: var(--r-window); }
-.freq.zero  { opacity: .4; border-style: dashed; }
-.freq.mc    { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); font-weight: 600; }
-.freq.mc b  { color: var(--r-anchor); }
-.freq.mc.stale { background: var(--bg-sunk); border-style: dashed; }
-.freqsep { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); padding: 0 2px; }
-
-/* the validity test, spelled out every frame */
-.formula {
-  font-family: var(--mono); font-size: 13.5px; line-height: 1.6;
-  display: flex; flex-wrap: wrap; gap: 7px; align-items: baseline; justify-content: center;
-  max-width: 620px; text-align: center; color: var(--fg-dim);
-}
-.formula .w  { color: var(--r-window); font-weight: 600; }
-.formula .a  { color: var(--r-anchor); font-weight: 600; }
-.formula .eq { color: var(--fg); font-weight: 600; }
-.formula .ok  { color: var(--r-hit);  font-weight: 600; }
-.formula .bad { color: var(--r-left); font-weight: 600; }
-
-.stalenote {
-  font-family: var(--sans); font-size: 12px; line-height: 1.55;
-  color: var(--r-anchor); background: var(--r-anchor-wash);
-  border: 1px dashed var(--r-anchor-line); border-radius: 8px;
-  padding: 6px 12px; max-width: 620px; text-align: center;
-}
-.stalenote b { color: var(--r-anchor); font-weight: 700; }
-.stalenote.fresh {
+.dqc .ix { font-size: 10px; opacity: .62; }
+.dq.mx .dqc { border-color: var(--r-anchor-line);  background: var(--r-anchor-wash);  color: var(--r-anchor); }
+.dq.mn .dqc { border-color: var(--r-anchor2-line); background: var(--r-anchor2-wash); color: var(--r-anchor2); }
+.dq .dqc.front { border-width: 2.5px; font-weight: 600; }
+.dq .dqc.newc  { border-style: solid; border-color: var(--r-right); color: var(--r-right);
+                 background: var(--r-right-wash); transform: translateY(-3px); }
+/* popped — hue-less on purpose, these indices simply recede */
+.dq .dqc.db, .dq .dqc.df {
+  opacity: .42; border-style: dashed; border-color: var(--fg-dim);
   color: var(--fg-dim); background: var(--bg-sunk);
-  border-color: var(--rule-hard); border-style: dashed;
+  text-decoration: line-through; text-decoration-thickness: 1.5px; transform: none;
 }
-.stalenote.fresh b { color: var(--fg-mid); }
+.dqempty { font-family: var(--mono); font-size: 11.5px; color: var(--fg-dim); padding: 2px 4px; }
+.dqend {
+  font-family: var(--sans); font-size: 9px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fg-dim); padding: 0 2px;
+}
 
-/* one bar per step: the window width, which is never allowed to fall */
-.wstrip { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
-.wbars { display: flex; align-items: flex-end; gap: 5px; height: 58px; }
-.wbar {
-  width: 38px; border-radius: 4px 4px 0 0; position: relative;
-  background: var(--r-window-wash); border: 1.5px solid var(--r-window-line);
-  display: flex; align-items: flex-start; justify-content: center;
-  font-family: var(--mono); font-size: 10px; color: var(--r-window);
-  transition: height .18s;
+/* the validity test, restated numerically on every frame */
+.testbar {
+  font-family: var(--mono); font-size: 13px; display: flex; gap: 9px; align-items: center;
+  justify-content: center; flex-wrap: wrap; border: 1px solid var(--rule-hard);
+  background: var(--bg-sunk); border-radius: 9px; padding: 7px 14px; max-width: 640px;
 }
-@media (max-width: 560px) { .wbar { width: 29px; } }
-.wbar.now  { background: var(--r-window-wash); border-color: var(--r-window); border-width: 2px; color: var(--r-window); font-weight: 600; }
-.wbar.todo { background: var(--bg-sunk); border-color: var(--rule); border-style: dashed; color: var(--fg-dim); }
-.wbar span { margin-top: -14px; }
+.testbar .mx  { color: var(--r-anchor);  font-weight: 600; }
+.testbar .mn  { color: var(--r-anchor2); font-weight: 600; }
+.testbar .ok  { color: var(--r-hit);     font-weight: 600; }
+.testbar .bad { color: var(--r-left);    font-weight: 600; }
+.testbar .pend{ color: var(--fg-dim);    font-weight: 600; }
+.testbar.ok  { border-color: var(--r-hit-line);  background: var(--r-hit-wash); }
+.testbar.bad { border-color: var(--r-left-line); background: var(--r-left-wash); }
+.testbar.pend{ border-style: dashed; }
+
+/* which cell currently holds the extreme */
+.cell.ismax  { outline: 2px solid var(--r-anchor);  outline-offset: 2px; }
+.cell.ismin  { outline: 2px solid var(--r-anchor2); outline-offset: 2px; }
+.cell.isboth { outline: 2px dashed var(--r-hit);    outline-offset: 2px; }
 
 </style>
 <script>
@@ -530,38 +518,31 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Sliding Window &middot; sub-variant D &mdash; the non-shrinking window <span class="tag">LeetCode 424</span></div>
-  <h1>Longest Repeating Character Replacement <span class="thin">/ visualized</span></h1>
+  <div class="eyebrow">Sliding Window &middot; sub-variant I &mdash; monotonic deque windows <span class="tag">LeetCode 1438</span></div>
+  <h1>Longest Continuous Subarray With Absolute Diff &le; Limit <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    Every other variable window shrinks. This one <b>never does</b>. When the window fails its test,
-    <span class="l">l</span> advances by <em>exactly one</em> in the same step that <span class="r">r</span>
-    advanced by one &mdash; so the width is preserved, never reduced, and the final width
-    <span class="k">n &minus; l</span> <em>is</em> the answer. There is no <span class="m">best = max(&hellip;)</span>
-    line anywhere in the source.
-    The test is <span class="k">width &minus; maxCount &le; k</span>: the characters you would have to replace
-    are everything that is not the most common one. And here is the part that looks like a bug and is not.
-    <span class="a">maxCount</span> is <b>deliberately stale</b> &mdash; it is the highest frequency ever seen,
-    and it is never decreased when the window slides past the cell that produced it. A stale
-    <span class="a">maxCount</span> is always <em>too large</em>, which makes
-    <span class="k">width &minus; maxCount</span> too <em>small</em>, so a stale window can look valid when it is
-    not. That cannot hurt us: a falsely-valid window is never <b>wider</b> than the genuinely valid window that
-    earned that <span class="a">maxCount</span> in the first place, and since we only ever report the maximum
-    width, an answer that is never larger than the truth and is achieved exactly once at the true optimum is
-    simply the truth. Frames where the statistic has gone stale are marked below &mdash; watch that the width
-    never moves backwards.
+    The window is valid exactly when <span class="k">max(window) &minus; min(window) &le; limit</span>. Rescanning
+    the window for its max and min on every step is <span class="k">O(n&middot;k)</span>, so you carry the two
+    extremes instead: a <span class="a">decreasing deque</span> whose <b>front is the window max</b>, and an
+    <span class="a2">increasing deque</span> whose <b>front is the window min</b>. Each new value <em>back-pops</em>
+    every index it dominates &mdash; those indices are younger-and-worse, so they can never be an extreme again while
+    the newcomer is in the window &mdash; and each index leaving on the left <em>front-pops</em> only if it happened
+    to be the extreme. Compare LC 239 in this library: sliding window maximum asks for the max, so one deque is
+    enough; 1438 asks about the <b>spread</b>, so it needs both, and the validity test is just
+    <span class="k">maxDeque.front &minus; minDeque.front</span> read every step.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="sInput">s &mdash; uppercase letters</label>
+      <label for="arrInput">nums &mdash; comma-separated</label>
       <div class="input-shell">
-        <input id="sInput" type="text" value="AABABBA" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="10,1,2,4,7,2" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div class="field" style="flex:0 0 210px; min-width:210px;">
-      <label for="kInput">k (replacements allowed)</label>
+      <label for="limInput">limit</label>
       <div class="input-shell">
-        <input id="kInput" type="text" value="1" spellcheck="false" autocomplete="off">
+        <input id="limInput" type="text" value="5" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
       </div>
     </div>
@@ -573,16 +554,20 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
       <div class="stage">
         <div class="taperow">
-          <div class="tapecap">s &nbsp;&middot;&nbsp; <em>teal</em> is the window, the <span class="a">amber underline</span> is the cell that set maxCount</div>
+          <div class="tapecap">nums &nbsp;&middot;&nbsp; <em>teal</em> is the window &nbsp;&middot;&nbsp; <i>orange ring = current max</i> &nbsp;&middot;&nbsp; <u>pink ring = current min</u></div>
           <div class="tape fw" id="tape"></div>
         </div>
-        <div class="formula" id="formula"></div>
-        <div class="stalenote" id="staleNote"></div>
-        <div class="freqs" id="freqs"></div>
-        <div class="wstrip">
-          <div class="tapecap">window width after each step &mdash; <em>it never falls</em></div>
-          <div class="wbars" id="wbars"></div>
+        <div class="deques">
+          <div class="dq mx">
+            <div class="dqname">maxDeque<s>decreasing</s></div>
+            <div class="dqq" id="qMax"></div>
+          </div>
+          <div class="dq mn">
+            <div class="dqname">minDeque<s>increasing</s></div>
+            <div class="dqq" id="qMin"></div>
+          </div>
         </div>
+        <div class="testbar" id="testBar"></div>
         <div class="rulebar" id="ruleBar"></div>
         <div class="stats" id="stats"></div>
         <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
@@ -605,20 +590,20 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot w"></i>inside the window</span>
-        <span><i class="dot r"></i>entering (cnt++)</span>
-        <span><i class="dot l"></i>slid past (cnt&minus;&minus;)</span>
-        <span><i class="dot a"></i>set maxCount</span>
-        <span><i class="dot x"></i>left behind</span>
+        <span><i class="dot a"></i>maxDeque &middot; front = max</span>
+        <span><i class="dot a2"></i>minDeque &middot; front = min</span>
+        <span><i class="dot w"></i>the window</span>
+        <span><i class="dot m"></i>longest valid window</span>
+        <span><i class="dot x"></i>popped &mdash; can never win again</span>
       </div>
     </div>
   </div>
 
   <div class="foot">
-    O(n) time &middot; O(26) space &nbsp;&middot;&nbsp; one pass, and <code>l</code> moves at most n times.
-    Sub-variant <b>D</b>: the window <em>slides</em> instead of shrinking, so its width is monotone and no
-    <code>best</code> variable is needed &mdash; <code>s.length() - l</code> is the answer by construction.
-    <code>maxCount</code> being stale is the price of O(1) per step, and it is a price that provably cannot buy a wrong answer.
+    O(n) time &middot; O(n) space &nbsp;&middot;&nbsp; every index is pushed once and popped once across both deques,
+    so the inner <code>while</code> loops are amortised O(1). Sub-variant <b>I</b>: the predicate needs an
+    <em>aggregate</em> the window cannot maintain incrementally, so you maintain the <b>argmax and argmin</b> instead.
+    One deque answers &quot;what is the max&quot; (LC 239); two answer &quot;how wide is the spread&quot;.
   </div>
 
 <script>
@@ -626,110 +611,130 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   "use strict";
 
   const CODE = [
-    [['ty','int '],['fn','characterReplacement'],['tx','('],['ty','String'],['tx',' s, '],['kw','int'],['tx',' k) {']],
-    [['tx','    '],['kw','int'],['tx','[] cnt = '],['kw','new '],['kw','int'],['tx','[26];']],
-    [['tx','    '],['kw','int '],['tx','l = 0, maxCount = 0;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < s.length(); r++) {']],
-    [['tx','        cnt[s.charAt(r) - '],['tx',"'A'"],['tx',']++;']],
-    [['tx','        maxCount = Math.max(maxCount, cnt[s.charAt(r) - '],['tx',"'A'"],['tx',']);   '],['cm','// never decreased']],
-    [['tx','        '],['kw','if '],['tx','(r - l + 1 - maxCount > k) {          '],['cm','// too many to replace']],
-    [['tx','            cnt[s.charAt(l) - '],['tx',"'A'"],['tx',']--;']],
-    [['tx','            l++;                              '],['cm','// SLIDE by one -- width is preserved']],
+    [['ty','int '],['fn','longestSubarray'],['tx','('],['kw','int'],['tx','[] nums, '],['kw','int'],['tx',' limit) {']],
+    [['tx','    '],['ty','Deque<Integer> '],['tx','maxD = '],['kw','new '],['ty','ArrayDeque'],['tx','<>();   '],['cm','// DECREASING: front = window max']],
+    [['tx','    '],['ty','Deque<Integer> '],['tx','minD = '],['kw','new '],['ty','ArrayDeque'],['tx','<>();   '],['cm','// INCREASING: front = window min']],
+    [['tx','    '],['kw','int '],['tx','l = 0, best = 0;']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < nums.length; r++) {']],
+    [['tx','        '],['kw','while '],['tx','(!maxD.isEmpty() && nums[maxD.peekLast()] <= nums[r]) maxD.pollLast();']],
+    [['tx','        maxD.addLast(r);']],
+    [['tx','        '],['kw','while '],['tx','(!minD.isEmpty() && nums[minD.peekLast()] >= nums[r]) minD.pollLast();']],
+    [['tx','        minD.addLast(r);']],
+    [['tx','        '],['kw','while '],['tx','(nums[maxD.peekFirst()] - nums[minD.peekFirst()] > limit) {  '],['cm','// THE TEST']],
+    [['tx','            '],['kw','if '],['tx','(maxD.peekFirst() == l) maxD.pollFirst();       '],['cm','// front-pop']],
+    [['tx','            '],['kw','if '],['tx','(minD.peekFirst() == l) minD.pollFirst();']],
+    [['tx','            l++;']],
     [['tx','        }']],
+    [['tx','        best = Math.max(best, r - l + 1);']],
     [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','s.length() - l;                    '],['cm','// the final width IS the answer']],
+    [['tx','    '],['kw','return '],['tx','best;']],
     [['tx','}']]
   ];
-  const REC_LINE = 11;
+  const REC_LINE = 14;
 
-  const RULE = `<span class="modechip d">Mode D &middot; non-shrinking</span>` +
-    `grow <span class="r">r</span> always &middot; <b>if INVALID</b> advance <span class="l">l</span> by <b>exactly one</b> ` +
-    `&middot; width never falls &middot; no <span class="m">best</span> variable exists`;
+  const RULE = `<span class="modechip i">Sub-variant I &middot; monotonic deques</span>` +
+    `valid &hArr; <b>max &minus; min &le; limit</b> &middot; ` +
+    `<span class="a">maxDeque decreasing</span> &middot; <span class="a2">minDeque increasing</span> &middot; ` +
+    `each index pushed once, popped once`;
 
-  const A = 'A'.charCodeAt(0);
+  function buildFrames(nums, limit){
+    const n = nums.length, F = [];
+    const maxD = [], minD = [];
+    let l = 0, best = 0, bestL = -1, bestR = -1, r = -1;
 
-  function widthPass(s, k){
-    const cnt = new Array(26).fill(0);
-    let l = 0, mc = 0; const out = [];
-    for(let r=0;r<s.length;r++){
-      const c = s.charCodeAt(r)-A;
-      cnt[c]++; if(cnt[c] > mc) mc = cnt[c];
-      if(r - l + 1 - mc > k){ cnt[s.charCodeAt(l)-A]--; l++; }
-      out.push(r - l + 1);
-    }
-    return out;
-  }
-
-  function buildFrames(s, k){
-    const n = s.length, F = [];
-    const widths = widthPass(s, k);
-    const cnt = new Array(26).fill(0);
-    let l = 0, r = -1, maxCount = 0, mcSrc = -1, mcChar = '';
-
-    const trueMax = () => cnt.reduce((a,b)=>Math.max(a,b), 0);
+    const live = D => D.map(i => ({i, s:''}));
     const f = o => F.push(Object.assign({
-      s, k, n, l, r, maxCount, mcSrc, mcChar, widths,
-      cnt: cnt.slice(), trueMax: trueMax(), enter:-1, leave:-1, slid:false, answer:null
+      nums, n, limit, l, r, best, bestL, bestR,
+      maxQ: live(maxD), minQ: live(minD),
+      enter:-1, leave:-1, tested:false, valid:true, done:false
     }, o));
 
     if(n === 0){
-      f({phase:'done', code:11, done:true, answer:0, msg:`Empty string &mdash; the window has nowhere to open. <b>Return 0</b>.`});
+      f({phase:'done', code:16, done:true, msg:`Empty array &mdash; no window at all. <b>Return 0</b>.`});
       return F;
     }
 
-    f({phase:'seed', code:2,
-      msg:`<span class="l">l = 0</span>, <span class="a">maxCount = 0</span>, and a 26-slot frequency map for the window. Note what is <em>missing</em>: there is no <span class="m">best</span>. In this sub-variant the window's own width carries the answer, because it is never allowed to shrink.`});
+    f({phase:'seed', code:3,
+      msg:`Both deques start empty and hold <b>indices</b>, not values &mdash; indices, because the left boundary has to be able to ask &quot;is the front the cell I am about to drop?&quot;. <span class="l">l = 0</span>, <span class="m">best = 0</span>, <span class="k">limit = ${limit}</span>.`});
 
     for(r = 0; r < n; r++){
-      const ch = s[r], ci = s.charCodeAt(r)-A;
-      cnt[ci]++;
-      f({phase:'grow', code:4, enter:r, pending:true,
-        msg:`<span class="r">s[${r}] = '${ch}'</span> enters. <span class="k">cnt['${ch}'] = ${cnt[ci]}</span> over the provisional window <span class="w">[${l}..${r}]</span>, width ${r-l+1}. Line 5 has run and line 6 has not, so <span class="a">maxCount</span> is one step behind the map right now &mdash; the validity test is not meaningful until it catches up.`});
+      /* ---- maxDeque absorbs r (decreasing) ---- */
+      const popM = [];
+      while(maxD.length && nums[maxD[maxD.length-1]] <= nums[r]) popM.push(maxD.pop());
+      popM.reverse();
+      const survM = live(maxD);
+      maxD.push(r);
+      f({phase:'push', code: popM.length ? 5 : 6, enter:r,
+        maxQ: survM.concat(popM.map(i=>({i,s:'db'})), [{i:r, s:'newc'}]),
+        msg: popM.length
+          ? `<span class="r">nums[${r}] = ${nums[r]}</span> arrives and <b>back-pops</b> ${popM.length === 1 ? 'index' : 'indices'} <span class="x">${popM.map(i=>`${i}:${nums[i]}`).join(', ')}</span> off the <span class="a">maxDeque</span>. Each of those is both <em>older</em> and <em>no larger</em> than ${nums[r]}, so any future window containing it also contains ${r} &mdash; it can never be the max again. Dead forever, not just for now.`
+          : `<span class="r">nums[${r}] = ${nums[r]}</span> is strictly smaller than the current back of the <span class="a">maxDeque</span>, so nothing is dominated. It just joins the back and the deque stays <b>decreasing</b>.`});
 
-      const raised = cnt[ci] > maxCount;
-      if(raised){ maxCount = cnt[ci]; mcSrc = r; mcChar = ch; }
-      f({phase:'stat', code:5, maxCount, mcSrc, mcChar,
-        msg: raised
-          ? `<span class="a">maxCount rises to ${maxCount}</span> &mdash; '${ch}' now appears ${maxCount} times in the window, and index <span class="a">${r}</span> is the cell that proved it. This is the only direction this variable ever moves.`
-          : `<span class="k">cnt['${ch}'] = ${cnt[ci]}</span> does not beat <span class="a">maxCount = ${maxCount}</span>, so it stands. <b>Math.max never lowers it</b> &mdash; not now, and not when the window slides away from index <span class="a">${mcSrc}</span> either.`});
+      /* ---- minDeque absorbs r (increasing) ---- */
+      const popN = [];
+      while(minD.length && nums[minD[minD.length-1]] >= nums[r]) popN.push(minD.pop());
+      popN.reverse();
+      const survN = live(minD);
+      minD.push(r);
+      f({phase:'push', code: popN.length ? 7 : 8, enter:r,
+        minQ: survN.concat(popN.map(i=>({i,s:'db'})), [{i:r, s:'newc'}]),
+        msg: popN.length
+          ? `The same move mirrored: ${r} <b>back-pops</b> <span class="x">${popN.map(i=>`${i}:${nums[i]}`).join(', ')}</span> off the <span class="a2">minDeque</span>, because each is older and no smaller than <span class="r">${nums[r]}</span>. The deque stays <b>increasing</b>, and its front is still the true minimum of <span class="w">[${l}..${r}]</span>.`
+          : `On the <span class="a2">minDeque</span>, <span class="r">nums[${r}] = ${nums[r]}</span> dominates nothing &mdash; it is larger than the current back &mdash; so it simply joins the back and the deque stays <b>increasing</b>.`});
 
-      const width = r - l + 1;
-      const cost = width - maxCount;
-      const tm = trueMax();
-      const stale = maxCount > tm;
-      const ok = cost <= k;
+      /* ---- the test ---- */
+      let mx = nums[maxD[0]], mn = nums[minD[0]], sp = mx - mn;
+      f({phase: sp <= limit ? 'ok' : 'bad', code:9, tested:true, valid: sp <= limit,
+        msg:`Read the test straight off the two fronts: <span class="a">max = nums[${maxD[0]}] = ${mx}</span>, <span class="a2">min = nums[${minD[0]}] = ${mn}</span>, spread <b>${sp}</b> ${sp <= limit ? '&le;' : '&gt;'} limit <b>${limit}</b>. ` +
+             (sp <= limit
+               ? `Window <span class="w">[${l}..${r}]</span> is <b>valid</b> &mdash; no shrinking needed.`
+               : `<b>Too wide.</b> The only cure is to drop cells off the left until one of the two extremes leaves.`)});
 
-      if(ok){
-        f({phase:'ok', code:6, maxCount, mcSrc, mcChar,
-          msg:`<span class="w">width ${width}</span> &minus; <span class="a">maxCount ${maxCount}</span> = <b>${cost}</b> replacement${cost===1?'':'s'} needed, and <span class="k">k = ${k}</span> allows ${k}. <b>Valid</b> &mdash; nothing moves on the left, so the window <em>grows</em> to ${width}.` +
-              (stale ? ` (It is only "valid" on a <span class="a">stale</span> ${maxCount}; the true maximum in <span class="w">[${l}..${r}]</span> is ${tm}. Keep reading &mdash; the width is still ${width}, which is no wider than the window that earned ${maxCount}, so nothing is over-reported.)` : ``)});
-      } else {
-        f({phase:'bad', code:6, maxCount, mcSrc, mcChar,
-          msg:`<span class="w">width ${width}</span> &minus; <span class="a">maxCount ${maxCount}</span> = <b>${cost}</b> &gt; <span class="k">k = ${k}</span> &mdash; too many characters would have to be replaced. <b>Invalid.</b> Advance <span class="l">l</span> by one &mdash; note the <em>if</em>, not a <em>while</em>: we slide, we do not shrink.`});
-
-        const out = l, oc = s[l];
-        cnt[s.charCodeAt(l)-A]--;
+      /* ---- shrink ---- */
+      while(nums[maxD[0]] - nums[minD[0]] > limit){
+        const gm = [], gn = [];
+        let who = [];
+        if(maxD[0] === l){ maxD.shift(); gm.push({i:l, s:'df'}); who.push('the <span class="a">max</span>'); }
+        if(minD[0] === l){ minD.shift(); gn.push({i:l, s:'df'}); who.push('the <span class="a2">min</span>'); }
+        const out = l;
         l++;
-        f({phase:'slide', code:8, leave:out, slid:true, l:l, maxCount, mcSrc, mcChar,
-          msg:`<span class="l">s[${out}] = '${oc}'</span> slides out, <span class="k">cnt['${oc}'] = ${cnt[s.charCodeAt(out)-A]}</span>, <span class="l">l = ${l}</span>. Window <span class="w">[${l}..${r}]</span> is width <b>${r-l+1}</b> &mdash; <em>the same width as before</em>, because both ends moved by one. ` +
-              (maxCount > trueMax()
-                ? `<span class="a">maxCount is now stale: it still says ${maxCount}, but nothing in the window occurs more than ${trueMax()} times.</span> We leave it alone on purpose.`
-                : `<span class="a">maxCount = ${maxCount}</span> still matches the window's true maximum.`)});
+        const nmx = nums[maxD[0]], nmn = nums[minD[0]];
+        f({phase:'shrink', code:12, leave:out, tested:true, valid: nmx - nmn <= limit,
+          maxQ: gm.concat(live(maxD)), minQ: gn.concat(live(minD)),
+          msg:`Drop <span class="l">nums[${out}] = ${nums[out]}</span> off the left. ` +
+              (who.length
+                ? `It was ${who.join(' and ')}, so it <b>front-pops</b> ${who.length === 2 ? 'both deques' : 'that deque'} &mdash; this is the only place a deque ever loses its front.`
+                : `Neither front pointed at ${out}, so <b>both deques are untouched</b>: index ${out} had already been back-popped by something better, and was only ever a passenger.`) +
+              ` New spread: <span class="a">${nmx}</span> &minus; <span class="a2">${nmn}</span> = <b>${nmx - nmn}</b> ${nmx - nmn <= limit ? `&le; ${limit} &mdash; valid again, stop shrinking.` : `&gt; ${limit} &mdash; still too wide, shrink again.`}`});
       }
+
+      /* ---- record ---- */
+      mx = nums[maxD[0]]; mn = nums[minD[0]]; sp = mx - mn;
+      const width = r - l + 1;
+      const prev = best;
+      const improved = width > best;
+      if(improved){ best = width; bestL = l; bestR = r; }
+      f({phase: improved ? 'found' : 'scan', code:REC_LINE, tested:true, valid:true,
+        msg:`Window <span class="w">[${l}..${r}]</span> is valid at spread <b>${sp}</b>, width <b>${width}</b>. ` +
+            (improved
+              ? `That beats <span class="m">${prev}</span> &mdash; <span class="m">best = ${best}</span> at <span class="m">[${bestL}..${bestR}]</span>.`
+              : `Not longer than <span class="m">best = ${best}</span>, so nothing is recorded. Advance <span class="r">r</span>.`)});
     }
 
     r = n - 1;
-    const ans = n - l;
-    f({phase:'done', code:REC_LINE, done:true, answer:ans, maxCount, mcSrc, mcChar,
-      msg:`The loop ends with <span class="l">l = ${l}</span>, so the window is <span class="w">[${l}..${n-1}]</span> and <span class="k">s.length() &minus; l = ${n} &minus; ${l}</span>. <b>Return ${ans}</b>. The width never fell during the whole sweep, which is exactly why no running maximum was ever needed.`});
+    f({phase:'done', code:16, done:true, l: bestL < 0 ? 0 : bestL, r: bestR < 0 ? -1 : bestR,
+      maxQ: [], minQ: [], ans: best,
+      msg: best > 0
+        ? `Scan complete. The longest window whose spread never exceeded <b>${limit}</b> is <span class="m">[${bestL}..${bestR}]</span> = [${nums.slice(bestL, bestR+1).join(', ')}], length <b>${best}</b>. <b>Return ${best}</b>. Total deque work across the whole run: every index entered each deque once and left once.`
+        : `No valid window at all. <b>Return 0</b>.`});
     return F;
   }
 
   const $ = id => document.getElementById(id);
   const tapeEl=$('tape'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
-        countEl=$('stepCount'), codeEl=$('code'), sEl=$('sInput'), kEl=$('kInput'),
+        countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput'), limEl=$('limInput'),
         statsEl=$('stats'), ruleEl=$('ruleBar'), verdictEl=$('verdict'),
-        formEl=$('formula'), freqEl=$('freqs'), wbarEl=$('wbars'), staleEl=$('staleNote');
+        qMaxEl=$('qMax'), qMinEl=$('qMin'), testEl=$('testBar');
   let frames=[], idx=0, playing=false, timer=null;
 
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -740,126 +745,125 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     }).join('');
   })();
 
-  function parseS(str){
-    const t = String(str).toUpperCase().replace(/[^A-Z]/g,'');
-    return t.slice(0,12);
+  function parseArr(str){
+    const a = String(str).split(/[^0-9]+/).filter(v=>v.length)
+      .map(v=>Math.max(0, Math.min(999, parseInt(v,10))));
+    return a.slice(0,12);
   }
-  function parseK(str){
+  function parseLim(str){
     let v = parseInt(String(str).replace(/[^0-9]/g,''), 10);
     if(isNaN(v) || v < 0) v = 0;
-    return Math.min(12, v);
+    return Math.min(999, v);
   }
 
-  function buildTape(s){
+  function buildTape(nums){
     tapeEl.innerHTML='';
-    for(let c=0;c<s.length;c++){
+    nums.forEach((v,k)=>{
       const col=document.createElement('div'); col.className='col';
-      col.innerHTML = `<div class="caret" data-caret="${c}"></div>`+
-        `<div class="cell" data-cell="${c}">${s[c]}</div>`+
-        `<div class="idx" data-idx="${c}">${c}</div>`;
+      col.innerHTML = `<div class="caret" data-caret="${k}"></div>`+
+        `<div class="cell" data-cell="${k}">${v}</div>`+
+        `<div class="idx" data-idx="${k}">${k}</div>`;
       tapeEl.appendChild(col);
-    }
+    });
+  }
+
+  function frontOf(q){ for(let i=0;i<q.length;i++){ if(q[i].s !== 'db' && q[i].s !== 'df') return q[i].i; } return -1; }
+
+  function renderQ(el, q, nums){
+    if(!q.length){ el.innerHTML = `<span class="dqempty">&mdash; empty &mdash;</span>`; return; }
+    const fr = frontOf(q);
+    const chips = q.map(c=>{
+      let cls = 'dqc';
+      if(c.s === 'db' || c.s === 'df') cls += ' ' + c.s;
+      else { if(c.i === fr) cls += ' front'; if(c.s === 'newc') cls += ' newc'; }
+      return `<span class="${cls}"><span class="ix">${c.i}:</span>${nums[c.i]}</span>`;
+    }).join('');
+    el.innerHTML = `<span class="dqend">front</span>${chips}<span class="dqend">back</span>`;
   }
 
   function render(){
     const f = frames[idx]; if(!f) return;
-    const s = f.s, n = s.length;
-    const live = f.r >= 0 && f.l <= f.r;
-    const stale = f.maxCount > f.trueMax;
+    const nums = f.nums, n = nums.length;
+    const mxI = frontOf(f.maxQ), mnI = frontOf(f.minQ);
+    const liveWin = f.r >= f.l && f.r >= 0;
 
     for(let c=0;c<n;c++){
       const cell=tapeEl.querySelector(`[data-cell="${c}"]`);
       const caret=tapeEl.querySelector(`[data-caret="${c}"]`);
       const idxLbl=tapeEl.querySelector(`[data-idx="${c}"]`);
       if(!cell) continue;
-      const inWin = live && c>=f.l && c<=f.r;
+      const inWin = liveWin && c>=f.l && c<=f.r;
       let cls='cell';
       if(c===f.enter)        cls+=' entering';
       else if(c===f.leave)   cls+=' leaving';
       else if(inWin)         cls += (f.l===f.r ? ' wr' : (c===f.l ? ' wl' : (c===f.r ? ' wr' : ' wbody')));
       else if(c < f.l)       cls+=' gone';
       else                   cls+=' ahead';
-      if(c===f.mcSrc){ cls+=' mcsrc'; if(stale) cls+=' mcstale'; }
+      if(f.bestL>=0 && c>=f.bestL && c<=f.bestR) cls+=' bestmark';
+      if(!f.done){
+        if(c===mxI && c===mnI)      cls+=' isboth';
+        else if(c===mxI)            cls+=' ismax';
+        else if(c===mnI)            cls+=' ismin';
+      }
       cell.className=cls;
 
       let ct='';
-      if(c===f.enter)             ct='<span class="p pIn">+in</span>';
-      else if(c===f.leave)        ct='<span class="p pOut">slide</span>';
+      if(c===f.enter)      ct='<span class="p pIn">+in</span>';
+      else if(c===f.leave) ct='<span class="p pOut">&minus;out</span>';
       else if(inWin && f.l===f.r) ct='<span class="p pR">l r</span>';
       else if(inWin && c===f.l)   ct='<span class="p pL">l</span>';
       else if(inWin && c===f.r)   ct='<span class="p pR">r</span>';
-      else if(c===f.mcSrc)        ct='<span class="p pA">mc</span>';
       caret.innerHTML=ct; caret.style.opacity = ct ? '1':'0';
       idxLbl.classList.toggle('on', inWin || c===f.enter || c===f.leave);
     }
 
-    const width = live ? (f.r-f.l+1) : 0;
-    const cost = width - f.maxCount;
-    const ok = cost <= f.k;
-    const pending = !!f.pending;          // cnt++ has run, maxCount has not been refreshed yet
-    const behind  = f.maxCount < f.trueMax;
-    formEl.innerHTML = !live
-      ? `<span class="x">no window open yet</span>`
-      : (pending
-          ? `<span>width <span class="w">${width}</span> &minus; maxCount <span class="a">${f.maxCount}</span> &hellip;</span>` +
-            `<span class="x">the test has not run yet &mdash; line 6 refreshes maxCount first</span>`
-          : `<span>width <span class="w">${width}</span> &minus; maxCount <span class="a">${f.maxCount}</span> <span class="eq">= ${cost}</span></span>` +
-            `<span>${ok ? `<span class="ok">&le; k = ${f.k} &nbsp;VALID &mdash; keep the window</span>` : `<span class="bad">&gt; k = ${f.k} &nbsp;INVALID &mdash; slide l by one</span>`}</span>`);
+    renderQ(qMaxEl, f.maxQ, nums);
+    renderQ(qMinEl, f.minQ, nums);
 
-    staleEl.className = 'stalenote' + (stale ? '' : ' fresh');
-    staleEl.innerHTML = !live
-      ? `<b>maxCount</b> is 0 &mdash; nothing has been counted yet.`
-      : (behind
-        ? `<b>catching up</b> &middot; maxCount still reads ${f.maxCount} while the map already has a character appearing ${f.trueMax} times. Line 6 has not run yet; it will raise maxCount to ${f.trueMax}. This is the one moment maxCount is <em>below</em> the truth rather than above it.`
-        : stale
-          ? `<b>STALE</b> &middot; maxCount says <b>${f.maxCount}</b>, but nothing in this window occurs more than <b>${f.trueMax}</b> times. The test is ${f.maxCount - f.trueMax} easier than it honestly should be. Harmless: some earlier window really did contain ${f.maxCount} copies of '${f.mcChar}' and really was valid, and it was at least <b>${width}</b> wide &mdash; the width has not fallen since. So this window can only re-report a size that was already legitimately achieved. Too-large maxCount &rarr; too-small cost &rarr; a window that is never <em>wider</em> than the truth.`
-          : `<b>fresh</b> &middot; maxCount ${f.maxCount} equals the window's true maximum frequency. Nothing is being over-claimed on this frame.`);
-
-    /* frequency map for the window */
-    const parts = [];
-    for(let c=0;c<26;c++){
-      if(f.cnt[c] === 0) continue;
-      const ch = String.fromCharCode(65+c);
-      const top = f.cnt[c] === f.trueMax && f.trueMax > 0;
-      parts.push(`<span class="freq ${top?'top':''}">${ch} <b>${f.cnt[c]}</b></span>`);
+    if(mxI < 0 || mnI < 0){
+      testEl.className = 'testbar pend';
+      testEl.innerHTML = f.done
+        ? `<span class="ok">finished</span> &nbsp;&middot;&nbsp; both deques drained`
+        : `<span class="pend">deques empty &mdash; no test yet</span>`;
+    } else {
+      const mx = nums[mxI], mn = nums[mnI], sp = mx - mn;
+      const ok = sp <= f.limit;
+      testEl.className = 'testbar ' + (f.tested ? (ok ? 'ok' : 'bad') : 'pend');
+      testEl.innerHTML =
+        `<span class="mx">max nums[${mxI}]=${mx}</span> &minus; <span class="mn">min nums[${mnI}]=${mn}</span>` +
+        ` = <b>${sp}</b> &nbsp;${ok ? '&le;' : '&gt;'}&nbsp; limit ${f.limit} &nbsp;&middot;&nbsp; ` +
+        (f.tested ? `<span class="${ok?'ok':'bad'}">${ok ? 'VALID' : 'TOO WIDE &mdash; shrink'}</span>`
+                  : `<span class="pend">deques updating</span>`);
     }
-    if(!parts.length) parts.push(`<span class="freq zero">cnt is all zeros</span>`);
-    parts.push(`<span class="freqsep">&rarr;</span>`);
-    parts.push(`<span class="freq mc ${stale?'stale':''}">maxCount <b>${f.maxCount}</b>${stale?' &middot; STALE':''}</span>`);
-    freqEl.innerHTML = parts.join('');
 
-    /* the width strip — one bar per r, never falling */
-    const W = f.widths, maxW = Math.max(1, ...W);
-    wbarEl.innerHTML = W.map((w,i)=>{
-      const done = i <= f.r;
-      const h = done ? Math.round(14 + (w/maxW)*40) : 8;
-      const cls = !done ? 'wbar todo' : (i===f.r ? 'wbar now' : 'wbar');
-      return `<div class="${cls}" style="height:${h}px"><span>${done?w:''}</span></div>`;
-    }).join('');
-
-    const winTxt = live ? `[${f.l}..${f.r}]` : '&mdash;';
+    const winTxt = liveWin ? `[${f.l}..${f.r}]` : '&mdash;';
+    const width  = liveWin ? (f.r-f.l+1) : 0;
     statsEl.innerHTML =
-      `<span class="stat ${live?'w':'mute'}">window ${winTxt} &middot; width <b>${width}</b></span>`+
-      `<span class="stat ${stale?'stale':'a'}">maxCount <b>${f.maxCount}</b>${f.mcSrc>=0?` @ ${f.mcSrc}`:''}${stale?' (stale)':''}</span>`+
-      `<span class="stat ${pending||!live?'mute':(ok?'h':'minus')}">to replace <b>${pending?'&hellip;':(live?cost:0)}</b> / k = ${f.k}</span>`+
-      `<span class="stat ${f.slid?'minus':'mute'}">l <b>${f.l}</b></span>`+
-      `<span class="stat ${f.enter>=0?'plus':'mute'}">r <b>${f.r<0?'&mdash;':f.r}</b></span>`;
+      `<span class="stat w">window ${winTxt} &middot; width <b>${width}</b></span>`+
+      `<span class="stat ${mxI>=0?'a':'mute'}">maxDeque <b>${f.maxQ.filter(c=>c.s!=='db'&&c.s!=='df').length}</b> deep</span>`+
+      `<span class="stat ${mnI>=0?'a2':'mute'}">minDeque <b>${f.minQ.filter(c=>c.s!=='db'&&c.s!=='df').length}</b> deep</span>`+
+      `<span class="stat">limit <b>${f.limit}</b></span>`+
+      (f.best>0
+        ? `<span class="stat h">best <b>${f.best}</b> @ [${f.bestL}..${f.bestR}]</span>`
+        : `<span class="stat mute">best <b>0</b> &mdash; nothing recorded yet</span>`);
 
     ruleEl.innerHTML = RULE;
     msgEl.innerHTML = f.msg;
     verdictEl.innerHTML = f.done
-      ? `<span class="trip">answer = ${f.answer}</span>` +
-        `<span class="trip neutral">final window [${f.l}..${n-1}] &middot; n &minus; l = ${n} &minus; ${f.l}</span>`
+      ? (f.best>0
+          ? `<span class="trip">answer = ${f.best}</span>`+
+            `<span class="trip neutral">longest valid window [${f.bestL}..${f.bestR}]</span>`
+          : `<span class="trip no">answer = 0</span>`)
       : '';
 
-    const pmap={seed:['sort','&#9656; setup'],grow:['scan','&#9679; growing r'],
-                stat:['sort','&#9670; maxCount'],ok:['found','&#10003; valid &mdash; grow'],
-                bad:['sort','&#10007; invalid &mdash; slide'],slide:['sort','&#8594; slid l by 1'],
-                done:['done','&#9632; complete']};
+    const pmap={seed:['sort','&#9656; setup'],push:['scan','&#9679; deques absorb r'],
+                ok:['scan','&#10003; test passes'],bad:['sort','&#9888; spread too wide'],
+                shrink:['sort','&#8592; front-pop, l++'],scan:['scan','&#9679; scanning'],
+                found:['found','&#10003; longer window'],done:['done','&#9632; complete']};
     const pe=pmap[f.phase]||['','idle'];
     pillEl.className='phase-pill '+pe[0]; pillEl.innerHTML=pe[1];
 
-    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    codeEl.querySelectorAll('.ln').forEach(x=>x.classList.remove('exec'));
     const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
 
     barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
@@ -867,13 +871,13 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(sRaw, kRaw){
+  function run(arrRaw, limRaw){
     stop();
-    const s = parseS(sRaw);
-    const k = parseK(kRaw);
-    sEl.value = s; kEl.value = k;
-    buildTape(s);
-    frames = buildFrames(s, k);
+    const nums = parseArr(arrRaw);
+    const limit = parseLim(limRaw);
+    arrEl.value = nums.join(','); limEl.value = limit;
+    buildTape(nums);
+    frames = buildFrames(nums, limit);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
@@ -885,36 +889,36 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   function togglePlay(){ playing?stop():play(); }
 
   const EX=[
-    ['ABAB','2','the textbook run &mdash; answer 4'],
-    ['AABABBA','1','maxCount goes stale twice &mdash; answer is still 4'],
-    ['AAAA','0','all one character &mdash; k is never needed'],
-    ['ABCDE','1','all distinct &mdash; the window stalls at k+1'],
-    ['BAAAB','2','k covers both B&rsquo;s &mdash; the whole string']
+    ['10,1,2,4,7,2','5','the textbook run &mdash; answer 4'],
+    ['8,2,4,7','4','spread blows up immediately &mdash; answer 2'],
+    ['4,2,2,2,4,4,2,2','0','limit 0 &mdash; only equal runs survive'],
+    ['1,2,3,4,5','2','strictly rising: maxDeque never holds more than one'],
+    ['1,5,6,7,8,10,6,5,6','4','both deques back-pop repeatedly &mdash; answer 5']
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(function(e){
       const c=document.createElement('button'); c.className='chip';
-      c.innerHTML=`"${e[0]}", k=${e[1]}<b>${e[2]}</b>`;
+      c.innerHTML=`[${e[0]}], limit=${e[1]}<b>${e[2]}</b>`;
       c.onclick=function(){ run(e[0], e[1]); };
       box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(sEl.value, kEl.value);
-  [sEl,kEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(sEl.value, kEl.value); }));
+  $('runBtn').onclick=()=>run(arrEl.value, limEl.value);
+  [arrEl,limEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') run(arrEl.value, limEl.value); }));
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
   $('playBtn').onclick=togglePlay;
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
-    if(document.activeElement===sEl||document.activeElement===kEl) return;
+    if(document.activeElement===arrEl||document.activeElement===limEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
     if(e.key===' '){e.preventDefault();togglePlay();}
   });
 
-  run(sEl.value, kEl.value);
+  run(arrEl.value, limEl.value);
 })();
 </script>
 
