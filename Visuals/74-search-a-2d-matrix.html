@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 74 &middot; Search a 2D Matrix &mdash; visual guide</title>
+<meta name="description" content="Binary search over a row-major flattening of a fully sorted matrix — the 2D grid and the 1D tape probed side by side.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ---------- matrix grid + flattened strip (both built from .cell) ---------- */
+.mwrap { display:flex; flex-direction:column; align-items:center; gap:7px; width:100%; }
+.mgrid { display:flex; flex-direction:column; gap:5px; }
+.mrow { display:flex; gap:5px; align-items:center; }
+.rlab { font-family:var(--mono); font-size:10px; color:var(--fg-dim); width:22px; text-align:right; padding-right:5px; }
+.collabs { display:flex; gap:5px; padding-left:27px; }
+.collabs span { width:46px; text-align:center; font-family:var(--mono); font-size:10px; color:var(--fg-dim); }
+.mgrid .cell { width:46px; height:46px; aspect-ratio:auto; font-size:14px; border-radius:8px; }
+
+.stripwrap { width:100%; overflow-x:auto; padding:2px 0 4px; }
+.strip { display:flex; gap:3px; width:max-content; margin:0 auto; }
+.scol { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.scap { height:15px; font-family:var(--mono); font-size:9px; display:flex; gap:2px; align-items:center; justify-content:center; }
+.scap .p { padding:0 3px; border-radius:3px; line-height:1.5; color:var(--accent-fg); }
+.scap .pL { background:var(--r-left); }
+.scap .pR { background:var(--r-right); }
+.scap .pM { background:var(--r-anchor); }
+.strip .cell { width:38px; height:30px; aspect-ratio:auto; font-size:11.5px; border-radius:5px; border-width:1.2px; }
+.sidx { font-family:var(--mono); font-size:9px; color:var(--fg-dim); }
+
+.cell.win  { background:var(--r-window-wash); border-color:var(--r-window-line); }
+.cell.dead { opacity:.32; border-style:dashed; border-color:var(--rule); color:var(--fg-dim); background:transparent; }
+.cell.lo   { background:var(--r-left-wash);   border-color:var(--r-left);   color:var(--r-left);   opacity:1; border-style:solid; }
+.cell.hi   { background:var(--r-right-wash);  border-color:var(--r-right);  color:var(--r-right);  opacity:1; border-style:solid; }
+.cell.midc { background:var(--r-anchor-wash); border-color:var(--r-anchor); color:var(--r-anchor); font-weight:600; opacity:1; border-style:solid; }
+.cell.hit  { background:var(--r-hit-wash);    border-color:var(--r-hit);    color:var(--r-hit);    font-weight:600; opacity:1; border-style:solid; }
+
+.stats-row { font-family:var(--mono); font-size:13px; color:var(--fg-dim); display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+.stats-row b { color:var(--fg); font-weight:500; }
+.viewlab { font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--fg-dim); align-self:center; }
+.result-banner { font-family:var(--sans); font-size:13.5px; font-weight:600; padding:7px 16px; border-radius:999px; border:1px solid transparent; }
+.result-banner.ok { color:var(--r-hit); background:var(--r-hit-wash); border-color:var(--r-hit-line); }
+.result-banner.no { color:var(--fg-dim); background:var(--bg-sunk); border-color:var(--rule-hard); }
+.result-banner:empty { display:none; }
+
+.field.small { flex:0 0 140px; min-width:140px; }
+input[type=number] { background:var(--bg-sunk); border:1px solid var(--rule-hard); color:var(--fg);
+  font-family:var(--mono); font-size:15px; padding:12px 14px; border-radius:9px; outline:none; width:100%; }
+input[type=number]:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-wash); }
+
+.lesson { margin-top:18px; padding:13px 16px; border:1px solid var(--rule-hard); border-left:3px solid var(--accent);
+  border-radius:9px; background:var(--bg-sunk); font-family:var(--sans); font-size:13.5px; line-height:1.65; color:var(--fg-mid); }
+.lesson b { color:var(--fg); }
+.lesson .stepn { font-family:var(--mono); font-size:11.5px; color:var(--accent); background:var(--accent-wash);
+  border:1px solid var(--accent-line); border-radius:4px; padding:1px 6px; margin-right:6px; }
+.lesson p + p { margin-top:7px; }
+.dot.w { background:var(--r-window-wash); border-color:var(--r-window); }
+.dot.mid { background:var(--r-anchor-wash); border-color:var(--r-anchor); }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+<div class="eyebrow">Binary Search &mdash; sub-variant J &middot; matrix <span class="tag">LeetCode 74</span></div>
+  <h1>Search a 2D Matrix <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    <b>Step 1 of a three-page lesson</b> (74 &rarr; 240 &rarr; 378): three problems that look like the
+    same problem and need three completely different machines. Here the flattening
+    <em>works</em> &mdash; each row is sorted and every row starts above the previous row's last value,
+    so the matrix already <em>is</em> one sorted array of length <code>m&times;n</code>. Run an ordinary binary
+    search over <code>[0, m&times;n)</code> and translate the index with
+    <code>row = idx / n</code>, <code>col = idx % n</code>.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Matrix &mdash; rows separated by <code>|</code>, cells by <code>,</code></label>
+      <input id="arrInput" type="text" value="1,3,5,7 | 10,11,16,20 | 23,30,34,60" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field small">
+      <label for="targetInput">Target</label>
+      <input id="targetInput" type="number" value="3">
+    </div>
+    <button class="btn primary" id="runBtn">&#9654; Run</button>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="mwrap">
+          <div class="viewlab">2-D view &mdash; the grid you were handed</div>
+          <div class="mgrid" id="mgrid"></div>
+          <div class="viewlab">1-D view &mdash; the same cells, row-major</div>
+          <div class="stripwrap"><div class="strip" id="strip"></div></div>
+        </div>
+        <div class="stats-row" id="statsRow"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="result-banner" id="banner"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10227;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="6"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot l"></i>lo</span>
+        <span><i class="dot mid"></i>mid (probe)</span>
+        <span><i class="dot r"></i>hi</span>
+        <span><i class="dot w"></i>live range</span>
+        <span><i class="dot m"></i>found</span>
+        <span><i class="dot x"></i>eliminated</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="lesson">
+    <p><span class="stepn">1 / 3</span><b>The flattening is legal here.</b> LC 74 guarantees a
+    <em>total order</em> across the whole matrix: read row-major and the sequence is non-decreasing.
+    That single fact is what licenses <code>lo</code>/<code>hi</code> over <code>[0, m&times;n)</code>. Watch the
+    two views above move together &mdash; the grid probe and the strip probe are the same index.</p>
+    <p><span class="stepn">2 / 3</span><b><a href="240-search-a-2d-matrix-ii.html">LC 240</a></b> drops that
+    guarantee: rows and columns are each sorted, but row-major is <em>not</em>. The exact code on this page
+    then returns wrong answers silently. That page runs it and lets it fail.</p>
+    <p><span class="stepn">3 / 3</span><b><a href="378-kth-smallest-element-in-a-sorted-matrix.html">LC 378</a></b>
+    abandons searching the matrix altogether and binary-searches the <em>answer</em> instead.</p>
+  </div>
+
+  <div class="foot">O(log(m&middot;n)) time &middot; O(1) space &nbsp;&middot;&nbsp; one sorted tape wearing a grid costume: <code>row = idx / n</code>, <code>col = idx % n</code>.</div>
+
+<script>
+(function(){
+  "use strict";
+  const CODE = [
+    [['kw','public '],['ty','boolean '],['fn','searchMatrix'],['tx','('],['kw','int'],['tx','[][] mat, '],['kw','int '],['tx','target) {']],
+    [['tx','    '],['kw','int '],['tx','m = mat.length, n = mat[0].length;']],
+    [['tx','    '],['kw','int '],['tx','lo = 0, hi = m * n - 1;      '],['fn','// one flat tape']],
+    [['tx','    '],['kw','while '],['tx','(lo <= hi) {']],
+    [['tx','        '],['kw','int '],['tx','mid = lo + (hi - lo) / 2;']],
+    [['tx','        '],['kw','int '],['tx','val = mat[mid / n][mid % n];  '],['fn','// unflatten']],
+    [['tx','        '],['kw','if '],['tx','(val == target) '],['kw','return true'],['tx',';']],
+    [['tx','        '],['kw','if '],['tx','(val < target) lo = mid + 1;']],
+    [['tx','        '],['kw','else'],['tx','           hi = mid - 1;']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return false'],['tx',';']],
+    [['tx','}']]
+  ];
+
+  /* buildFrames(flat, m, n, target) -> flat array of frames.
+     flat is the row-major flattening of the matrix (an array of numbers). */
+  function buildFrames(flat, m, n, target){
+    const F = [], N = flat.length;
+    const base = () => ({flat:flat.slice(), m:m, n:n, target:target});
+    if(N === 0){
+      F.push(Object.assign(base(), {lo:-1,hi:-1,mid:-1,phase:'fail',code:10,done:true,ans:false,truth:false,
+        msg:`Empty matrix &mdash; nothing to search. <span class="x">Return false.</span>`}));
+      return F;
+    }
+    let lo = 0, hi = N - 1, probes = 0;
+    F.push(Object.assign(base(), {lo,hi,mid:-1,phase:'init',code:2,
+      msg:`Treat the ${m}&times;${n} grid as one tape of <b>${N}</b> cells. <span class="l">lo=0</span>, <span class="r">hi=${hi}</span>. Hunting <span class="k">${target}</span>.`}));
+    while(lo <= hi){
+      const mid = lo + Math.floor((hi - lo) / 2);
+      const r = Math.floor(mid / n), c = mid % n, val = flat[mid];
+      probes++;
+      F.push(Object.assign(base(), {lo,hi,mid,phase:'probe',code:5,
+        msg:`<span class="i">mid = ${mid}</span> &rarr; row ${mid}/${n} = <b>${r}</b>, col ${mid}%${n} = <b>${c}</b>. That cell holds <b>${val}</b>.`}));
+      if(val === target){
+        F.push(Object.assign(base(), {lo,hi,mid,hitIdx:mid,phase:'found',code:6,
+          msg:`<span class="m">val == target</span> at flat index ${mid} = cell (${r}, ${c}).`}));
+        F.push(Object.assign(base(), {lo:-1,hi:-1,mid:-1,hitIdx:mid,phase:'done',code:6,done:true,ans:true,truth:flat.indexOf(target)>=0,foundAt:[r,c],
+          msg:`<span class="m">Return true.</span> <b>${probes}</b> probe${probes===1?'':'s'} for ${N} cells &mdash; the log&#8322; budget is ${Math.ceil(Math.log2(N+1))}.`}));
+        return F;
+      }
+      if(val < target){
+        F.push(Object.assign(base(), {lo,hi,mid,phase:'decide',code:7,
+          msg:`${val} &lt; ${target}. Everything at index &le; ${mid} is &le; ${val} &mdash; <span class="x">${mid - lo + 1} cells drop</span>. <span class="l">lo = ${mid + 1}</span>.`}));
+        lo = mid + 1;
+      } else {
+        F.push(Object.assign(base(), {lo,hi,mid,phase:'decide',code:8,
+          msg:`${val} &gt; ${target}. Everything at index &ge; ${mid} is &ge; ${val} &mdash; <span class="x">${hi - mid + 1} cells drop</span>. <span class="r">hi = ${mid - 1}</span>.`}));
+        hi = mid - 1;
+      }
+    }
+    F.push(Object.assign(base(), {lo:-1,hi:-1,mid:-1,phase:'fail',code:10,done:true,ans:false,truth:flat.indexOf(target)>=0,
+      msg:`<span class="x">lo &gt; hi &mdash; the live range is empty.</span> ${target} is not in the matrix. Return false.`}));
+    return F;
+  }
+
+  const $ = id => document.getElementById(id);
+  const gridEl=$('mgrid'), stripEl=$('strip'), statsEl=$('statsRow'), msgEl=$('message'),
+        bannerEl=$('banner'), pillEl=$('phasePill'), barEl=$('bar'), countEl=$('stepCount'),
+        codeEl=$('code'), arrEl=$('arrInput'), tgtEl=$('targetInput');
+  let frames=[], idx=0, playing=false, timer=null;
+
+  function esc(x){ return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map((line,i)=>{
+      const tx = line.map(function(s){ return '<span class="'+s[0]+'">'+esc(s[1])+'</span>'; }).join('');
+      return '<div class="ln" data-line="'+i+'"><span class="no">'+(i+1)+'</span>'+tx+'</div>';
+    }).join('');
+  })();
+
+  function parseMatrix(str){
+    const rows = str.split(/[;|\n]/).map(s=>s.trim()).filter(s=>s!=='')
+      .map(r=>r.split(',').map(x=>x.trim()).filter(x=>x!=='').map(Number).filter(x=>!isNaN(x)))
+      .filter(r=>r.length>0).slice(0,6);
+    if(!rows.length) return {m:0,n:0,flat:[]};
+    let n = 6; rows.forEach(r=>{ n = Math.min(n, r.length); });
+    const flat=[]; rows.forEach(r=>{ for(let c=0;c<n;c++) flat.push(r[c]); });
+    return {m:rows.length, n:n, flat:flat};
+  }
+
+  function buildGrid(m,n){
+    gridEl.innerHTML='';
+    let h='<div class="collabs">';
+    for(let c=0;c<n;c++) h+='<span>c'+c+'</span>';
+    h+='</div>';
+    for(let r=0;r<m;r++){
+      h+='<div class="mrow"><span class="rlab">r'+r+'</span>';
+      for(let c=0;c<n;c++) h+='<div class="cell" data-g="'+(r*n+c)+'"></div>';
+      h+='</div>';
+    }
+    gridEl.innerHTML=h;
+  }
+  function buildStrip(N){
+    let h='';
+    for(let k=0;k<N;k++)
+      h+='<div class="scol"><div class="scap" data-cap="'+k+'"></div><div class="cell" data-s="'+k+'"></div><div class="sidx">'+k+'</div></div>';
+    stripEl.innerHTML=h;
+  }
+
+  function render(){
+    const f=frames[idx]; if(!f) return;
+    const N=f.flat.length, live = f.lo>=0 && f.hi>=0 && f.lo<=f.hi;
+    for(let k=0;k<N;k++){
+      let cls='cell';
+      if(live && k>=f.lo && k<=f.hi) cls+=' win'; else cls+=' dead';
+      if(live && k===f.lo) cls+=' lo';
+      if(live && k===f.hi) cls+=' hi';
+      if(k===f.mid) cls+=' midc';
+      if(k===f.hitIdx) cls+=' hit';
+      const g=gridEl.querySelector('[data-g="'+k+'"]');
+      const s=stripEl.querySelector('[data-s="'+k+'"]');
+      const cap=stripEl.querySelector('[data-cap="'+k+'"]');
+      if(g){ g.textContent=f.flat[k]; g.className=cls; }
+      if(s){ s.textContent=f.flat[k]; s.className=cls; }
+      if(cap){
+        let t='';
+        if(live && k===f.lo) t+='<span class="p pL">L</span>';
+        if(k===f.mid) t+='<span class="p pM">M</span>';
+        if(live && k===f.hi) t+='<span class="p pR">H</span>';
+        cap.innerHTML=t;
+      }
+    }
+    const mr = f.mid>=0 ? Math.floor(f.mid/f.n)+', '+(f.mid%f.n) : '—';
+    statsEl.innerHTML =
+      '<span>lo = <b>'+(f.lo>=0?f.lo:'—')+'</b></span>'+
+      '<span>mid = <b>'+(f.mid>=0?f.mid:'—')+'</b></span>'+
+      '<span>hi = <b>'+(f.hi>=0?f.hi:'—')+'</b></span>'+
+      '<span>(row, col) = <b>'+mr+'</b></span>';
+    msgEl.innerHTML=f.msg;
+    const pmap={init:['','◇ setup'],probe:['scan','◆ probe'],decide:['scan','→ halve'],
+                found:['found','★ hit'],done:['done','■ true'],fail:['','✗ false']};
+    const pm=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pm[0]; pillEl.textContent=pm[1];
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const ln=codeEl.querySelector('[data-line="'+f.code+'"]'); if(ln) ln.classList.add('exec');
+    bannerEl.className='result-banner'; bannerEl.innerHTML='';
+    if(f.done){
+      if(f.ans===true){ bannerEl.className='result-banner ok';
+        bannerEl.innerHTML='✓ true — found at ('+f.foundAt[0]+', '+f.foundAt[1]+')'; }
+      else { bannerEl.className='result-banner no'; bannerEl.innerHTML='✗ false — not in the matrix'; }
+    }
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=(idx+1)+' / '+frames.length;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function run(){
+    stop();
+    const P=parseMatrix(arrEl.value);
+    const t=Number(tgtEl.value);
+    buildGrid(P.m,P.n); buildStrip(P.flat.length);
+    frames=buildFrames(P.flat, P.m, P.n, isNaN(t)?0:t);
+    idx=0; render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*88; }
+  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(function(){idx++;tick();}, speedMs()); }
+  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
+  function togglePlay(){ playing?stop():play(); }
+
+  const EX=[
+    {v:'1,3,5,7 | 10,11,16,20 | 23,30,34,60', t:3,  note:'found at (0,1) in 4 probes, not 12'},
+    {v:'1,3,5,7 | 10,11,16,20 | 23,30,34,60', t:13, note:'ABSENT — range collapses'},
+    {v:'1,2,3 | 4,5,6 | 7,8,9',               t:9,  note:'last cell (m·n−1)'},
+    {v:'1,3,5,7,9,11',                        t:1,  note:'single row, first cell'},
+    {v:'7',                                   t:2,  note:'1×1, absent'}
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(function(ex){
+      const c=document.createElement('button'); c.className='chip'; c.type='button';
+      c.innerHTML=esc(ex.v.replace(/\s/g,''))+' &nbsp;t='+ex.t+'<b>'+ex.note+'</b>';
+      c.onclick=function(){ arrEl.value=ex.v; tgtEl.value=ex.t; run(); };
+      box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick=run;
+  arrEl.addEventListener('keydown',function(e){ if(e.key==='Enter') run(); });
+  tgtEl.addEventListener('keydown',function(e){ if(e.key==='Enter') run(); });
+  $('nextBtn').onclick=function(){stop();next();};
+  $('prevBtn').onclick=function(){stop();prev();};
+  $('playBtn').onclick=togglePlay;
+  $('restartBtn').onclick=function(){stop();idx=0;render();};
+  document.addEventListener('keydown',function(e){
+    if(document.activeElement===arrEl||document.activeElement===tgtEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault();togglePlay();}
+  });
+  window.__buildFrames74 = buildFrames;
+  run();
+})();
+</script>
+
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>
