@@ -1,0 +1,18 @@
+{
+  // Static site — no build step, no Worker script. Every page is a
+  // self-contained HTML file, so Cloudflare just serves the repo as assets.
+  "name": "patterns-no-gaps",
+  "compatibility_date": "2026-08-11",
+
+  "assets": {
+    // the site lives at the repo root, not in a build output folder
+    "directory": "./",
+
+    // serve /three-patterns/ as /three-patterns/index.html, and let
+    // /trees/traversal resolve to trees/traversal.html
+    "html_handling": "auto-trailing-slash",
+
+    // no SPA router here — a bad path should 404, not silently serve index.html
+    "not_found_handling": "none"
+  }
+}
