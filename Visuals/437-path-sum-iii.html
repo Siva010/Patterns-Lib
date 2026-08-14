@@ -719,6 +719,9 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<!-- shared Tree Recursion lab engine — layers on top of the house CSS above -->
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -799,26 +802,7 @@ one. The map must describe <strong>the current root path and nothing else</stron
 the way down and disappear on the way up, so it never holds more than the current path's
 prefixes.</p>
 
-<figure class="viz" id="viz-437" data-split>
-  <figcaption class="viz-head"><span class="t">Prefix sums on the root path</span><span>target = 8</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line"><span class="tok-typ">int</span> dfs(TreeNode nd, <span class="tok-typ">long</span> run) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (nd == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-num">0</span>;</span
-      ><span class="viz-line">    run += nd.val;</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> c = seen.getOrDefault(run - target, <span class="tok-num">0</span>);</span
-      ><span class="viz-line">    seen.merge(run, <span class="tok-num">1</span>, Integer::sum);</span
-      ><span class="viz-line">    c += dfs(nd.left,  run);</span
-      ><span class="viz-line">    c += dfs(nd.right, run);</span
-      ><span class="viz-line">    seen.merge(run, -<span class="tok-num">1</span>, Integer::sum);</span
-      ><span class="viz-line">    <span class="tok-key">return</span> c;</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <p>Notice the order inside the node: <strong>look up first, insert second</strong>. Inserting the
 current prefix before querying would let a node match itself whenever the target is 0 &mdash; a
