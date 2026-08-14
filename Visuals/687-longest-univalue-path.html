@@ -719,6 +719,9 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<!-- shared Tree Recursion lab engine — layers on top of the house CSS above -->
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -791,25 +794,7 @@ is the same.</p>
 child is a 4, so that arm is gated to 0 even though the subtree below it is perfectly valid on its
 own terms.</p>
 
-<figure class="viz" id="viz-687" data-split>
-  <figcaption class="viz-head"><span class="t">Edge-gated arms</span><span>[5,4,5,1,1,null,5] → 2</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line"><span class="tok-typ">int</span> arrow(TreeNode nd) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (nd == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-num">0</span>;</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> L = arrow(nd.left), R = arrow(nd.right);</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> left  = <span class="tok-num">0</span>, right = <span class="tok-num">0</span>;</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (nd.left  != <span class="tok-key">null</span> &amp;&amp; nd.left.val  == nd.val) left  = L + <span class="tok-num">1</span>;</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (nd.right != <span class="tok-key">null</span> &amp;&amp; nd.right.val == nd.val) right = R + <span class="tok-num">1</span>;</span
-      ><span class="viz-line">    best = Math.max(best, left + right);</span
-      ><span class="viz-line">    <span class="tok-key">return</span> Math.max(left, right);</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <p>Both children must still be recursed into unconditionally &mdash; line 3 runs before the guards.
 A subtree whose top value differs from yours may still contain the global best somewhere inside it,

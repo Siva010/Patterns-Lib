@@ -47,6 +47,14 @@
   --t-num: #8a4b12;
   --t-com: #83807a;
   --t-ann: #8a4b12;
+
+  /* semantic pointer/state roles — shared with the array & string pages */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
 }
 html[data-theme="dark"] {
   --bg: #121213;
@@ -69,6 +77,13 @@ html[data-theme="dark"] {
   --t-num: #e0a86a;
   --t-com: #7c7a74;
   --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
@@ -719,6 +734,9 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<!-- shared Tree Recursion lab engine — layers on top of the house CSS above -->
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -806,23 +824,7 @@ sentence is the correctness proof.</p>
 <strong>2</strong> set <code class="inl">best = 4</code>, and then watch the root fail to beat it
 &mdash; the root's own candidate is only 3, because it has no right subtree to turn into.</p>
 
-<figure class="viz" id="viz-543" data-split>
-  <figcaption class="viz-head"><span class="t">Record / return split</span><span>diameter = 4, not through the root</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line"><span class="tok-typ">int</span> height(TreeNode nd) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (nd == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-num">0</span>;</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> L = height(nd.left);</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> R = height(nd.right);</span
-      ><span class="viz-line">    best = Math.max(best, L + R);</span
-      ><span class="viz-line">    <span class="tok-key">return</span> <span class="tok-num">1</span> + Math.max(L, R);</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <p>Two numbers leave every node and they are almost never equal. At node <strong>2</strong>:
 <code class="inl">L + R = 4</code> goes into <code class="inl">best</code>, while
@@ -1303,83 +1305,309 @@ sub-variant A plus one recorded side effect.</p>
 </script>
 
 <script>
-/* 543. Diameter of Binary Tree — return the height, record L + R. */
+/* ============================================================================
+   543. Diameter of Binary Tree — the page's adapter for the shared lab engine.
+
+   Everything generic (replay, transport, zoom, layouts, source pane, stack,
+   narration shell, keyboard) lives in tree-engine.js. This block supplies only
+   what is specific to LC 543.
+
+   Sub-variant C — the record / return split. Every frame carries TWO numbers
+   and they are almost never the same one:
+
+     RETURN   1 + max(L, R)   one-sided: still hanging straight down out of this
+                              node, so the parent is free to extend it. This is
+                              the only thing that may travel up the stack.
+     RECORD   L + R           two-sided: the path turns at this node, so no
+                              parent can ever extend it. It can only be written
+                              into `best` and then forgotten.
+
+   Returning the two-sided number would be wrong: a path that bends at this
+   node cannot continue up through its parent, so handing L + R to the parent
+   lets it be extended into something that is not a path at all. The second
+   variant does exactly that, so you can watch the answer collapse.
+
+   Units: the return is a height in NODES, the record is a length in EDGES.
+   That asymmetry is this problem's classic off-by-one.
+   ============================================================================ */
 (function () {
-  function n(v, l, r) { return { v: v, l: l, r: r }; }
-  var T = n(1, n(2, n(4, n(6)), n(5, null, n(7))));
-  var L = VizKit.layoutTree(T, { gapX: 56, gapY: 58 });
+  "use strict";
+  if (!window.TreeLab) return;
+  var T = window.TreeLab;
 
-  var steps = [], best = 0, bestPath = [], done = {};
+  /* Two channels, two hues. `isFail` is false for every value here, so the
+     sentinel hue is unused by the engine and is free to mean "recorded". */
+  function rec(s) { return '<span style="color:var(--tl-sentinel);font-weight:600">' + s + "</span>"; }
+  function ret(s) { return '<span style="color:var(--tl-height);font-weight:600">' + s + "</span>"; }
+  function dim(s) { return '<span style="color:var(--fg-dim)">' + s + "</span>"; }
 
-  function push(o) {
-    var s = { line: o.line, note: o.note, best: best, bestPath: bestPath.slice(), done: {} };
-    for (var k in done) s.done[k] = done[k];
-    ["cur", "cand", "improved"].forEach(function (f) { if (o[f] !== undefined) s[f] = o[f]; });
-    steps.push(s);
+  /* ---- the two Java variants. Line numbers are 1-based and shared. ---- */
+  var SPLIT_SRC = [
+    "class Solution {",
+    "    int best = 0;                      // edges, recorded on the way up",
+    "",
+    "    public int diameterOfBinaryTree(TreeNode root) {",
+    "        best = 0;",
+    "        height(root);",
+    "        return best;                   // the answer never rides a return",
+    "    }",
+    "",
+    "    private int height(TreeNode node) {",
+    "        if (node == null) return 0;",
+    "",
+    "        int left  = height(node.left);   // nodes",
+    "        int right = height(node.right);",
+    "",
+    "        best = Math.max(best, left + right);  // RECORD  two-sided, edges",
+    "        return 1 + Math.max(left, right);    // RETURN  one-sided, nodes",
+    "    }",
+    "}"
+  ];
+  var BUG_SRC = [
+    "class Solution {",
+    "    int best = 0;",
+    "",
+    "    public int diameterOfBinaryTree(TreeNode root) {",
+    "        best = 0;",
+    "        height(root);",
+    "        return best;",
+    "    }",
+    "",
+    "    private int height(TreeNode node) {",
+    "        if (node == null) return 0;",
+    "",
+    "        int left  = height(node.left);",
+    "        int right = height(node.right);",
+    "",
+    "        best = Math.max(best, left + right);",
+    "        return left + right;   // BUG: hands the parent a path that bends here",
+    "    }",
+    "}"
+  ];
+  var LINES = { TOP: 6, ANS: 7, ENTER: 10, NULL: 11, LEFT: 13, RIGHT: 14, REC: 16, RET: 17 };
+
+  /* the running best at this point in the replay — a pure function of the
+     frames, because every record is stored on the frame that made it */
+  function bestOf(st) {
+    var b = 0, keys = Object.keys(st.frames);
+    for (var i = 0; i < keys.length; i++) {
+      var c = st.frames[keys[i]].check;
+      if (c && c.check === "record" && c.cand > b) b = c.cand;
+    }
+    return b;
   }
 
-  /* returns { h, chain } — chain is the deepest downward path starting at nd */
-  function height(nd, who) {
-    if (!nd) {
-      push({ line: 2, note: who + " is <code>null</code> &mdash; height <strong>0</strong>." });
-      return { h: 0, chain: [] };
-    }
-    push({ cur: nd.__id, line: 1, note: "Enter <strong>" + nd.v + "</strong>." });
-    var a = height(nd.l, "The left child of " + nd.v);
-    push({ cur: nd.__id, line: 3, note: "Left height of <strong>" + nd.v + "</strong>: <strong>L = " + a.h + "</strong>." });
-    var b = height(nd.r, "The right child of " + nd.v);
-    push({ cur: nd.__id, line: 4, note: "Right height of <strong>" + nd.v + "</strong>: <strong>R = " + b.h + "</strong>." });
-
-    var cand = a.chain.slice().reverse().concat([nd.__id], b.chain);
-    var candLen = a.h + b.h;
-    var improved = candLen > best;
-    if (improved) { best = candLen; bestPath = cand.slice(); }
-    push({ cur: nd.__id, cand: cand, improved: improved, line: 5,
-      note: "<strong>Record.</strong> The path that <em>turns</em> at <strong>" + nd.v +
-            "</strong> is <code>L + R = " + a.h + " + " + b.h + " = " + candLen + "</code> edges. " +
-            (improved ? "New best: <strong>" + best + "</strong>."
-                      : "<code>best</code> stays <strong>" + best + "</strong> &mdash; this candidate does not beat it.") });
-
-    var h = 1 + Math.max(a.h, b.h);
-    var chain = [nd.__id].concat(a.h >= b.h ? a.chain : b.chain);
-    done[nd.__id] = h;
-    push({ cur: nd.__id, line: 6,
-      note: "<strong>Return.</strong> <code>1 + max(" + a.h + ", " + b.h + ") = " + h +
-            "</code> &mdash; a strictly <em>downward</em> path, so the parent can extend it. " +
-            "Note it is not " + candLen + ": the two numbers do different jobs." });
-    return { h: h, chain: chain };
+  /* an independent second opinion, so the Bug variant can be called out */
+  function trueDiameter(nd) {
+    var b = 0;
+    (function h(n) {
+      if (!n) return 0;
+      var l = h(n.left), r = h(n.right);
+      if (l + r > b) b = l + r;
+      return 1 + Math.max(l, r);
+    })(nd);
+    return b;
   }
 
-  height(T, "root");
-  push({ line: 0, cand: bestPath,
-    note: "Answer <strong>" + best + "</strong>, along " +
-          bestPath.map(function (i) { return L.nodes[i].v; }).join(" – ") +
-          ". The path never touches the root &mdash; a root-only computation would have missed it." });
+  T.mount({
+    mountEl: "#lab",
+    title: "height()",
+    subtitle: "two numbers per frame — return 1 + max(L,R) in nodes, record L + R in edges",
+    tag: "interactive",
 
-  VizKit.stepper(document.getElementById("viz-543"), {
-    steps: steps,
-    speed: 1000,
-    render: function (s) {
-      var onCand = {};
-      (s.cand || []).forEach(function (i) { onCand[i] = 1; });
-      var svg = VizKit.treeSVG(L, function (nd) {
-        if (onCand[nd.id]) return "hit";
-        if (s.cur === nd.id) return "on";
-        if (nd.id in s.done) return "done";
-        return "";
-      }, { r: 17, alt: "Binary tree with the candidate path and the recorded best highlighted",
-           edgeOn: function (a, b) { return onCand[a.id] && onCand[b.id]; } });
+    presets: [
+      { tokens: "[1,2,null,4,5,6,null,null,7]",
+        note: "the tree above — best = 4 edges turns at node 2, and the root's own candidate is only 3" },
+      { tokens: "[1]",
+        note: "a single node — 0 edges; best is never touched by anything a return carries" },
+      { tokens: "[1,2,3,4,5]",
+        note: "here the diameter does pass through the root: 3 edges" },
+      { tokens: "[1,2,null,3,null,4,null,5]",
+        note: "a left chain — every record is one-sided, so best = 4 equals the chain itself" },
+      { tokens: "[1,2,3,4,5,6,7]",
+        note: "perfect tree — 4 edges, leaf to leaf through the root" }
+    ],
+    defaultPreset: 0,
 
-      var retPills = L.nodes.filter(function (nd) { return nd.id in s.done; })
-                            .map(function (nd) { return nd.v + " → " + s.done[nd.id]; });
-      return svg +
-        VizKit.pills("best (recorded)", [s.best]) +
-        VizKit.pills("heights (returned)", retPills) +
-        '<div class="viz-legend">' +
-          '<span><i data-state="on"></i> current node</span>' +
-          '<span><i data-state="hit"></i> path turning here</span>' +
-          '<span><i data-state="done"></i> height returned</span></div>';
-    }
+    variants: [
+      { id: "split", label: "Record / return split", java: SPLIT_SRC, lines: LINES },
+      { id: "bug",   label: "Bug: return L + R",     java: BUG_SRC,   lines: LINES }
+    ],
+    defaultVariant: "split",
+
+    /* -1 is not a sentinel in this problem: it is not even reachable. */
+    isFail: function () { return false; },
+    keyboard: true,
+
+    callTreeNote: "label: returned / recorded",
+    structureNote: "under each node: returned (nodes) / recorded (edges)",
+    customPlaceholder: "[1,2,null,4,5,6,null,null,7]",
+
+    /* ---------------------------------------------------------------- THE recursion */
+    run: function (root, emit, o) {
+      var L = o.L, bug = o.id === "bug", best = 0;
+
+      emit({ type: "START", line: L.TOP, depth: 0 });
+
+      function height(node, key, depth, parentKey, side) {
+        emit({ type: "CALL", key: key, parentKey: parentKey, side: side, depth: depth,
+               isNull: !node, val: node ? node.val : null, line: L.ENTER,
+               args: node ? "height(" + node.val + ")" : "height(null)" });
+
+        if (!node) {
+          emit({ type: "BASE", key: key, depth: depth, line: L.NULL, value: 0 });
+          emit({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+                 value: 0, line: L.NULL, reason: "base" });
+          return 0;
+        }
+
+        emit({ type: "EVAL", key: key, depth: depth, side: "left", line: L.LEFT,
+               childVal: node.left ? node.left.val : null });
+        var left = height(node.left, key + "L", depth + 1, key, "left");
+
+        emit({ type: "EVAL", key: key, depth: depth, side: "right", line: L.RIGHT, left: left,
+               childVal: node.right ? node.right.val : null });
+        var right = height(node.right, key + "R", depth + 1, key, "right");
+
+        var cand = left + right;                              /* two-sided, edges */
+        var willReturn = bug ? cand : 1 + Math.max(left, right); /* one-sided, nodes */
+        var improved = cand > best;
+        var prev = best;
+        if (improved) best = cand;
+
+        emit({ type: "CHECK", key: key, depth: depth, line: L.REC, check: "record",
+               left: left, right: right, cand: cand, prev: prev, best: best,
+               improved: improved, willReturn: willReturn });
+
+        emit({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+               value: willReturn, line: L.RET, reason: bug ? "bent" : "height",
+               left: left, right: right, cand: cand, best: best });
+        return willReturn;
+      }
+
+      height(root, "R", 0, null, null);
+
+      var truth = trueDiameter(root);
+      emit({ type: "DONE", line: L.ANS, depth: 0, value: best,
+             truth: truth, ok: best === truth, buggy: bug });
+      return best;
+    },
+
+    /* ------------------------------------------- the pending expression (return side) */
+    expr: function (f, st, o) {
+      var tail = "";
+      if (f.check && f.check.check === "record") {
+        tail = ' ' + dim("·") + " " + rec("records " + f.check.cand + "e");
+      }
+      if (f.isNull) return ret("return 0") + " " + dim("— a null arm is 0 nodes tall");
+      if (f.result !== undefined) return ret("return " + f.result) + tail;
+      return "1 + max(" + T.hole(f, "left", st, o) + ", " + T.hole(f, "right", st, o) + ")" + tail;
+    },
+
+    /* ------------------------------------ how the record step reads inside its frame */
+    checkText: function (e) {
+      if (!e || e.check !== "record") return "";
+      var s = "RECORD " + rec("L + R = " + e.left + " + " + e.right + " = " + e.cand + " edges") +
+        (e.improved ? " → best = " + rec(e.cand) : " → best stays " + e.prev) +
+        " &nbsp;|&nbsp; RETURN " + ret("1 + max(" + e.left + ", " + e.right + ") = " + e.willReturn + " nodes");
+      if (e.cand !== e.willReturn) s += " " + dim("— two different numbers");
+      return s;
+    },
+
+    /* ---------------------------------------------------------------- narration */
+    narrate: function (st) {
+      var e = st.event, f = e.key ? st.frames[e.key] : null;
+      var who = f ? (f.isNull ? "height(null)" : "height(" + f.val + ")") : "height";
+      switch (e.type) {
+        case "START":
+          return { tag: "start", text: "best = 0. The wrapper calls height(root) and then throws the returned height away — " +
+            "the answer only ever arrives through " + rec("best") + "." };
+        case "CALL":
+          return e.isNull
+            ? { tag: "call", text: "Call height(null) at depth " + e.depth + " — a null child still costs a frame, and it is the base case." }
+            : { tag: "call", text: "Call height(" + e.val + ") at depth " + e.depth + " — push a frame holding two pending " +
+                "quantities: " + ret("1 + max(▢, ▢)") + " to return, and " + rec("▢ + ▢") + " to record." };
+        case "BASE":
+          return { tag: "base", text: "node == null, so this frame returns a height of 0 and records nothing — there is no path to bend here." };
+        case "EVAL":
+          if (e.side === "left") {
+            return { tag: "descend", text: who + " needs its left subtree's height before it can do either job, so it calls " +
+              (e.childVal === null ? "height(null)" : "height(" + e.childVal + ")") + "." };
+          }
+          return { tag: "descend", text: "Left came back as " + e.left + " node" + (e.left === 1 ? "" : "s") +
+            " tall. Now " + who + " measures the right subtree." };
+        case "CHECK": {
+          if (e.check !== "record") return { tag: "check", text: "" };
+          var head = "The split. The longest path that <em>turns</em> at " + (f ? f.val : "this node") +
+            " is " + rec("L + R = " + e.left + " + " + e.right + " = " + e.cand + " edges") + " — two-sided, " +
+            "so it can never be extended by a parent, which is why it goes into best and nowhere else. ";
+          head += e.improved
+            ? "That beats " + e.prev + ", so best = " + rec(e.cand) + ". "
+            : "best stays " + e.prev + " — this candidate does not beat it. ";
+          head += "What the parent gets instead is " + ret("1 + max(" + e.left + ", " + e.right + ") = " + e.willReturn + " nodes") +
+            (e.cand === e.willReturn
+              ? " — equal here only by coincidence."
+              : ", a different number doing a different job.");
+          return { tag: "record", text: head };
+        }
+        case "RETURN": {
+          var parent = e.parentKey ? st.frames[e.parentKey] : null;
+          var pw = parent ? "height(" + parent.val + ")" : null;
+          var tail = pw ? " and fills the " + e.side + " hole in " + pw + "." : ", which the wrapper discards.";
+          if (e.reason === "base") return { tag: "return", text: who + " returns " + ret("0") + tail };
+          if (e.reason === "bent") {
+            return { tag: "return", text: "Bug variant: " + who + " returns " + rec("L + R = " + e.value) +
+              " — the two-sided number" + tail + " The parent will now try to extend a path that already bends, " +
+              "and every height above this point is nonsense." };
+          }
+          return { tag: "return", text: who + " returns " + ret("1 + max(" + e.left + ", " + e.right + ") = " + e.value) +
+            " — one-sided, still hanging straight down, so it is extendable" + tail +
+            " Its recorded candidate " + rec(e.cand + " edges") + " stays behind in best." };
+        }
+        case "DONE":
+          return e.ok
+            ? { tag: "done", text: "Done. best = " + rec(e.value) + " edges — the diameter. Note the units: heights were counted " +
+                "in nodes, but L + R is an edge count, which is why no +1 appears in the record line." }
+            : { tag: "done", text: "Done. This variant reports " + e.value + " edges, but the true diameter is " +
+                rec(e.truth) + ". Returning the two-sided value poisoned every height above the first turn: " +
+                "a path that bends at a node cannot continue up through its parent." };
+      }
+      return { tag: "", text: "" };
+    },
+
+    /* --------------------------------------- both numbers, under every settled node */
+    nodeResult: function (f) {
+      if (f.result === undefined) return "";
+      if (f.isNull) return "0";
+      var c = f.check && f.check.check === "record" ? f.check.cand : null;
+      return c === null ? String(f.result) : f.result + " / " + c;
+    },
+
+    stats: function (st) {
+      var out = [{ label: "best · recorded (edges)", html: rec(bestOf(st)) }];
+      var f = st.returning || st.top;
+      var c = f && f.check && f.check.check === "record" ? f.check : null;
+      if (c) out.push({ label: "this node records", html: rec(c.cand + "e") });
+      if (st.returning && !st.returning.isNull) {
+        out.push({ label: "this node returns", html: ret(st.returning.result + "n") });
+      }
+      return out;
+    },
+
+    verdict: function (st) {
+      if (!st.done) return null;
+      var d = st.done;
+      return d.ok
+        ? { text: "diameter → " + d.value + " edges", ok: true }
+        : { text: "reports " + d.value + " · true answer " + d.truth, ok: false };
+    },
+
+    legend: [
+      { state: "active", label: "active frame" },
+      { state: "path",   label: "on the current path" },
+      { state: "done",   label: "returned — label is returned / recorded" },
+      { state: "ghost",  label: "not called yet" }
+    ]
   });
 })();
 </script>
