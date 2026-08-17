@@ -47,6 +47,14 @@
   --t-num: #8a4b12;
   --t-com: #83807a;
   --t-ann: #8a4b12;
+
+  /* semantic pointer/state roles — shared with the array & string pages */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
 }
 html[data-theme="dark"] {
   --bg: #121213;
@@ -69,6 +77,13 @@ html[data-theme="dark"] {
   --t-num: #e0a86a;
   --t-com: #7c7a74;
   --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
@@ -719,6 +734,9 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<!-- shared Tree Recursion lab engine — layers on top of the house CSS above -->
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -787,25 +805,7 @@ sub-variant has transferred.</p>
 2 and <code class="inl">b</code>'s left is 3. The flipped pairing then succeeds, and the same
 question repeats one level down.</p>
 
-<figure class="viz" id="viz-951" data-split>
-  <figcaption class="viz-head"><span class="t">Disjunction over pairings</span><span>a = [1,2,3,4,5] &nbsp;·&nbsp; b = [1,3,2,null,null,5,4]</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line"><span class="tok-typ">boolean</span> flipEquiv(TreeNode a, TreeNode b) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (a == <span class="tok-key">null</span> &amp;&amp; b == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-key">true</span>;</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (a == <span class="tok-key">null</span> || b == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-key">false</span>;</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (a.val != b.val) <span class="tok-key">return</span> <span class="tok-key">false</span>;</span
-      ><span class="viz-line">    <span class="tok-key">return</span> (flipEquiv(a.left, b.left)</span
-      ><span class="viz-line">         &amp;&amp; flipEquiv(a.right, b.right))</span
-      ><span class="viz-line">        || (flipEquiv(a.left, b.right)</span
-      ><span class="viz-line">         &amp;&amp; flipEquiv(a.right, b.left));</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <h3 class="sec" id="s2-1">2.1 Why this is O(n) and not 2<sup>n</sup></h3>
 
@@ -1264,97 +1264,406 @@ write the parentheses anyway. The reader should not have to know the precedence 
 </script>
 
 <script>
-/* 951. Flip Equivalent Binary Trees — LC 100's machine with both pairings, joined by ||. */
+/* ============================================================================
+   951. Flip Equivalent Binary Trees — the page's adapter for the shared lab
+   engine.
+
+   Everything generic (replay, transport, source pane, stack, narration shell,
+   keyboard) lives in tree-engine.js. This block supplies only what is specific
+   to LC 951: the three source variants, the recursion itself, and how its
+   events read.
+
+   Two structures are drawn side by side and every CALL carries `refs`, so each
+   frame lights up the pair of real nodes it is comparing. That matters here
+   more than anywhere else in the family: a flip means the node this call looks
+   at in root2 is NOT at the same path as the one it looks at in root1, so the
+   two refs are tracked and emitted separately rather than assumed equal.
+
+   Frame keys: "R" is the root pair; a frame appends "L"/"R" for the two calls
+   of the straight pairing and "l"/"r" for the two calls of the crossed one, so
+   the four possible children of one call never collide — a node of root1 that
+   is examined twice (once per pairing) gets two frames, which is exactly what
+   the backtracking does.
+
+   The recursion-tree panel is off on purpose. A call can make up to four child
+   calls, so the engine's one-node-per-null-pointer layout over root1 cannot
+   represent this recursion without pretending the crossed calls never happened.
+   ============================================================================ */
 (function () {
-  function n(v, l, r) { return { v: v, l: l, r: r }; }
-  var A = n(1, n(2, n(4), n(5)), n(3));
-  var B = n(1, n(3), n(2, n(5), n(4)));
-  var LA = VizKit.layoutTree(A, { gapX: 52, gapY: 56 });
-  var LB = VizKit.layoutTree(B, { gapX: 52, gapY: 56 });
+  "use strict";
+  if (!window.TreeLab) return;
+  var T = window.TreeLab;
+  var NUL = "∅", AND = " &amp;&amp; ";
+  var PAIR_S = "L↔L, R↔R", PAIR_F = "L↔R, R↔L";
+  var MODE = "both";   /* set by run(); the narration says different things per variant */
 
-  var steps = [], okA = {}, okB = {};
+  /* ---- the three Java variants. Line numbers are 1-based. ---- */
+  var BOTH_SRC = [
+    "class Solution {",
+    "    public boolean flipEquiv(TreeNode a, TreeNode b) {",
+    "        if (a == null && b == null) return true;",
+    "        if (a == null || b == null) return false;",
+    "        if (a.val != b.val)         return false;",
+    "",
+    "        return (flipEquiv(a.left, b.left)  && flipEquiv(a.right, b.right))",
+    "            || (flipEquiv(a.left, b.right) && flipEquiv(a.right, b.left));",
+    "    }",
+    "}"
+  ];
+  var STRAIGHT_SRC = [
+    "class Solution {",
+    "    public boolean flipEquiv(TreeNode a, TreeNode b) {",
+    "        if (a == null && b == null) return true;",
+    "        if (a == null || b == null) return false;",
+    "        if (a.val != b.val)         return false;",
+    "",
+    "        return flipEquiv(a.left, b.left)        // LC 100 verbatim:",
+    "            && flipEquiv(a.right, b.right);     // no flip is ever tried",
+    "    }",
+    "}"
+  ];
+  var PEEK_SRC = [
+    "class Solution {",
+    "    public boolean flipEquiv(TreeNode a, TreeNode b) {",
+    "        if (a == null && b == null) return true;",
+    "        if (a == null || b == null) return false;",
+    "        if (a.val != b.val)         return false;",
+    "",
+    "        if (differ(a.left, b.left))          // guess the pairing once...",
+    "            return flipEquiv(a.left, b.right)",
+    "                && flipEquiv(a.right, b.left);",
+    "",
+    "        return flipEquiv(a.left, b.left)     // ...and never come back",
+    "            && flipEquiv(a.right, b.right);",
+    "    }",
+    "",
+    "    private boolean differ(TreeNode x, TreeNode y) {",
+    "        return x != null && y != null && x.val != y.val;",
+    "    }",
+    "}"
+  ];
 
-  function push(o) {
-    var s = { line: o.line, note: o.note, okA: {}, okB: {}, mode: o.mode };
-    for (var k in okA) s.okA[k] = 1;
-    for (var j in okB) s.okB[j] = 1;
-    ["a", "b", "badA", "badB"].forEach(function (f) { if (o[f] !== undefined) s[f] = o[f]; });
-    steps.push(s);
+  function nm(n) { return n ? String(n.val) : NUL; }
+  function sig(x, y) { return "flipEquiv(" + nm(x) + ", " + nm(y) + ")"; }
+  function tf(v) { return v ? "true" : "false"; }
+  function badge(v) {
+    return '<span class="' + (v ? "tl-v" : "tl-neg") + '">return ' + tf(v) + "</span>";
+  }
+  /* which pairing is this frame in the middle of? the last CHECK says so. */
+  function isCrossed(f) {
+    var c = f.check;
+    if (!c) return false;
+    return c.check === "flipped" || (c.check === "peek" && c.flip);
   }
 
-  function eq(a, b, who, quiet) {
-    if (!a && !b) {
-      if (!quiet) push({ line: 2, note: who + ": both <code>null</code> &mdash; <strong>true</strong>." });
-      return true;
-    }
-    if (!a || !b) {
-      if (!quiet) push({ line: 3, a: a ? a.__id : undefined, b: b ? b.__id : undefined,
-        note: who + ": one side is <code>null</code> &mdash; <strong>false</strong>." });
-      return false;
-    }
-    if (!quiet) push({ a: a.__id, b: b.__id, line: 1,
-      note: who + ": compare <strong>" + a.v + "</strong> with <strong>" + b.v + "</strong>." });
-    if (a.v !== b.v) {
-      if (!quiet) push({ a: a.__id, b: b.__id, badA: a.__id, badB: b.__id, line: 4,
-        note: "<strong>" + a.v + " ≠ " + b.v + "</strong> &mdash; this pairing dies here, after one " +
-              "comparison. No descent. That O(1) rejection is why the disjunction does not make " +
-              "the algorithm exponential." });
-      return false;
-    }
-    if (!quiet) {
-      okA[a.__id] = 1; okB[b.__id] = 1;
-      push({ a: a.__id, b: b.__id, line: 4,
-        note: "<strong>" + a.v + " == " + b.v + "</strong>. Now try the two pairings." });
-      push({ a: a.__id, b: b.__id, line: 5, mode: "straight",
-        note: "<strong>Straight:</strong> pair <code>a.left</code> with <code>b.left</code>, " +
-              "<code>a.right</code> with <code>b.right</code>." });
-    }
-    var straight = eq(a.l, b.l, "straight-left of " + a.v, quiet) &&
-                   eq(a.r, b.r, "straight-right of " + a.v, true);
-    if (straight) return true;
-    if (!quiet) push({ a: a.__id, b: b.__id, line: 7, mode: "flipped",
-      note: "Straight pairing failed. <strong>Flipped:</strong> pair <code>a.left</code> with " +
-            "<code>b.right</code> and <code>a.right</code> with <code>b.left</code> &mdash; that " +
-            "is what flipping <strong>" + a.v + "</strong> means." });
-    return eq(a.l, b.r, "flipped-left of " + a.v, quiet) &&
-           eq(a.r, b.l, "flipped-right of " + a.v, quiet);
-  }
+  T.mount({
+    mountEl: "#lab",
+    title: "flipEquiv(a, b)",
+    subtitle: "one frame per pair of nodes — root1 is a, root2 is b",
+    tag: "interactive",
+    treeLabels: ["root1", "root2"],
+    isFail: function (v) { return v === false; },
+    showCallTree: false,
+    structureNote: "root1 (a) left, root2 (b) right — each node takes the state of the call " +
+      "examining it: active, on the current path, returned true, returned false, or never called",
+    customPlaceholder: "[1,2,3,4,5] | [1,3,2,null,null,5,4]",
 
-  var verdict = eq(A, B, "Root", false);
-  push({ line: 0,
-    note: "<strong>" + verdict + "</strong> &mdash; flipping the root and then node 2 turns a into b. " +
-          "Every failed pairing cost exactly one value comparison." });
+    presets: [
+      { tokens: "[1,2,3,4,5]", tokens2: "[1,3,2,null,null,5,4]",
+        label: "[1,2,3,4,5] | [1,3,2,null,null,5,4]",
+        note: "the trees above — a flip is needed at the root and again at node 2" },
+      { tokens: "[1,2,3,4,5,6,7]", tokens2: "[1,2,3,4,5,6,7]",
+        label: "[1,2,3,4,5,6,7] | itself",
+        note: "identical trees — the straight pairing holds everywhere, so the crossed one is never evaluated" },
+      { tokens: "[1,2,3,4,5,6,7]", tokens2: "[1,2,3,5,4,6,7]",
+        label: "[1,2,3,4,5,6,7] | one subtree flipped",
+        note: "the same tree with node 2's children swapped — exactly one flip, deep in the tree" },
+      { tokens: "[1,2]", tokens2: "[1,null,2]",
+        label: "[1,2] | [1,null,2]",
+        note: "the invisible flip — one child, either side; the straight pairing pits 2 against null" },
+      { tokens: "[1,2,3,4,5]", tokens2: "[1,3,2,4,5]",
+        label: "[1,2,3,4,5] | [1,3,2,4,5]",
+        note: "same five values, but no sequence of flips gets there — both pairings fail at the root" },
+      { tokens: "[]", tokens2: "[1]",
+        label: "[] | [1]",
+        note: "one side empty — false on the second base case, before any value is read" }
+    ],
+    defaultPreset: 0,
 
-  function panel(label, L, stateOf) {
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:7px">' +
-      '<span style="font-family:var(--sans);font-size:9.5px;font-weight:600;letter-spacing:.09em;' +
-      'text-transform:uppercase;color:var(--fg-dim)">' + label + "</span>" +
-      VizKit.treeSVG(L, stateOf, { r: 16, alt: label }) + "</div>";
-  }
+    variants: [
+      { id: "both", label: "Both pairings (correct)", java: BOTH_SRC,
+        lines: { TOP: 2, ENTER: 2, BOTHNULL: 3, ONENULL: 4, VAL: 5, STRAIGHT: 7, FLIPPED: 8 } },
+      { id: "straightonly", label: "Wrong: straight pairing only", java: STRAIGHT_SRC,
+        lines: { TOP: 2, ENTER: 2, BOTHNULL: 3, ONENULL: 4, VAL: 5, STRAIGHT: 7, FLIPPED: 7 } },
+      { id: "peek", label: "Wrong: flip only if the child values differ", java: PEEK_SRC,
+        lines: { TOP: 2, ENTER: 2, BOTHNULL: 3, ONENULL: 4, VAL: 5, PEEK: 7, FLIPPED: 8, STRAIGHT: 11 } }
+    ],
+    defaultVariant: "both",
 
-  VizKit.stepper(document.getElementById("viz-951"), {
-    steps: steps,
-    speed: 950,
-    render: function (s) {
-      var pa = panel("tree a", LA, function (nd) {
-        if (s.badA === nd.id) return "out";
-        if (s.a === nd.id) return "on";
-        if (s.okA[nd.id]) return "done";
-        return "";
-      });
-      var pb = panel("tree b", LB, function (nd) {
-        if (s.badB === nd.id) return "out";
-        if (s.b === nd.id) return "on";
-        if (s.okB[nd.id]) return "done";
-        return "";
-      });
-      return '<div class="viz-strip" style="align-items:flex-start;gap:36px">' + pa + pb + "</div>" +
-        VizKit.pills("pairing", [s.mode || "—"]) +
-        '<div class="viz-legend">' +
-          '<span><i data-state="on"></i> pair under comparison</span>' +
-          '<span><i data-state="done"></i> matched</span>' +
-          '<span><i data-state="out"></i> this pairing rejected</span></div>';
-    }
+    /* ---------------------------------------------------------------- THE recursion */
+    run: function (root, emit, o) {
+      var L = o.L, mode = o.id, b = o.root2;
+      MODE = mode;
+
+      function differ(p, q) { return !!p && !!q && p.val !== q.val; }
+
+      /* x,y  : the two nodes this call compares (either may be null)
+         key  : the frame key (unique — see the header comment)
+         ka,kb: the real node keys, one per rendered tree                    */
+      function go(x, y, key, ka, kb, depth, parentKey, side) {
+        emit({ type: "CALL", key: key, parentKey: parentKey, side: side, depth: depth,
+               isNull: !x || !y, val: x ? x.val : (y ? y.val : null),
+               args: sig(x, y), line: L.ENTER,
+               refs: [{ t: 0, key: ka }, { t: 1, key: kb }],
+               aVal: x ? x.val : null, bVal: y ? y.val : null });
+
+        function ret(v, line, reason) {
+          emit({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+                 value: v, line: line, reason: reason, args: sig(x, y),
+                 aVal: x ? x.val : null, bVal: y ? y.val : null });
+          return v;
+        }
+
+        if (!x && !y) {
+          emit({ type: "BASE", key: key, depth: depth, line: L.BOTHNULL, value: true });
+          return ret(true, L.BOTHNULL, "bothNull");
+        }
+        if (!x || !y) {
+          emit({ type: "BASE", key: key, depth: depth, line: L.ONENULL, value: false,
+                 aVal: x ? x.val : null, bVal: y ? y.val : null });
+          return ret(false, L.ONENULL, "oneNull");
+        }
+
+        emit({ type: "CHECK", key: key, depth: depth, line: L.VAL, check: "val",
+               aVal: x.val, bVal: y.val });
+        if (x.val !== y.val) {
+          /* the O(1) rejection the essay's O(n) argument rests on: no descent
+             at all, so neither pairing below this pair is ever attempted. */
+          emit({ type: "PRUNE", key: key, depth: depth, line: L.VAL, why: "valDiff",
+                 aVal: x.val, bVal: y.val,
+                 skipped: T.subtreeKeys(x.left, key + "L").concat(T.subtreeKeys(x.right, key + "R")) });
+          return ret(false, L.VAL, "valDiff");
+        }
+
+        /* one attempt = two child calls joined by &&. `flip` picks the pairing.
+           The crossed attempt fills its own two slots (fleft / fright) so the
+           pending expression never shows the failed attempt's values. */
+        function attempt(flip) {
+          var yl = flip ? y.right : y.left, yr = flip ? y.left : y.right;
+          var kyl = kb + (flip ? "R" : "L"), kyr = kb + (flip ? "L" : "R");
+          var sl = flip ? "fleft" : "left", sr = flip ? "fright" : "right";
+          var cl = flip ? "l" : "L", cr = flip ? "r" : "R";
+          var line = flip ? L.FLIPPED : L.STRAIGHT;
+
+          emit({ type: "EVAL", key: key, depth: depth, side: sl, line: line, flip: flip,
+                 aVal: x.val, bVal: y.val,
+                 childA: x.left ? x.left.val : null, childB: yl ? yl.val : null });
+          if (!go(x.left, yl, key + cl, ka + "L", kyl, depth + 1, key, sl)) {
+            emit({ type: "PRUNE", key: key, depth: depth, line: line, why: "andShort",
+                   flip: flip, skipped: T.subtreeKeys(x.right, key + cr) });
+            return false;
+          }
+          emit({ type: "EVAL", key: key, depth: depth, side: sr, line: line, flip: flip,
+                 aVal: x.val, bVal: y.val,
+                 childA: x.right ? x.right.val : null, childB: yr ? yr.val : null });
+          return go(x.right, yr, key + cr, ka + "R", kyr, depth + 1, key, sr);
+        }
+
+        if (mode === "peek") {
+          var flip = differ(x.left, y.left);
+          emit({ type: "CHECK", key: key, depth: depth, line: L.PEEK, check: "peek", flip: flip,
+                 aVal: x.val, bVal: y.val,
+                 aL: x.left ? x.left.val : null, bL: y.left ? y.left.val : null });
+          var got = attempt(flip);
+          return ret(got, flip ? L.FLIPPED : L.STRAIGHT, got ? (flip ? "flipped" : "straight") : "guessFail");
+        }
+
+        emit({ type: "CHECK", key: key, depth: depth, line: L.STRAIGHT, check: "straight",
+               aVal: x.val, bVal: y.val });
+        if (attempt(false)) {
+          emit({ type: "CHECK", key: key, depth: depth, line: L.STRAIGHT, check: "straightOk",
+                 aVal: x.val, bVal: y.val });
+          return ret(true, L.STRAIGHT, "straight");
+        }
+        if (mode === "straightonly") return ret(false, L.STRAIGHT, "straightFail");
+
+        /* the second attempt — the moment the whole page exists for */
+        emit({ type: "CHECK", key: key, depth: depth, line: L.FLIPPED, check: "flipped",
+               aVal: x.val, bVal: y.val });
+        var ok2 = attempt(true);
+        return ret(ok2, L.FLIPPED, ok2 ? "flipped" : "bothFail");
+      }
+
+      return go(root, b, "R", "R", "R", 0, null, null);
+    },
+
+    doneFields: function (result) { return { equiv: result === true }; },
+
+    /* ---------------------------------------------------------- the pending expression */
+    expr: function (f, st, o) {
+      if (f.result !== undefined) return badge(f.result);
+      if (f.isNull) return '<span class="tl-hole">base case</span>';
+      var flip = isCrossed(f);
+      var a = flip ? "fleft" : "left", b = flip ? "fright" : "right";
+      return '<span class="tl-hint">' + (flip ? PAIR_F : PAIR_S) + "</span> (" +
+        T.hole(f, a, st, o) + AND + T.hole(f, b, st, o) + ")";
+    },
+
+    /* ----------------------------------------------- how a CHECK reads in its frame */
+    checkText: function (e) {
+      if (!e) return "";
+      if (e.check === "val") {
+        return e.aVal === e.bVal
+          ? e.aVal + " == " + e.bVal + " → try the pairings"
+          : e.aVal + " ≠ " + e.bVal + " → this pair is dead, no descent";
+      }
+      if (e.check === "straight") return "pairing 1 of 2: " + PAIR_S;
+      if (e.check === "straightOk") return PAIR_S + " held → true, the crossed pairing is never evaluated";
+      if (e.check === "flipped") return PAIR_S + " failed → now trying " + PAIR_F + " (this node is flipped)";
+      if (e.check === "peek") {
+        return e.flip
+          ? "child heads " + e.aL + " ≠ " + e.bL + " → guess " + PAIR_F + ", with no way back"
+          : "child heads do not obviously differ → guess " + PAIR_S + ", with no way back";
+      }
+      return "";
+    },
+
+    /* ---------------------------------------------------------------- narration */
+    narrate: function (st) {
+      var e = st.event, f = e.key ? st.frames[e.key] : null;
+      var who = f ? f.args : "flipEquiv";
+      switch (e.type) {
+        case "START":
+          if (MODE === "straightonly") {
+            return { tag: "start", text: "This variant is LC 100: it only ever tries the straight " +
+              "pairing, so it answers “are these the same tree”, not “is one a flip of the other”. " +
+              "Any tree that needs a flip is rejected." };
+          }
+          if (MODE === "peek") {
+            return { tag: "start", text: "This variant guesses the pairing from the child values " +
+              "instead of trying both, and never backtracks. Load the [1,2] | [1,null,2] preset to " +
+              "watch the guess fail where a child is null." };
+          }
+          return { tag: "start", text: "flipEquiv(a, b) starts on the two roots. Every frame " +
+            "compares one node of root1 with one node of root2 — and which node that is in root2 " +
+            "depends on every flip taken above." };
+        case "CALL":
+          if (e.aVal === null && e.bVal === null) {
+            return { tag: "call", text: "Call flipEquiv(" + NUL + ", " + NUL + ") at depth " + e.depth +
+              " — two null pointers still cost a frame, and they are the first base case." };
+          }
+          if (e.aVal === null || e.bVal === null) {
+            return { tag: "call", text: "Call " + who + " at depth " + e.depth + " — one side is a " +
+              "null pointer and the other is a real node, which is the second base case." };
+          }
+          return { tag: "call", text: "Call " + who + " at depth " + e.depth + ": compare " + e.aVal +
+            " in root1 with " + e.bVal + " in root2. Both trees light up the pair." };
+        case "BASE":
+          return e.value
+            ? { tag: "base", text: "Both sides are null — nothing to compare, so this frame returns true." }
+            : { tag: "base", text: "One side is null and the other is not. No flip can conjure a node, " +
+                "so this frame returns false." };
+        case "CHECK":
+          if (e.check === "val") {
+            return e.aVal === e.bVal
+              ? { tag: "check", text: e.aVal + " == " + e.bVal + ", so this pair survives. Now the only " +
+                  "question left is how to pair up the children." }
+              : { tag: "check", text: e.aVal + " ≠ " + e.bVal + " — this pair dies after one comparison, " +
+                  "with no descent at all. That O(1) rejection is why the disjunction stays O(n)." };
+          }
+          if (e.check === "straight") {
+            return { tag: "check", text: "Try the straight pairing first: a.left with b.left, a.right " +
+              "with b.right — LC 100's line, unchanged." };
+          }
+          if (e.check === "straightOk") {
+            return { tag: "check", text: "The straight pairing held, so node " + e.aVal + " needs no flip " +
+              "and the crossed pairing is never evaluated — that is || short-circuiting." };
+          }
+          if (e.check === "flipped") {
+            return { tag: "check", text: "The straight pairing failed. Now the second attempt: pair a.left " +
+              "with b.right and a.right with b.left — which is exactly what flipping node " + e.aVal +
+              " means. Watch which node in root2 the next call points at." };
+          }
+          if (e.check === "peek") {
+            return e.flip
+              ? { tag: "check", text: "This variant guesses instead of trying: the left heads are " + e.aL +
+                  " and " + e.bL + ", they differ, so it commits to the crossed pairing and never " +
+                  "reconsiders." }
+              : { tag: "check", text: "This variant guesses instead of trying: nothing in the left heads " +
+                  "says “flip”, so it commits to the straight pairing and never reconsiders — a null " +
+                  "child is exactly where that guess goes wrong." };
+          }
+          return { tag: "check", text: "" };
+        case "EVAL": {
+          var pairing = e.flip ? PAIR_F : PAIR_S;
+          var lhs = (e.side === "left" || e.side === "fleft") ? "a.left" : "a.right";
+          var rhs = (e.side === "left") ? "b.left" : (e.side === "right") ? "b.right"
+            : (e.side === "fleft") ? "b.right" : "b.left";
+          return { tag: "descend", text: who + " cannot answer until it knows " + lhs + " against " +
+            rhs + " under " + pairing + ", so it recurses into " +
+            (e.childA === null ? NUL : e.childA) + " and " + (e.childB === null ? NUL : e.childB) + "." };
+        }
+        case "PRUNE":
+          if (e.why === "valDiff") {
+            return { tag: "skip", text: "Because the values already disagree, both subtrees below this " +
+              "pair are skipped outright — " + (e.skipped || []).length + " call(s) never made." };
+          }
+          return { tag: "skip", text: "The first half of the " + (e.flip ? PAIR_F : PAIR_S) + " pairing " +
+            "returned false, so && short-circuits: the second half of that attempt is never called (" +
+            (e.skipped || []).length + " call(s) skipped)." };
+        case "RETURN": {
+          var parent = e.parentKey ? st.frames[e.parentKey] : null;
+          var slot = e.side === "left" ? "the straight pairing's left slot"
+            : e.side === "right" ? "the straight pairing's right slot"
+            : e.side === "fleft" ? "the crossed pairing's left slot"
+            : e.side === "fright" ? "the crossed pairing's right slot" : "";
+          var tail = parent ? " and fills " + slot + " in " + parent.args + "."
+            : ", and that is the answer for the whole pair of trees.";
+          if (e.reason === "bothNull") return { tag: "return", text: who + " returns true" + tail };
+          if (e.reason === "oneNull") return { tag: "return", text: who + " returns false — one side ran out" + tail };
+          if (e.reason === "valDiff") return { tag: "return", text: who + " returns false: " + e.aVal +
+            " ≠ " + e.bVal + tail };
+          if (e.reason === "straight") return { tag: "return", text: who + " returns true with no flip " +
+            "here — " + PAIR_S + " matched" + tail };
+          if (e.reason === "flipped") return { tag: "return", text: who + " returns true, but only after " +
+            "flipping this node — " + PAIR_F + " matched" + tail };
+          if (e.reason === "straightFail") return { tag: "return", text: who + " returns false. This " +
+            "variant stops at " + PAIR_S + ", so a tree that only needs a flip is rejected" + tail };
+          if (e.reason === "guessFail") return { tag: "return", text: who + " returns false — the single " +
+            "guessed pairing failed and this variant never tries the other one" + tail };
+          return { tag: "return", text: who + " returns false: neither pairing worked" + tail };
+        }
+        case "DONE":
+          return e.equiv
+            ? { tag: "done", text: "flipEquiv returns true — some sequence of flips turns a into b, and " +
+                "every rejected pairing along the way cost exactly one value comparison." }
+            : { tag: "done", text: "flipEquiv returns false — no sequence of flips turns a into b." };
+      }
+      return { tag: "", text: "" };
+    },
+
+    /* --------------------------------------------------- node labels, stats, verdict */
+    nodeResult: function (f) { return f.result === true ? "✓" : f.result === false ? "✗" : ""; },
+
+    stats: function (st) {
+      var n = 0;
+      Object.keys(st.frames).forEach(function (k) { if (/[lr]/.test(k)) n++; });
+      return [{ label: "calls under a crossed pairing", value: n }];
+    },
+
+    verdict: function (st) {
+      if (!st.done) return null;
+      return { text: "flipEquiv → " + tf(st.done.equiv), ok: !!st.done.equiv };
+    },
+
+    legend: [
+      { state: "active", label: "the pair being compared" },
+      { state: "path", label: "on the current path" },
+      { state: "done", label: "returned true" },
+      { state: "neg", label: "returned false" },
+      { state: "pruned", label: "call never made" },
+      { state: "ghost", label: "not called yet" }
+    ]
   });
 })();
 </script>
