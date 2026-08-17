@@ -162,6 +162,75 @@ function v226() {
   return !bad.length && !cv.length && !sp.length && wrongOk;
 }
 
-const ok = v226();
+/* ---------------- 114 ----------------
+   ORACLE: the flattened list must be the tree's PREORDER value sequence, laid
+   out down .right with every .left null. Preorder is computed by a plain
+   traversal of the ORIGINAL tree — it shares nothing with the reverse-preorder
+   prev-pointer splicing under test. */
+function v114() {
+  const { cfg, file } = cfgOf("114");
+  const preorder = n => n ? [n.val].concat(preorder(n.left), preorder(n.right)) : [];
+  /* read a structure as a spine: returns the value list, or null if it is not
+     a proper list (a surviving left pointer, or a branch) */
+  function spine(n) {
+    const out = [];
+    let cur = n, guard = 0;
+    while (cur) {
+      if (cur.left) return null;              // a list has no left pointers
+      out.push(cur.val);
+      cur = cur.right;
+      if (++guard > 200) return null;
+    }
+    return out;
+  }
+
+  const toks = ["[]", "[1]", "[1,2,5,3,4,null,6]", "[1,2,3,4,5,6,7]", "[1,null,2,null,3]",
+    "[1,2,null,3,null,4]", "[1,2,3,null,null,4,5]", "[5,5,5,5,5]",
+    "[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]"];
+  for (const p of cfg.presets) toks.push(p.tokens);
+  for (let i = 0; i < 170; i++) toks.push(gen(13));
+
+  const CORRECT = ["rev"];
+  let ct = 0, bad = [], cv = [], sp = [], per = {};
+  for (const tk of toks) {
+    let root; try { root = tree(tk); } catch (e) { continue; }
+    const want = preorder(root).join(",");
+    ct++;
+    for (let vi = 0; vi < cfg.variants.length; vi++) {
+      const id = cfg.variants[vi].id;
+      per[id] = per[id] || { match: 0, total: 0, notList: 0 };
+      let tr; try { tr = runTrace(cfg, root, vi); }
+      catch (e) { bad.push([tk, id, "threw " + e.message.slice(0, 40)]); continue; }
+      per[id].total++;
+      const st = T.replayTo(tr, tr.events.length - 1);
+      const asm = T.assembleTree(root, st.built[0]);
+      const sp2 = spine(asm);
+      if (sp2 === null) per[id].notList++;
+      const got = sp2 === null ? "(not a list)" : sp2.join(",");
+      if (got === want) per[id].match++;
+      else if (CORRECT.indexOf(id) >= 0) bad.push([tk, id, "want " + want, "got " + got]);
+      cv.push(...contract(cfg, tr).map(m => [tk + " " + id, m]));
+      const s = structuralPurity(tr, root);
+      if (s) sp.push([tk, id, s]);
+    }
+  }
+  console.log(`\nLC 114  ${file}`);
+  console.log(`   oracle     preorder of the original tree, laid down .right with every .left null`);
+  console.log(`   trees      ${ct}`);
+  for (const id in per) {
+    const p = per[id], role = CORRECT.indexOf(id) >= 0 ? "correct" : "WRONG  ";
+    console.log(`   ${role} "${id}"  matches ${p.match}/${p.total}` +
+      (CORRECT.indexOf(id) < 0 ? `   diverges ${p.total - p.match}/${p.total}` +
+        (p.notList ? `  (${p.notList} not even a list)` : "") : ""));
+  }
+  if (bad.length) console.log(`      ${JSON.stringify(bad.slice(0, 3))}`);
+  console.log(`   contract   ${cv.length ? "FAIL " + JSON.stringify(cv.slice(0, 2)) : "PASS"}`);
+  console.log(`   structural purity  ${sp.length ? "FAIL " + JSON.stringify(sp.slice(0, 2)) : "PASS (ascending == descending at every index)"}`);
+  const wrongOk = Object.keys(per).every(id =>
+    CORRECT.indexOf(id) >= 0 ? per[id].match === per[id].total : per[id].match < per[id].total);
+  return !bad.length && !cv.length && !sp.length && wrongOk;
+}
+
+const ok = v226() & v114();
 console.log("\n" + (ok ? "ALL PASS" : "FAILURES ABOVE"));
 process.exit(ok ? 0 : 1);

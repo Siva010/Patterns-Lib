@@ -47,6 +47,14 @@
   --t-num: #8a4b12;
   --t-com: #83807a;
   --t-ann: #8a4b12;
+
+  /* semantic pointer/state roles — shared with the array & string pages */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
 }
 html[data-theme="dark"] {
   --bg: #121213;
@@ -69,6 +77,13 @@ html[data-theme="dark"] {
   --t-num: #e0a86a;
   --t-com: #7c7a74;
   --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
@@ -719,6 +734,8 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -786,25 +803,7 @@ where the left subtree ends &mdash; and that is the whole problem. Two answers:<
 of preorder. So the nodes get rewired in the order 6, 5, 4, 3, 2, 1, and each one simply points at
 whatever was handled immediately before it.</p>
 
-<figure class="viz" id="viz-114" data-split>
-  <figcaption class="viz-head"><span class="t">Reverse preorder with prev</span><span>[1,2,5,3,4,null,6]</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line">TreeNode prev = <span class="tok-key">null</span>;</span
-      ><span class="viz-line"><span class="tok-key">void</span> flatten(TreeNode nd) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (nd == <span class="tok-key">null</span>) <span class="tok-key">return</span>;</span
-      ><span class="viz-line">    flatten(nd.right);</span
-      ><span class="viz-line">    flatten(nd.left);</span
-      ><span class="viz-line">    nd.right = prev;</span
-      ><span class="viz-line">    nd.left  = <span class="tok-key">null</span>;</span
-      ><span class="viz-line">    prev = nd;</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <p>Because both subtrees are fully processed before line 6 runs, <code class="inl">nd</code>'s
 children have already been consumed into the growing list and the pointers are free to
@@ -1289,97 +1288,234 @@ state &mdash; the same error as
 
 </script>
 
+
+
 <script>
-/* 114. Flatten Binary Tree to Linked List — reverse preorder, prev pointer. */
+/* ============================================================================
+   114. Flatten Binary Tree to Linked List — adapter for the shared lab engine.
+
+   The page teaches the reverse-preorder formulation: recurse RIGHT, then LEFT,
+   then write. Because both recursions happen before either pointer is touched,
+   the "I overwrote nd.right and lost the subtree" bug cannot occur here — the
+   difficulty has moved to WHY the traversal runs backwards. So that is what the
+   lab makes visible: `prev` is the head of the chain built so far, and every
+   node splices itself on in front of it.
+
+   Rewiring only: LINK events on panel 0, no NODE events. The input tree shows
+   through wherever nothing has been written, so the half-flattened states are
+   real intermediate structures rather than a redraw.
+   ========================================================================== */
 (function () {
-  function n(v, l, r) { return { v: v, l: l, r: r }; }
-  var T = n(1, n(2, n(3), n(4)), n(5, null, n(6)));
-  var L = VizKit.layoutTree(T, { gapX: 54, gapY: 58 });
+  "use strict";
+  var T = window.TreeLab;
+  if (!T) return;
 
-  var steps = [], prev = null, doneSet = {}, stack = [];
-
-  function edgesNow(nd, acc) {
-    if (!nd) return acc;
-    if (nd.l) { acc.push([nd.__id, nd.l.__id]); edgesNow(nd.l, acc); }
-    if (nd.r) { acc.push([nd.__id, nd.r.__id]); edgesNow(nd.r, acc); }
-    return acc;
+  function dim(s) { return '<span class="tl-dim">' + s + "</span>"; }
+  function nd(s) { return '<span class="tl-k-node">' + s + "</span>"; }
+  function hot(s) { return '<span class="tl-k-hit">' + s + "</span>"; }
+  function F(v) { return T.fmtVal(v); }
+  function addr(k) {
+    if (!k) return "null";
+    if (k === "R") return "root";
+    return "root" + k.slice(1).split("").map(function (c) { return "." + c; }).join("");
   }
-  function chain() {
-    var out = [], p = prev, guard = 0;
-    while (p && guard++ < 20) { out.push(p.v); p = p.r; }
+
+  var JAVA_REV = [
+    "TreeNode prev = null;",
+    "void flatten(TreeNode nd) {",
+    "    if (nd == null) return;",
+    "    flatten(nd.right);        // RIGHT first — we are building backwards",
+    "    flatten(nd.left);",
+    "    nd.right = prev;          // splice in front of the chain so far",
+    "    nd.left  = null;",
+    "    prev = nd;",
+    "}"
+  ];
+  var L_REV = { TOP: 2, NULL: 3, RECR: 4, RECL: 5, WR: 6, WL: 7, PREV: 8 };
+
+  var JAVA_ORD = [
+    "TreeNode prev = null;",
+    "void flatten(TreeNode nd) {          // ✗",
+    "    if (nd == null) return;",
+    "    flatten(nd.left);         // LEFT first — the order is the whole trick",
+    "    flatten(nd.right);",
+    "    nd.right = prev;",
+    "    nd.left  = null;",
+    "    prev = nd;",
+    "}"
+  ];
+  var L_ORD = { TOP: 2, NULL: 3, RECL: 4, RECR: 5, WR: 6, WL: 7, PREV: 8 };
+
+  var JAVA_NOCLR = [
+    "TreeNode prev = null;",
+    "void flatten(TreeNode nd) {          // ✗",
+    "    if (nd == null) return;",
+    "    flatten(nd.right);",
+    "    flatten(nd.left);",
+    "    nd.right = prev;",
+    "                              // forgot: nd.left = null",
+    "    prev = nd;",
+    "}"
+  ];
+  var L_NOCLR = { TOP: 2, NULL: 3, RECR: 4, RECL: 5, WR: 6, WL: 7, PREV: 8 };
+
+  /* ------------------------------------------------------------------- run */
+  function run(root, emit, o) {
+    var id = o.id, L = o.L;
+    var prev = null;          /* node key of the chain head built so far */
+    var writes = 0, spliced = 0;
+
+    function em(e) { emit(e); return e; }
+
+    function go(node, key, parentKey, side, depth) {
+      em({ type: "CALL", key: key, parentKey: parentKey, side: side, depth: depth,
+           isNull: !node, val: node ? node.val : null, line: L.TOP,
+           args: node ? "flatten(" + node.val + ")" : "flatten(null)",
+           prev: prev, prevVal: prev, refs: node ? [{ t: 0, key: key }] : [] });
+
+      if (!node) {
+        em({ type: "BASE", key: key, depth: depth, line: L.NULL, value: null });
+        em({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+             value: null, line: L.NULL, reason: "null" });
+        return;
+      }
+
+      if (id === "order") {
+        em({ type: "EVAL", key: key, side: "left", line: L.RECL });
+        go(node.left, key + "L", key, "left", depth + 1);
+        em({ type: "EVAL", key: key, side: "right", line: L.RECR });
+        go(node.right, key + "R", key, "right", depth + 1);
+      } else {
+        em({ type: "EVAL", key: key, side: "right", line: L.RECR });
+        go(node.right, key + "R", key, "right", depth + 1);
+        em({ type: "EVAL", key: key, side: "left", line: L.RECL });
+        go(node.left, key + "L", key, "left", depth + 1);
+      }
+
+      /* splice this node in front of the chain */
+      em({ type: "CHECK", key: key, line: L.WR, kind: "splice",
+           me: key, meVal: node.val, prev: prev });
+      em({ type: "LINK", t: 0, parent: key, side: "right", child: prev,
+           key: key, line: L.WR, note: "right" });
+      writes++;
+      if (prev) spliced++;
+
+      if (id !== "noclear") {
+        em({ type: "LINK", t: 0, parent: key, side: "left", child: null,
+             key: key, line: L.WL, note: "left" });
+        writes++;
+      }
+
+      prev = key;
+      em({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+           value: node.val, line: L.PREV, reason: "prev", newPrev: key });
+    }
+
+    em({ type: "START", line: L.TOP, id: id });
+    go(root, "R", null, null, 0);
+    em({ type: "DONE", line: L.PREV, depth: 0, value: root ? root.val : null,
+         writes: writes, spliced: spliced, empty: !root, id: id });
+    return root ? root.val : null;
+  }
+
+  /* --------------------------------------------------------------- display */
+  function exprOf(f, st) {
+    if (f.isNull) return dim("return") + " " + dim("— a null pointer ends this branch");
+    if (f.result !== undefined) return dim("prev = ") + nd(F(f.val)) + dim(" — this node is now the head of the chain");
+    return dim("flatten(") + nd(F(f.val)) + dim(") — its subtrees go on the chain first");
+  }
+
+  function checkText(e) {
+    if (e.kind !== "splice") return null;
+    return nd(F(e.meVal)) + dim(".right = ") +
+      (e.prev ? hot(addr(e.prev)) : dim("null")) +
+      dim(e.prev ? " — the chain head so far" : " — nothing has been flattened yet, so this becomes the tail");
+  }
+
+  function narrate(st) {
+    var e = st.event || {};
+    if (e.type === "START") {
+      return { tag: "start", text: "The chain is built <em>backwards</em>. " +
+        hot("prev") + " always names the head of the part already flattened, and each node " +
+        "splices itself in front of it — which is why the recursion visits the right subtree first." };
+    }
+    if (e.type === "CHECK" && e.kind === "splice") {
+      return { tag: "splice", text: e.prev
+        ? nd(F(e.meVal)) + " points its right at " + hot(addr(e.prev)) + ", the chain head, and becomes the new head."
+        : nd(F(e.meVal)) + " is the last node in preorder, so it has nothing to point at — it is the tail of the finished list." };
+    }
+    if (e.type === "LINK" && e.note === "left") {
+      return { tag: "clear", text: addr(e.parent) + ".left = null. A flattened list has no left pointers at all; " +
+        "leaving one behind is the difference between a list and a tree that merely looks like one." };
+    }
+    if (e.type === "BASE") return { tag: "base", text: "Null — nothing to flatten, and " + hot("prev") + " is untouched." };
+    if (e.type === "DONE") {
+      if (e.empty) return { tag: "done", text: "Empty tree — nothing to do." };
+      if (e.id === "order") return { tag: "done", text: "The traversal ran left-first, so nodes were spliced in the wrong order. The values come out shuffled." };
+      if (e.id === "noclear") return { tag: "done", text: "The right chain is correct, but the left pointers were never cleared — this is still a tree, not a list." };
+      return { tag: "done", text: "Every node is on the right spine, in preorder, and every left pointer is null." };
+    }
+    return null;
+  }
+
+  function stats(st) {
+    var out = [];
+    var e = st.event || {};
+    var p = (e.prev !== undefined) ? e.prev : (e.newPrev !== undefined ? e.newPrev : undefined);
+    if (p !== undefined) out.push({ label: "prev", html: p ? hot(addr(p)) : dim("null") });
+    var b = st.built && st.built[0], w = 0;
+    if (b) for (var k in b.kids) for (var s in b.kids[k]) w++;
+    out.push({ label: "pointer writes", html: "<b>" + w + "</b>" });
     return out;
   }
 
-  function push(o) {
-    var s = { line: o.line, note: o.note, edges: edgesNow(T, []),
-              chain: chain(), prev: prev ? prev.v : "null",
-              done: {}, stack: stack.slice() };
-    for (var k in doneSet) s.done[k] = 1;
-    ["cur", "flash"].forEach(function (f) { if (o[f] !== undefined) s[f] = o[f]; });
-    steps.push(s);
+  function verdict(st) {
+    if (!st.done) return null;
+    var d = st.done;
+    if (d.empty) return { ok: true, text: "empty tree" };
+    if (d.id === "order") return { ok: false, text: "spliced in the wrong order — the list is not preorder" };
+    if (d.id === "noclear") return { ok: false, text: "left pointers survive — not a linked list" };
+    return { ok: true, text: "a right spine in preorder, every left pointer null" };
   }
 
-  function flatten(nd, who) {
-    if (!nd) {
-      push({ line: 3, note: who + " is <code>null</code> &mdash; return." });
-      return;
-    }
-    stack.push(nd.__id);
-    push({ cur: nd.__id, line: 2, note: "Enter <strong>" + nd.v + "</strong>." });
-    push({ cur: nd.__id, line: 4,
-      note: "<strong>Right first.</strong> The list is being built backwards, so the right subtree " +
-            "of <strong>" + nd.v + "</strong> must be finished before the left." });
-    flatten(nd.r, "The right child of " + nd.v);
-    push({ cur: nd.__id, line: 5, note: "Now the left subtree of <strong>" + nd.v + "</strong>." });
-    flatten(nd.l, "The left child of " + nd.v);
-
-    nd.r = prev;
-    nd.l = null;
-    prev = nd;
-    doneSet[nd.__id] = 1;
-    stack.pop();
-    push({ cur: nd.__id, flash: nd.__id, line: 8,
-      note: "Rewire <strong>" + nd.v + "</strong>: <code>right = " +
-            (nd.r ? nd.r.v : "null") + "</code>, <code>left = null</code>. Both its subtrees are " +
-            "already in the list, so overwriting the pointers is safe. <code>prev</code> is now " +
-            "<strong>" + nd.v + "</strong>." });
-  }
-
-  push({ line: 1, note: "The original tree. Its preorder is <strong>1, 2, 3, 4, 5, 6</strong> " +
-    "&mdash; that is the order the flattened chain must end up in." });
-  flatten(T, "the root");
-  push({ line: 9,
-    note: "Flattened: <strong>" + chain().join(" → ") + "</strong>. Nodes were rewired in the " +
-          "reverse of that order, each one attaching to the node handled just before it." });
-
-  VizKit.stepper(document.getElementById("viz-114"), {
-    steps: steps,
-    speed: 900,
-    render: function (s) {
-      var onStack = {};
-      (s.stack || []).forEach(function (i) { onStack[i] = 1; });
-      var LL = { nodes: L.nodes, edges: s.edges, width: L.width, height: L.height };
-      var svg = VizKit.treeSVG(LL, function (nd) {
-        if (s.flash === nd.id) return "hit";
-        if (s.cur === nd.id) return "on";
-        if (onStack[nd.id]) return "region";
-        if (s.done[nd.id]) return "done";
-        return "";
-      }, { r: 16, alt: "Binary tree being rewired into a right-pointer chain" });
-
-      return svg +
-        VizKit.pills("prev", [s.prev]) +
-        VizKit.pills("chain so far", s.chain) +
-        '<div class="viz-legend">' +
-          '<span><i data-state="on"></i> current node</span>' +
-          '<span><i data-state="region"></i> waiting on a subtree</span>' +
-          '<span><i data-state="hit"></i> just rewired</span>' +
-          '<span><i data-state="done"></i> in the chain</span></div>';
-    }
+  T.mount({
+    mountEl: "#lab",
+    title: "flatten(nd)",
+    subtitle: "reverse preorder — every node splices in front of the chain built so far",
+    tag: "interactive",
+    structureNote: "the tree itself, collapsing onto its right spine as the recursion unwinds",
+    callTreeNote: "one call per node, plus a leaf per null pointer — note the right child is entered first",
+    presets: [
+      { tokens: "[1,2,5,3,4,null,6]", note: "the tree above — the flattened order is 1 2 3 4 5 6" },
+      { tokens: "[1,2,3,4,5,6,7]", note: "a perfect tree — watch the whole right side land on the chain before the left is touched" },
+      { tokens: "[1,null,2,null,3]", note: "already a right spine — the writes are all no-ops, which is worth seeing" },
+      { tokens: "[1,2,null,3,null,4]", note: "a left chain — every node has to move" },
+      { tokens: "[1,2,3,null,null,4,5]", note: "a deep right subtree, so the chain head travels a long way before the left side joins" },
+      { tokens: "[1]", note: "one node — it is its own list" },
+      { tokens: "[]", note: "empty" }
+    ],
+    variants: [
+      { id: "rev", label: "reverse preorder", java: JAVA_REV, lines: L_REV },
+      { id: "order", label: "✗ left before right", java: JAVA_ORD, lines: L_ORD },
+      { id: "noclear", label: "✗ forgets nd.left = null", java: JAVA_NOCLR, lines: L_NOCLR }
+    ],
+    run: run,
+    expr: exprOf,
+    checkText: checkText,
+    narrate: narrate,
+    stats: stats,
+    verdict: verdict,
+    isFail: function () { return false; },
+    nodeResult: function () { return null; },
+    legend: [
+      { state: "active", text: "the call running now" },
+      { state: "path", text: "on the stack" },
+      { state: "done", text: "spliced onto the chain" },
+      { state: "ghost", text: "not reached yet" }
+    ]
   });
 })();
 </script>
-
 
 </body>
 </html>
