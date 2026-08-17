@@ -1,0 +1,18 @@
+# editor / OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# local backups produced while converting pages
+*.bak
+*.orig
+*.pre-lab.bak
+
+# Dropbox mangles filenames when two machines touch the same file.
+# These must never enter the repo — one inside .git/refs is what corrupted it.
+*conflicted copy*
+*Conflicted Copy*
+
+# Cloudflare / wrangler
+.wrangler/
+node_modules/
