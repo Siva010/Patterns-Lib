@@ -1,0 +1,20 @@
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>
