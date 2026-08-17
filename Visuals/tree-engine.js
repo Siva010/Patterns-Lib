@@ -39,7 +39,7 @@
   "use strict";
 
   var SVGNS = "http://www.w3.org/2000/svg";
-  var VERSION = "1.1.0";
+  var VERSION = "1.2.0";
 
   /* ======================================================== small utilities */
 
@@ -193,6 +193,56 @@
     return { map: map, w: Math.max(idx - 1, 0) * XG, h: maxD * YG };
   }
 
+  /**
+   * assembleTree(baseRoot, ov) -> a root node layoutTree can consume.
+   *
+   * `ov` is one `state.built[t]` bucket: nodes the recursion created and edges
+   * it wrote. Where the overlay says nothing, the base tree shows through — so
+   * a page that only rewires two edges emits two LINK events and nothing else,
+   * and a page that builds a tree from scratch passes baseRoot = null.
+   *
+   * Edge writes can produce a cycle (114 flattens into a right spine, 117
+   * threads siblings), so descent is guarded by a seen-set and a depth cap.
+   * A cycle truncates the drawing instead of hanging the page.
+   */
+  function assembleTree(baseRoot, ov, opts) {
+    if (!ov) return baseRoot;
+    opts = opts || {};
+    var cap = pick(opts.maxDepth, 14);
+    var baseMap = {};
+    (function w(n) { if (!n) return; baseMap[n.key] = n; w(n.left); w(n.right); })(baseRoot);
+
+    var rootKey = opts.rootKey;
+    if (!rootKey) {
+      if (baseRoot) rootKey = baseRoot.key;
+      else {
+        var ks = Object.keys(ov.nodes);
+        if (!ks.length) return null;
+        /* the shallowest key created is the root of what was built */
+        rootKey = ks.reduce(function (a, b) { return b.length < a.length ? b : a; });
+      }
+    }
+    var seen = {};
+    function side(key, which) {
+      var kids = ov.kids[key];
+      if (kids && Object.prototype.hasOwnProperty.call(kids, which)) return kids[which];
+      var b = baseMap[key];
+      return b && b[which] ? b[which].key : null;
+    }
+    function mk(key, depth) {
+      if (!key || seen[key] || depth > cap) return null;
+      var nd = ov.nodes[key] || baseMap[key];
+      if (!nd) return null;
+      seen[key] = 1;
+      var node = { val: nd.val, key: key, depth: depth, left: null, right: null,
+                   isNew: !!ov.nodes[key] && !baseMap[key] };
+      node.left = mk(side(key, "left"), depth + 1);
+      node.right = mk(side(key, "right"), depth + 1);
+      return node;
+    }
+    return mk(rootKey, 0);
+  }
+
   /* ================================================================= REPLAY
 
      THE contract of this engine. Pure: no closure state, no memo, no cache.
@@ -205,6 +255,16 @@
     var evs = (trace && trace.events) || [];
     var stack = [], frames = {}, pruned = {}, executed = {};
     var callsSoFar = 0, returning = null, justFilled = null, done = null, started = false;
+    /* built: structure the recursion CREATES (105, 106, 297, 617) or REWIRES
+       (226, 114, 117), keyed by rendered-tree index. Accumulated here, so like
+       everything else it is a pure function of the event index — the engine
+       never holds a mutable tree. */
+    var built = {}, lastBuilt = null;
+    function bucket(t) {
+      t = t || 0;
+      if (!built[t]) built[t] = { nodes: {}, kids: {}, order: [] };
+      return built[t];
+    }
     if (i < 0) i = 0;
     if (i > evs.length - 1) i = evs.length - 1;
 
@@ -260,6 +320,22 @@
           }
           break;
         }
+        case "NODE": {
+          /* a node comes into existence: {t, key, val} */
+          var bn = bucket(e.t);
+          if (!bn.nodes[e.key]) bn.order.push(e.key);
+          bn.nodes[e.key] = { key: e.key, val: e.val };
+          lastBuilt = e;
+          break;
+        }
+        case "LINK": {
+          /* an edge is written: {t, parent, side, child}. child null detaches. */
+          var bl = bucket(e.t);
+          if (!bl.kids[e.parent]) bl.kids[e.parent] = {};
+          bl.kids[e.parent][e.side] = (e.child === undefined ? null : e.child);
+          lastBuilt = e;
+          break;
+        }
         case "DONE":
           done = e;
           break;
@@ -272,6 +348,7 @@
       event: cur, index: i, stack: stack, frames: frames, pruned: pruned,
       executed: executed, callsSoFar: callsSoFar, returning: returning,
       justFilled: justFilled, done: done, started: started, top: top,
+      built: built, lastBuilt: lastBuilt,
       curLine: cur.line || 0,
       curDepth: top ? top.depth : (returning ? returning.depth : 0)
     };
@@ -774,7 +851,12 @@
         var over = cfg.nodeState ? cfg.nodeState(f.key, st, { t: t, key: key, frame: f }) : null;
         return over || defaultNodeState(f.key, st);
       }
-      if (t === 0 && !S.tl2) return stateOf(key, st);
+      /* a node the recursion just created or just relinked reads as active;
+         one it created earlier is settled, not "never reached" */
+      var lb = st.lastBuilt;
+      if (lb && (lb.t || 0) === t && (lb.key === key || lb.parent === key || lb.child === key)) return "active";
+      var b = st.built && st.built[t];
+      if (b && b.nodes[key]) return "done";
       if (t === 0) return stateOf(key, st);
       return "ghost";
     }
@@ -782,10 +864,24 @@
     function renderStructure(st) {
       if (!cfg.showStructure || !ui.treeSvg || !S.tl) return;
       var PAD = 30, GAP = 52, svg = ui.treeSvg;
-      var panels = [{ lay: S.tl, t: 0 }];
-      if (S.tl2) panels.push({ lay: S.tl2, t: 1 });
+      var B = st.built || {};
+
+      /* A panel's structure is the static input tree, unless the trace wrote
+         NODE/LINK events for that index — then it is the overlay applied on top
+         (growth: no base at all; mutation: base plus rewired edges). */
+      function panelLayout(t, base, staticLay) {
+        if (!B[t]) return staticLay;
+        var root = assembleTree(base, B[t], { maxDepth: (cfg.maxHeight || 6) + 8 });
+        return root ? layoutTree(root) : { map: {}, w: 0, h: 0 };
+      }
+
+      var panels = [{ lay: panelLayout(0, S.root, S.tl), t: 0 }];
+      if (S.tl2 || B[1]) panels.push({ lay: panelLayout(1, S.root2, S.tl2 || { map: {}, w: 0, h: 0 }), t: 1 });
+      /* index 2+ exist only when the recursion builds an output tree */
+      for (var ti = 2; B[ti]; ti++) panels.push({ lay: panelLayout(ti, null, { map: {}, w: 0, h: 0 }), t: ti });
+
       var labels = cfg.treeLabels || [];
-      var CAP = (S.tl2 && labels.length) ? 20 : 0;   /* caption band, dual only */
+      var CAP = (panels.length > 1 && labels.length) ? 20 : 0;
       svg.innerHTML = "";
 
       var W = 0, Hmax = 0, i;
@@ -1189,6 +1285,7 @@
     subtreeKeys: subtreeKeys,
     /* layouts */
     layoutTree: layoutTree,
+    assembleTree: assembleTree,
     layoutCallTree: layoutCallTree,
     /* the contract */
     replayTo: replayTo,

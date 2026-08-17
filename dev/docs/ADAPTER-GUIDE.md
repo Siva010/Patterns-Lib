@@ -144,6 +144,52 @@ inner comparison's `t:0` key is the candidate's key plus the relative path.
 `cfg.nodeState` gets a third argument on dual pages: `nodeState(frameKey, st, {t, key, frame})`.
 Existing single-tree adapters ignore it and are unaffected.
 
+## Trees the recursion builds or rewires (engine 1.2.0+)
+
+Some problems **construct** a tree (105, 106, 297, 617) and some **rewire** one
+(226, 114, 117). Both use the same two events, because attaching a new edge and
+moving an existing one are the same operation.
+
+```js
+em({ type: "NODE", t: 2, key: "R",  val: 3, line: L.MK });          // a node exists
+em({ type: "LINK", t: 2, parent: "R", side: "left", child: "RL" }); // an edge is written
+```
+
+- `t` is the panel index. `0` is the input tree, `1` the second input, `2` and up
+  are **output** panels that exist only because you wrote to them.
+- `key` is yours to choose, but it must be unique within its panel. Root-path
+  strings (`"R"`, `"RL"`) keep the layout sensible.
+- `LINK` with `child: null` **detaches**.
+- Anything you do not write **shows through from the input tree**. A mutation page
+  emits only the edges it actually changes — 226 inverting a 7-node tree emits 6
+  LINK events, not a rebuild.
+
+Caption the panels with `treeLabels`, which now takes as many entries as you have
+panels: `treeLabels: ["inorder input", "postorder input", "tree built"]`.
+
+`replayTo` accumulates these into `state.built[t]` (`{nodes, kids, order}`) and
+sets `state.lastBuilt` to the most recent one. `TreeLab.assembleTree(base, built[t])`
+turns a bucket into a root you can lay out. Because accumulation happens inside
+`replayTo`, the structure at step *i* is derived, never remembered — which is what
+keeps step-back and the scrubber correct. **Do not cache a partially-built tree.**
+
+### Two behaviours to know before you design the page
+
+**Each node is drawn once.** Descent carries a seen-set, so if two pointers
+alias the same node — which happens *mid-swap*, after the first of two LINK
+writes — the node appears on the branch reached first and the other side reads
+empty. A tree layout cannot put one node in two places; drawing it twice would
+claim there are two distinct nodes. If your page steps through a half-done swap,
+say what the reader is seeing in the narration rather than hoping it looks
+obvious.
+
+**Cycles truncate, they do not hang.** Pointing a node at its own ancestor is
+legal in the event log (114 flattens onto a right spine; 117 threads siblings)
+and the drawing simply stops at the repeat. Depth is also capped.
+
+Verify structure work with `node dev/verify/v_grow.js`, which drives these events
+directly and asserts growth, mutation, aliasing and cycle safety.
+
 ## Non-scalar return values
 
 If your recursion returns a tuple or object (LC 337 `{rob, skip}`, LC 979 balance, LC 968 states),
