@@ -16,3 +16,6 @@ desktop.ini
 # Cloudflare / wrangler
 .wrangler/
 node_modules/
+
+# spent adapters and pre-conversion snapshots — the page itself is the source of truth
+dev/work/
