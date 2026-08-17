@@ -47,6 +47,14 @@
   --t-num: #8a4b12;
   --t-com: #83807a;
   --t-ann: #8a4b12;
+
+  /* semantic pointer/state roles — shared with the array & string pages */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
 }
 html[data-theme="dark"] {
   --bg: #121213;
@@ -69,6 +77,13 @@ html[data-theme="dark"] {
   --t-num: #e0a86a;
   --t-com: #7c7a74;
   --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
@@ -719,6 +734,9 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<!-- shared Tree Recursion lab engine — layers on top of the house CSS above -->
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -784,23 +802,7 @@ where cursor <strong>b</strong> goes right, so they stay reflections of each oth
 Follow the pair down to the 3s: <strong>a</strong> reaches the outer-left 3 by going
 left&ndash;left, while <strong>b</strong> reaches the outer-right 3 by going right&ndash;right.</p>
 
-<figure class="viz" id="viz-101" data-split>
-  <figcaption class="viz-head"><span class="t">Crossed pairing</span><span>[1,2,2,3,4,4,3]</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line"><span class="tok-typ">boolean</span> isMirror(TreeNode a, TreeNode b) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (a == <span class="tok-key">null</span> &amp;&amp; b == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-key">true</span>;</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (a == <span class="tok-key">null</span> || b == <span class="tok-key">null</span>) <span class="tok-key">return</span> <span class="tok-key">false</span>;</span
-      ><span class="viz-line">    <span class="tok-key">return</span> a.val == b.val</span
-      ><span class="viz-line">        &amp;&amp; isMirror(a.left,  b.right)</span
-      ><span class="viz-line">        &amp;&amp; isMirror(a.right, b.left);</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <p>Notice that the two cursors are never at the same node, and never both in the same subtree
 after the first call. They partition the tree between them &mdash; which is why this costs one
@@ -1280,77 +1282,465 @@ whose subtrees are both palindromic it accidentally agrees.</li>
 </script>
 
 <script>
-/* 101. Symmetric Tree — LC 100's machine with the child pairing crossed. */
+/* ============================================================================
+   101. Symmetric Tree — the page's adapter for the shared lab engine.
+
+   Everything generic (replay, transport, zoom, layouts, source pane, stack,
+   narration shell, keyboard) lives in tree-engine.js. This block supplies only
+   what is specific to LC 101: ONE tree walked by TWO cursors, the crossed
+   pairing, and two deliberately broken variants — both of them bugs the essay
+   above names by hand.
+
+   Two cursors in one tree
+   -----------------------
+   * there is no second tree, so no preset carries `tokens2`; the structure
+     panel draws a single tree;
+   * every mirror CALL emits refs [{t:0,key:KA},{t:0,key:KB}] — two addresses in
+     the SAME tree, so both cursor positions light up at once. KA is cursor a's
+     address and KB is cursor b's;
+   * the frame key is KA, cursor a's address. a starts at root.left and only
+     ever descends into its own children, so every frame key lives in the "RL"
+     subtree of the recursion tree and no two frames collide. Cursor b lives
+     entirely in the "RR" subtree: the two cursors partition the tree between
+     them, which is why this is one pass and not two;
+   * the wrapper `isSymmetric` is a frame of its own, at key "R", with a single
+     ref on the root — the root is the axis of the mirror, never a member of a
+     pair;
+   * `isNull` on a CALL is read here as "at least one cursor is off the tree",
+     and `val` then carries whichever side still has a node.
+   ============================================================================ */
 (function () {
-  function n(v, l, r) { return { v: v, l: l, r: r }; }
-  var T = n(1, n(2, n(3), n(4)), n(2, n(4), n(3)));
-  var L = VizKit.layoutTree(T, { gapX: 58, gapY: 60 });
+  "use strict";
+  if (!window.TreeLab) return;
+  var T = window.TreeLab;
+  var NUL = "∅", AND = "&amp;&amp;", ARR = "↔";
 
-  var steps = [], ok = {};
+  /* ---- the three Java variants. Line numbers are 1-based. ---- */
+  var CROSS_SRC = [
+    "class Solution {",
+    "    public boolean isSymmetric(TreeNode root) {",
+    "        return root == null || mirror(root.left, root.right);",
+    "    }",
+    "",
+    "    private boolean mirror(TreeNode a, TreeNode b) {",
+    "        if (a == null && b == null) return true;    // both absent",
+    "        if (a == null || b == null) return false;   // exactly one absent",
+    "        if (a.val != b.val)         return false;",
+    "",
+    "        return mirror(a.left,  b.right)   // outer: left meets right",
+    "            && mirror(a.right, b.left);   // inner: right meets left",
+    "    }",
+    "}"
+  ];
+  var UNCROSSED_SRC = [
+    "class Solution {",
+    "    public boolean isSymmetric(TreeNode root) {",
+    "        return root == null || mirror(root.left, root.right);",
+    "    }",
+    "",
+    "    private boolean mirror(TreeNode a, TreeNode b) {",
+    "        if (a == null && b == null) return true;",
+    "        if (a == null || b == null) return false;",
+    "        if (a.val != b.val)         return false;",
+    "",
+    "        return mirror(a.left,  b.left)    // BUG: not crossed — this is LC 100",
+    "            && mirror(a.right, b.right);  // BUG: not crossed",
+    "    }",
+    "}"
+  ];
+  var HALF_SRC = [
+    "class Solution {",
+    "    public boolean isSymmetric(TreeNode root) {",
+    "        return root == null || mirror(root.left, root.right);",
+    "    }",
+    "",
+    "    private boolean mirror(TreeNode a, TreeNode b) {",
+    "        if (a == null && b == null) return true;",
+    "        if (a == null || b == null) return false;",
+    "        if (a.val != b.val)         return false;",
+    "",
+    "        return mirror(a.left,  b.right)   // crossed, correctly",
+    "            && mirror(a.right, b.right);  // BUG: should be b.left",
+    "    }",
+    "}"
+  ];
 
-  function push(o) {
-    var s = { line: o.line, note: o.note, ok: {} };
-    for (var k in ok) s.ok[k] = 1;
-    ["a", "b", "verdict"].forEach(function (f) { if (o[f] !== undefined) s[f] = o[f]; });
-    steps.push(s);
+  /* ------------------------------------------------------------- addressing */
+
+  /** "R" -> "root", "RLL" -> "root.L.L" */
+  function addr(k) {
+    if (!k || k === "R") return "root";
+    return "root." + k.slice(1).split("").join(".");
+  }
+  /** "RLL" -> "left then left" — the route a cursor took to get there. */
+  function way(k) {
+    var s = (k || "").slice(1);
+    if (!s) return "no steps at all";
+    return s.split("").map(function (c) { return c === "L" ? "left" : "right"; }).join(" then ");
+  }
+  function vs(v) { return v === null || v === undefined ? NUL : String(v); }
+
+  /* The lab instance, so `expr` and `narrate` can ask which variant is live
+     without keeping any state of their own. Null only during the very first
+     render, which is always the default variant. */
+  var LAB = null;
+  function vid() { return (LAB && LAB.variant) ? LAB.variant().id : "cross"; }
+
+  /** the two pairings this variant actually makes, as they read in source. */
+  function pairing() {
+    var id = vid();
+    if (id === "uncrossed") return ["a.left " + ARR + " b.left", "a.right " + ARR + " b.right"];
+    if (id === "halfcross") return ["a.left " + ARR + " b.right", "a.right " + ARR + " b.right"];
+    return ["a.left " + ARR + " b.right", "a.right " + ARR + " b.left"];
   }
 
-  function mirror(a, b, where) {
-    if (!a && !b) {
-      push({ line: 2, note: where + ": both sides are <code>null</code> &mdash; a matched pair of " +
-        "absences, <strong>true</strong>." });
-      return true;
-    }
-    if (!a || !b) {
-      push({ line: 3, a: a ? a.__id : undefined, b: b ? b.__id : undefined,
-        note: where + ": one side is <code>null</code>, the other is not &mdash; " +
-              "<strong>false</strong>." });
-      return false;
-    }
-    push({ a: a.__id, b: b.__id, line: 1,
-      note: where + ": cursor <strong>a</strong> on " + a.v + ", cursor <strong>b</strong> on " +
-            b.v + ". They are reflections of each other about the root." });
-    if (a.v !== b.v) {
-      push({ a: a.__id, b: b.__id, line: 4,
-        note: "Values differ &mdash; <strong>false</strong>." });
-      return false;
-    }
-    ok[a.__id] = 1; ok[b.__id] = 1;
-    push({ a: a.__id, b: b.__id, line: 4, note: "<strong>" + a.v + " == " + b.v + "</strong>, matched." });
-    push({ a: a.__id, b: b.__id, line: 5,
-      note: "<strong>Cross:</strong> pair <code>a.left</code> with <code>b.right</code> &mdash; " +
-            "the two <em>outer</em> children." });
-    if (!mirror(a.l, b.r, "Outer pair below " + a.v + "/" + b.v)) return false;
-    push({ a: a.__id, b: b.__id, line: 6,
-      note: "<strong>Cross:</strong> pair <code>a.right</code> with <code>b.left</code> &mdash; " +
-            "the two <em>inner</em> children." });
-    if (!mirror(a.r, b.l, "Inner pair below " + a.v + "/" + b.v)) return false;
-    return true;
-  }
+  LAB = T.mount({
+    mountEl: "#lab",
+    title: "mirror(a, b)",
+    subtitle: "one tree, two cursors — a goes left exactly where b goes right",
+    tag: "interactive",
+    customPlaceholder: "[1,2,2,3,4,4,3]",
 
-  push({ line: 1, note: "Split the tree at the root: is the left subtree a mirror of the right? " +
-    "That is a two-tree question, so it is LC 100's machine." });
-  var verdict = mirror(T.l, T.r, "Root pair");
-  push({ line: 0, verdict: verdict,
-    note: "Every crossed pair matched &mdash; the tree is <strong>symmetric</strong>." });
+    presets: [
+      { tokens: "[1,2,2,3,4,4,3]",
+        note: "the tree above — symmetric; a reaches the outer 3 by left–left, b by right–right" },
+      { tokens: "[1,2,2,null,3,null,3]",
+        note: "the trap — identical values on both sides, and NOT symmetric" },
+      { tokens: "[1,2,2,2,null,2]",
+        note: "the other trap — inorder reads 2 2 1 2 2, a palindrome, yet not symmetric" },
+      { tokens: "[1]", note: "one node — the pair is (null, null), and the first guard answers it" },
+      { tokens: "[]", note: "empty — the wrapper answers true without ever forming a pair" },
+      { tokens: "[1,2,2,3,4,4,3,5,6,7,8,8,7,6,5]",
+        note: "deep and symmetric — 15 nodes, and the two cursors split them 7 / 7" },
+      { tokens: "[1,2,2,3,4,4,9]",
+        note: "one leaf changed — the outer pair catches it at the very bottom" },
+      { tokens: "[2,3,3,4,5,5,4]", note: "symmetric with different values — nothing here is about the numbers" }
+    ],
+    defaultPreset: 0,
 
-  VizKit.stepper(document.getElementById("viz-101"), {
-    steps: steps,
-    render: function (s) {
-      var svg = VizKit.treeSVG(L, function (nd) {
-        if (s.a === nd.id) return "on";
-        if (s.b === nd.id) return "hit";
-        if (s.ok[nd.id]) return "done";
-        return "";
-      }, { r: 17, alt: "Binary tree with the two mirrored cursors highlighted" });
-      var pairTxt = (s.a !== undefined && s.b !== undefined)
-        ? [L.nodes[s.a].v + " (a)", L.nodes[s.b].v + " (b)"] : [];
-      return svg + VizKit.pills("current pair", pairTxt) +
-        '<div class="viz-legend">' +
-          '<span><i data-state="on"></i> cursor a</span>' +
-          '<span><i data-state="hit"></i> cursor b</span>' +
-          '<span><i data-state="done"></i> matched pair</span></div>';
-    }
+    variants: [
+      { id: "cross", label: "Pairing: crossed", java: CROSS_SRC,
+        lines: { TOP: 3, ENTER: 6, BOTH: 7, ONE: 8, VAL: 9, OUTER: 11, INNER: 12 } },
+      { id: "uncrossed", label: "Bug: not crossed (this is LC 100)", java: UNCROSSED_SRC,
+        lines: { TOP: 3, ENTER: 6, BOTH: 7, ONE: 8, VAL: 9, OUTER: 11, INNER: 12 } },
+      { id: "halfcross", label: "Bug: only one call crossed", java: HALF_SRC,
+        lines: { TOP: 3, ENTER: 6, BOTH: 7, ONE: 8, VAL: 9, OUTER: 11, INNER: 12 } }
+    ],
+    defaultVariant: "cross",
+
+    /* false is the failing answer here, not −1 */
+    isFail: function (v) { return v === false; },
+
+    /* ---------------------------------------------------------------- THE recursion */
+    run: function (root, emit, o) {
+      var L = o.L, id = o.id;
+      var crossOuter = true;                       /* a.left with b.right */
+      var crossInner = id === "cross";             /* a.right with b.left */
+      if (id === "uncrossed") crossOuter = false;  /* a.left with b.left */
+
+      function mirror(a, b, ka, kb, depth, parentKey, side) {
+        emit({
+          type: "CALL", key: ka, parentKey: parentKey, side: side, depth: depth,
+          isNull: !a || !b,
+          val: a ? a.val : (b ? b.val : null),
+          av: a ? a.val : null, bv: b ? b.val : null, ka: ka, kb: kb,
+          line: L.ENTER,
+          args: "mirror(" + vs(a ? a.val : null) + "@" + addr(ka) + ", " +
+                            vs(b ? b.val : null) + "@" + addr(kb) + ")",
+          /* TWO addresses in the SAME tree — this is the crossing, drawn */
+          refs: [{ t: 0, key: ka }, { t: 0, key: kb }]
+        });
+
+        emit({ type: "CHECK", key: ka, depth: depth, line: L.BOTH, check: "both",
+               an: !a, bn: !b, av: a ? a.val : null, bv: b ? b.val : null, ka: ka, kb: kb });
+        if (!a && !b) {
+          emit({ type: "BASE", key: ka, depth: depth, line: L.BOTH, value: true });
+          emit({ type: "RETURN", key: ka, parentKey: parentKey, side: side, depth: depth,
+                 value: true, line: L.BOTH, reason: "bothNull" });
+          return true;
+        }
+
+        emit({ type: "CHECK", key: ka, depth: depth, line: L.ONE, check: "one",
+               an: !a, bn: !b, av: a ? a.val : null, bv: b ? b.val : null, ka: ka, kb: kb });
+        if (!a || !b) {
+          emit({ type: "RETURN", key: ka, parentKey: parentKey, side: side, depth: depth,
+                 value: false, line: L.ONE, reason: "shape" });
+          return false;
+        }
+
+        emit({ type: "CHECK", key: ka, depth: depth, line: L.VAL, check: "val",
+               av: a.val, bv: b.val, ka: ka, kb: kb });
+        if (a.val !== b.val) {
+          emit({ type: "RETURN", key: ka, parentKey: parentKey, side: side, depth: depth,
+                 value: false, line: L.VAL, reason: "value" });
+          return false;
+        }
+
+        /* ---- outer pair: a.left against b.right (or b.left, in the bug) ---- */
+        var ob = crossOuter ? b.right : b.left;
+        var okb = kb + (crossOuter ? "R" : "L");
+        emit({ type: "EVAL", key: ka, depth: depth, side: "left", line: L.OUTER,
+               which: "outer", crossed: crossOuter,
+               childVal: a.left ? a.left.val : null, childVal2: ob ? ob.val : null,
+               cka: ka + "L", ckb: okb });
+        var outer = mirror(a.left, ob, ka + "L", okb, depth + 1, ka, "left");
+
+        emit({ type: "CHECK", key: ka, depth: depth, line: L.OUTER, check: "outerBack", outer: outer });
+        if (outer === false) {
+          emit({ type: "PRUNE", key: ka, depth: depth, line: L.OUTER,
+                 skipped: T.subtreeKeys(a.right, ka + "R"),
+                 nodesSkipped: T.countNodes(a.right) });
+          emit({ type: "RETURN", key: ka, parentKey: parentKey, side: side, depth: depth,
+                 value: false, line: L.OUTER, reason: "shortCircuit" });
+          return false;
+        }
+
+        /* ---- inner pair: a.right against b.left (or b.right, in the bugs) ---- */
+        var ib = crossInner ? b.left : b.right;
+        var ikb = kb + (crossInner ? "L" : "R");
+        emit({ type: "EVAL", key: ka, depth: depth, side: "right", line: L.INNER,
+               which: "inner", crossed: crossInner, outer: outer,
+               childVal: a.right ? a.right.val : null, childVal2: ib ? ib.val : null,
+               cka: ka + "R", ckb: ikb });
+        var inner = mirror(a.right, ib, ka + "R", ikb, depth + 1, ka, "right");
+
+        var res = outer && inner;
+        emit({ type: "RETURN", key: ka, parentKey: parentKey, side: side, depth: depth,
+               value: res, line: L.INNER, reason: "combine", outer: outer, inner: inner });
+        return res;
+      }
+
+      /* the wrapper is a frame of its own: the root is the axis, not a pair */
+      emit({
+        type: "CALL", key: "R", parentKey: null, side: null, depth: 0,
+        isNull: !root, val: root ? root.val : null, line: L.TOP,
+        args: root ? "isSymmetric(" + root.val + "@root)" : "isSymmetric(" + NUL + ")",
+        refs: [{ t: 0, key: "R" }]
+      });
+      emit({ type: "CHECK", key: "R", depth: 0, line: L.TOP, check: "rootNull", an: !root });
+      if (!root) {
+        emit({ type: "BASE", key: "R", depth: 0, line: L.TOP, value: true });
+        emit({ type: "RETURN", key: "R", parentKey: null, side: null, depth: 0,
+               value: true, line: L.TOP, reason: "emptyTree" });
+        return true;
+      }
+      emit({ type: "EVAL", key: "R", depth: 0, side: "left", line: L.TOP, which: "split",
+             cka: "RL", ckb: "RR",
+             childVal: root.left ? root.left.val : null,
+             childVal2: root.right ? root.right.val : null });
+      var ans = mirror(root.left, root.right, "RL", "RR", 1, "R", "left");
+      emit({ type: "RETURN", key: "R", parentKey: null, side: null, depth: 0,
+             value: ans, line: L.TOP, reason: "wrapper" });
+      return ans;
+    },
+
+    doneFields: function (result) { return { symmetric: result === true }; },
+
+    /* ---------------------------------------------------------- the pending expression */
+    expr: function (f, st, o) {
+      if (f.result !== undefined) {
+        return '<span class="' + (f.result === false ? "tl-neg" : "tl-v") + '">return ' +
+          (f.result ? "true" : "false") + "</span>";
+      }
+      if (f.key === "R") {
+        return f.isNull
+          ? '<span class="tl-hole">root == null — nothing to mirror</span>'
+          : "mirror(root.left, root.right) = " + T.hole(f, "left", st, o);
+      }
+      if (f.isNull) {
+        return f.val === null || f.val === undefined
+          ? '<span class="tl-hole">both cursors absent — guard 1</span>'
+          : '<span class="tl-hole">one cursor absent — guard 2</span>';
+      }
+      var P = pairing();
+      return "(" + P[0] + " " + T.hole(f, "left", st, o) + ") " + AND +
+             " (" + P[1] + " " + T.hole(f, "right", st, o) + ")";
+    },
+
+    /* ----------------------------------------------- how a CHECK reads in its frame */
+    checkText: function (e) {
+      if (!e) return "";
+      if (e.check === "rootNull") {
+        return e.an ? "root == null → true, no pair is ever formed"
+                    : "root exists → split it and mirror the two halves";
+      }
+      if (e.check === "both") {
+        return e.an && e.bn
+          ? "both cursors are off the tree (" + addr(e.ka) + " and " + addr(e.kb) + ") → true"
+          : "at least one cursor is on a real node → fall through";
+      }
+      if (e.check === "one") {
+        if (e.an || e.bn) {
+          return "a = " + vs(e.av) + " at " + addr(e.ka) + ", b = " + vs(e.bv) + " at " +
+                 addr(e.kb) + " → exactly one absent, so the halves are not mirrored";
+        }
+        return "both cursors on real nodes → safe to read a.val and b.val";
+      }
+      if (e.check === "val") {
+        return e.av === e.bv
+          ? "a.val " + e.av + " at " + addr(e.ka) + " == b.val " + e.bv + " at " + addr(e.kb) +
+            " → this mirrored pair matches"
+          : "a.val " + e.av + " at " + addr(e.ka) + " != b.val " + e.bv + " at " + addr(e.kb) + " → false";
+      }
+      if (e.check === "outerBack") {
+        return "outer pair returned " + (e.outer ? "true" : "false") +
+          (e.outer ? " → now the inner pair" : " → short-circuit, the inner pair is never formed");
+      }
+      return "";
+    },
+
+    /* ---------------------------------------------------------------- narration */
+    narrate: function (st) {
+      var e = st.event, P = pairing();
+      switch (e.type) {
+        case "START":
+          return { tag: "start", text: "A tree is symmetric exactly when its <strong>left subtree is a mirror " +
+            "of its right subtree</strong>. That is a two-tree question asked of one tree, so LC 100's machine " +
+            "answers it — with the child pairing crossed." };
+        case "CALL":
+          if (e.key === "R") {
+            return e.isNull
+              ? { tag: "call", text: "isSymmetric(null) — there is no root, so there is nothing to mirror." }
+              : { tag: "call", text: "isSymmetric starts at the root (" + e.val + "). The root is the " +
+                  "<strong>axis</strong> of the mirror: it is never compared with anything, it is only split." };
+          }
+          if (!e.isNull) {
+            return { tag: "call", text: "Compare <strong>" + e.av + " at " + addr(e.ka) + "</strong> with " +
+              "<strong>" + e.bv + " at " + addr(e.kb) + "</strong>. Cursor a went " + way(e.ka) +
+              "; cursor b went " + way(e.kb) + " — a's left is matched against b's right at every step, " +
+              "so the two cursors are always reflections of each other." };
+          }
+          return e.val === null
+            ? { tag: "call", text: "Both cursors are off the tree — a below " + addr(e.ka) + ", b below " +
+                addr(e.kb) + ". A matched pair of absences still costs a frame." }
+            : { tag: "call", text: "One cursor is on " + e.val + " and the other is off the tree: a at " +
+                addr(e.ka) + ", b at " + addr(e.kb) + ". The mirror is broken here, and guard 2 will say so." };
+        case "BASE":
+          return e.key === "R"
+            ? { tag: "base", text: "The empty tree is symmetric. isSymmetric returns true immediately." }
+            : { tag: "base", text: "Two absences, at mirrored addresses, match. This frame returns true " +
+                "without reading a value." };
+        case "EVAL":
+          if (e.which === "split") {
+            return { tag: "descend", text: "Split at the axis: pair <code>root.left</code> (" + vs(e.childVal) +
+              ") with <code>root.right</code> (" + vs(e.childVal2) + "). From here the two cursors move apart " +
+              "and never meet again." };
+          }
+          if (e.which === "outer") {
+            return { tag: "descend", text: "<strong>Outer pair</strong> — <code>" + P[0] + "</code>" +
+              (e.crossed ? ": a steps <em>left</em> to " + addr(e.cka) + " while b steps <em>right</em> to " +
+                           addr(e.ckb) + ". The pairing crosses sides."
+                         : ": both cursors step <em>left</em>, to " + addr(e.cka) + " and " + addr(e.ckb) +
+                           " — this variant has forgotten to cross.") };
+          }
+          return { tag: "descend", text: "<strong>Inner pair</strong> — <code>" + P[1] + "</code>" +
+            (e.crossed ? ": a steps <em>right</em> to " + addr(e.cka) + " while b steps <em>left</em> to " +
+                         addr(e.ckb) + ". Crossed again, the other way."
+                       : ": a steps <em>right</em> to " + addr(e.cka) + " and b steps <em>right</em> to " +
+                         addr(e.ckb) + " — this pairing is not crossed, which is the bug.") };
+        case "CHECK":
+          if (e.check === "rootNull") {
+            return e.an
+              ? { tag: "check", text: "root is null, so the wrapper answers true without forming a pair." }
+              : { tag: "check", text: "root exists, so the wrapper hands its two children to mirror()." };
+          }
+          if (e.check === "both") {
+            return e.an && e.bn
+              ? { tag: "check", text: "Guard 1: both cursors are off the tree, at the mirrored addresses " +
+                  addr(e.ka) + " and " + addr(e.kb) + " — two absences match, so true." }
+              : { tag: "check", text: "Guard 1 fails: at least one cursor is on a real node." };
+          }
+          if (e.check === "one") {
+            if (e.an || e.bn) {
+              var who = e.an ? "a" : "b", other = e.an ? "b" : "a";
+              var v = e.an ? e.bv : e.av;
+              return { tag: "check", text: "Guard 2: cursor " + who + " is off the tree while cursor " + other +
+                " is on " + v + ". One side of the mirror has a node where the other has a hole — that is " +
+                "asymmetry of <em>shape</em>, which no comparison of values could ever catch. false." };
+            }
+            return { tag: "check", text: "Guard 2 fails too — both cursors are on real nodes, so it is now " +
+              "safe to read either value." };
+          }
+          if (e.check === "val") {
+            return e.av === e.bv
+              ? { tag: "check", text: "Guard 3: " + e.av + " at " + addr(e.ka) + " equals " + e.bv + " at " +
+                  addr(e.kb) + ". This mirrored pair matches; now cross into the children." }
+              : { tag: "check", text: "Guard 3: " + e.av + " at " + addr(e.ka) + " differs from " + e.bv +
+                  " at " + addr(e.kb) + " — the reflection fails right here. false." };
+          }
+          return { tag: "check", text: "The outer pair returned <strong>" + (e.outer ? "true" : "false") +
+            "</strong>. <code>" + AND + "</code> " +
+            (e.outer ? "still needs the inner pair." : "short-circuits — the inner pair is never formed.") };
+        case "PRUNE":
+          return { tag: "skip", text: "Short-circuit: the inner pair is never formed, so " + e.nodesSkipped +
+            " node" + (e.nodesSkipped === 1 ? "" : "s") + " under " + addr(e.key) +
+            " are never visited by cursor a — nor their reflections by cursor b." };
+        case "RETURN": {
+          if (e.key === "R") {
+            return e.reason === "emptyTree"
+              ? { tag: "return", text: "The wrapper returns true — nothing to mirror." }
+              : { tag: "return", text: "mirror(root.left, root.right) came back " +
+                  (e.value ? "true" : "false") + ", and the wrapper passes it straight out." };
+          }
+          var tail = e.parentKey ? " and fills the " + (e.side === "left" ? "outer" : "inner") +
+            " hole in the frame at " + addr(e.parentKey) + "." : ".";
+          if (e.reason === "bothNull") return { tag: "return", text: "Returns true — two mirrored absences" + tail };
+          if (e.reason === "shape") return { tag: "return", text: "Returns false — one cursor had a node and the other did not" + tail };
+          if (e.reason === "value") return { tag: "return", text: "Returns false — the two mirrored values differ" + tail };
+          if (e.reason === "shortCircuit") return { tag: "return", text: "Returns false out of the outer pair alone" + tail };
+          return { tag: "return", text: "Returns outer " + (e.outer ? "true" : "false") + " and inner " +
+            (e.inner ? "true" : "false") + " = " + (e.value ? "true" : "false") + tail };
+        }
+        case "DONE":
+          return e.symmetric
+            ? { tag: "done", text: "Every crossed pair matched, absences included, so isSymmetric returns " +
+                "<strong>true</strong> — the tree is its own mirror." }
+            : { tag: "done", text: "A crossed pair failed, so isSymmetric returns <strong>false</strong>. " +
+                "Note that no traversal was flattened and no values were sorted: the shape was compared directly." };
+      }
+      return { tag: "", text: "" };
+    },
+
+    /* --------------------------------------------------- node labels, chips, verdict */
+    nodeResult: function (f) {
+      if (f.result === undefined) return "";
+      return f.result ? "✓" : "✗";
+    },
+
+    stats: function (st) {
+      /* on a RETURN step name the frame that just returned, not its parent */
+      var f = st.returning || st.top;
+      if (!f || !f.refs) return null;
+      var out = [];
+      if (f.refs.length < 2) {
+        out.push({ label: "axis", html: T.esc(addr(f.refs[0].key)) });
+      } else {
+        out.push({ label: "pair", html: T.esc("a @ " + addr(f.refs[0].key) + "   " + ARR + "   b @ " + addr(f.refs[1].key)) });
+      }
+      var P = pairing();
+      if (f.phase === "wait-left") out.push({ label: "descending", html: T.esc("outer — " + P[0]) });
+      else if (f.phase === "wait-right") out.push({ label: "descending", html: T.esc("inner — " + P[1]) });
+      return out;
+    },
+
+    verdict: function (st) {
+      if (!st.done) return null;
+      return { text: "isSymmetric → " + (st.done.symmetric ? "true" : "false"), ok: !!st.done.symmetric };
+    },
+
+    callTreeNote: "one node per pair, filed under cursor a's address",
+    structureNote: "one tree — a call lights both of the nodes it is comparing",
+
+    legend: [
+      { state: "active", label: "the pair being compared" },
+      { state: "path",   label: "on the current path" },
+      { state: "done",   label: "pair matched" },
+      { state: "neg",    label: "returned false" },
+      { state: "pruned", label: "skipped by the short-circuit" },
+      { state: "ghost",  label: "never reached" }
+    ],
+
+    keyboard: true
   });
 })();
 </script>
