@@ -32,12 +32,6 @@ Curated lists optimise for coverage of *problems*. This library optimises for co
 technique, it's eleven. Sliding Window is eleven more. Once you can name the machine, the
 problem stops being a problem.
 
-> **The test:** *LC 437 is LC 560 on a root path. LC 653 is LC 167 on two iterators. LC 220 is an
-> ordered-multiset sliding window that happens to use a BST.*
->
-> If those read as obvious, the pattern has transferred. If any reads as a surprise — that's your
-> next study session, and this library will point you straight at it.
-
 <br>
 
 ## What's inside
