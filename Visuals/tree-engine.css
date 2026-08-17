@@ -324,6 +324,12 @@
   fill: var(--tl-height); pointer-events: none;
 }
 .tl .tl-res.tl-neg { fill: var(--tl-sentinel); }
+/* caption above each tree when two are drawn side by side */
+.tl .tl-tcap {
+  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; text-anchor: middle;
+  fill: var(--fg-dim); pointer-events: none;
+}
 .tl .tl-pulse {
   fill: none; stroke: var(--tl-active); opacity: .55;
   animation: tl-pulse 1.4s ease-out infinite;

@@ -39,7 +39,7 @@
   "use strict";
 
   var SVGNS = "http://www.w3.org/2000/svg";
-  var VERSION = "1.0.0";
+  var VERSION = "1.1.0";
 
   /* ======================================================== small utilities */
 
@@ -222,6 +222,11 @@
             key: e.key, parentKey: e.parentKey, side: e.side, depth: e.depth,
             isNull: e.isNull, val: e.val, args: e.args,
             left: undefined, right: undefined,
+            /* refs: which real nodes, in which rendered tree, this call is
+               looking at — [{t:0,key:"RL"},{t:1,key:"R"}]. Only dual-tree and
+               two-cursor pages emit it; everything else leaves it null and the
+               structure panel keys off the frame key exactly as before. */
+            refs: e.refs || null,
             phase: "enter", check: null, result: undefined, pruned: false
           };
           frames[e.key] = f; stack.push(f); callsSoFar++;
@@ -443,6 +448,10 @@
       legend: config.legend === false ? [] : (config.legend || DEFAULT_LEGEND),
       callTreeNote: pick(config.callTreeNote, ""),
       structureNote: pick(config.structureNote, "the recursion tree above is this, plus one leaf per null"),
+      /* dual-tree support. treeLabels captions the panels; dualSep lets the one
+         custom-input box carry both trees as "[1,2] | [1,2]". */
+      treeLabels: config.treeLabels || null,
+      dualSep: pick(config.dualSep, "|"),
       customPlaceholder: pick(config.customPlaceholder, "[3,9,20,null,null,15,7]"),
       holeGlyph: pick(config.holeGlyph, "▢"),
       nullGlyph: pick(config.nullGlyph, "∅"),
@@ -460,7 +469,12 @@
     /* normalise presets and variants */
     cfg.presets = cfg.presets.map(function (p, i) {
       if (typeof p === "string") p = { tokens: p };
-      return { label: pick(p.label, p.tokens), tokens: String(pick(p.tokens, "")), note: pick(p.note, "") };
+      return {
+        label: pick(p.label, p.tokens), tokens: String(pick(p.tokens, "")),
+        /* tokens2: a second tree, for problems that walk two at once. */
+        tokens2: (p.tokens2 === undefined || p.tokens2 === null) ? null : String(p.tokens2),
+        note: pick(p.note, "")
+      };
     });
     cfg.variants = cfg.variants.map(function (v, i) {
       return {
@@ -565,6 +579,7 @@
       var opts = {
         variant: variant, id: variant.id, index: S.variantIdx,
         L: L, lines: L, root: root, instance: inst,
+        root2: S.root2 || null,
         maxNodes: cfg.maxNodes, maxHeight: cfg.maxHeight
       };
 
@@ -728,49 +743,111 @@
       }
     }
 
+    /**
+     * (t,key) -> the frame examining that node, built from every live frame's
+     * `refs`. Pages that walk a single tree emit no refs, so this comes back
+     * empty and every lookup below falls through to the original stateOf path.
+     */
+    function refMap(st) {
+      var m = {}, ks = Object.keys(st.frames), i, j;
+      for (i = 0; i < ks.length; i++) {
+        var f = st.frames[ks[i]];
+        if (!f.refs) continue;
+        for (j = 0; j < f.refs.length; j++) {
+          var r = f.refs[j];
+          if (r && r.key !== undefined && r.key !== null) m[(r.t || 0) + ":" + r.key] = f;
+        }
+      }
+      return m;
+    }
+
+    function frameFor(t, key, st, rm) {
+      return rm[t + ":" + key] || (t === 0 ? st.frames[key] : null);
+    }
+
+    /* A node's state. With refs it is the state of the frame pointing at it;
+       without, tree 0 keys off the frame of the same name (unchanged), and a
+       second tree with nothing pointing at it stays un-entered. */
+    function nodeStateIn(t, key, st, rm) {
+      var f = rm[t + ":" + key];
+      if (f) {
+        var over = cfg.nodeState ? cfg.nodeState(f.key, st, { t: t, key: key, frame: f }) : null;
+        return over || defaultNodeState(f.key, st);
+      }
+      if (t === 0 && !S.tl2) return stateOf(key, st);
+      if (t === 0) return stateOf(key, st);
+      return "ghost";
+    }
+
     function renderStructure(st) {
       if (!cfg.showStructure || !ui.treeSvg || !S.tl) return;
-      var lay = S.tl, PAD = 30, svg = ui.treeSvg;
+      var PAD = 30, GAP = 52, svg = ui.treeSvg;
+      var panels = [{ lay: S.tl, t: 0 }];
+      if (S.tl2) panels.push({ lay: S.tl2, t: 1 });
+      var labels = cfg.treeLabels || [];
+      var CAP = (S.tl2 && labels.length) ? 20 : 0;   /* caption band, dual only */
       svg.innerHTML = "";
-      var W = lay.w + PAD * 2, H = lay.h + PAD * 2 + 16;
+
+      var W = 0, Hmax = 0, i;
+      for (i = 0; i < panels.length; i++) {
+        panels[i].ox = W + PAD;
+        W += panels[i].lay.w + PAD * 2 + (i < panels.length - 1 ? GAP : 0);
+        Hmax = Math.max(Hmax, panels[i].lay.h);
+      }
+      var H = Hmax + PAD * 2 + 16 + CAP;
       svg.setAttribute("viewBox", "0 0 " + W + " " + H);
       svg.setAttribute("role", "img");
-      svg.setAttribute("aria-label", "The binary tree itself");
+      svg.setAttribute("aria-label", S.tl2 ? "The two binary trees" : "The binary tree itself");
       var wrap = ui.treeWrap;
       var avail = wrap ? wrap.clientWidth - 16 : W;
       var scale = Math.min(1, Math.max(0.25, avail / W || 1));
       svg.setAttribute("width", Math.round(W * scale));
       svg.setAttribute("height", Math.round(H * scale));
 
-      var keys = Object.keys(lay.map), i, rec;
-      for (i = 0; i < keys.length; i++) {
-        rec = lay.map[keys[i]];
-        ["left", "right"].forEach(function (side) {
-          var ck = rec[side];
-          if (!ck) return;
-          var c = lay.map[ck];
-          svg.appendChild(svgEl("line", {
-            "class": edgeClass(stateOf(ck, st)),
-            x1: rec.x + PAD, y1: rec.y + PAD + 15, x2: c.x + PAD, y2: c.y + PAD - 15
-          }));
-        });
-      }
-      for (i = 0; i < keys.length; i++) {
-        rec = lay.map[keys[i]];
-        var s = stateOf(rec.key, st), f = st.frames[rec.key];
-        var cx = rec.x + PAD, cy = rec.y + PAD, neg = !!(f && cfg.isFail(f.result));
-        if (s === "active") svg.appendChild(svgEl("circle", { "class": "tl-pulse", cx: cx, cy: cy, r: 18 }));
-        svg.appendChild(svgEl("circle", { "class": "tl-nd " + tlc(s) + (neg ? " tl-neg" : ""), cx: cx, cy: cy, r: 15 }));
-        var lab = svgEl("text", {
-          "class": "tl-nlab " + (s === "ghost" || s === "pruned" ? "tl-ghost" : ""), x: cx, y: cy + 4
-        });
-        lab.textContent = rec.val;
-        svg.appendChild(lab);
-        var rl = resultLabel(f, st);
-        if (rl !== null && rl !== undefined && rl !== "") {
-          var res = svgEl("text", { "class": "tl-res" + (neg ? " tl-neg" : ""), x: cx, y: cy + 28 });
-          res.textContent = rl;
-          svg.appendChild(res);
+      var rm = refMap(st);
+
+      for (var p = 0; p < panels.length; p++) {
+        var lay = panels[p].lay, t = panels[p].t, ox = panels[p].ox;
+        if (CAP && labels[t]) {
+          var cap = svgEl("text", { "class": "tl-tcap", x: ox + lay.w / 2, y: 13 });
+          cap.textContent = labels[t];
+          svg.appendChild(cap);
+        }
+        var keys = Object.keys(lay.map), rec, j;
+
+        for (j = 0; j < keys.length; j++) {
+          rec = lay.map[keys[j]];
+          /* the closure needs its own copies — p/t/ox move on the next pass */
+          (function (rec, t, ox, lay) {
+            ["left", "right"].forEach(function (side) {
+              var ck = rec[side];
+              if (!ck) return;
+              var c = lay.map[ck];
+              svg.appendChild(svgEl("line", {
+                "class": edgeClass(nodeStateIn(t, ck, st, rm)),
+                x1: rec.x + ox, y1: rec.y + PAD + CAP + 15,
+                x2: c.x + ox, y2: c.y + PAD + CAP - 15
+              }));
+            });
+          })(rec, t, ox, lay);
+        }
+        for (j = 0; j < keys.length; j++) {
+          rec = lay.map[keys[j]];
+          var s = nodeStateIn(t, rec.key, st, rm), f = frameFor(t, rec.key, st, rm);
+          var cx = rec.x + ox, cy = rec.y + PAD + CAP, neg = !!(f && cfg.isFail(f.result));
+          if (s === "active") svg.appendChild(svgEl("circle", { "class": "tl-pulse", cx: cx, cy: cy, r: 18 }));
+          svg.appendChild(svgEl("circle", { "class": "tl-nd " + tlc(s) + (neg ? " tl-neg" : ""), cx: cx, cy: cy, r: 15 }));
+          var lab = svgEl("text", {
+            "class": "tl-nlab " + (s === "ghost" || s === "pruned" ? "tl-ghost" : ""), x: cx, y: cy + 4
+          });
+          lab.textContent = rec.val;
+          svg.appendChild(lab);
+          var rl = resultLabel(f, st);
+          if (rl !== null && rl !== undefined && rl !== "") {
+            var res = svgEl("text", { "class": "tl-res" + (neg ? " tl-neg" : ""), x: cx, y: cy + 28 });
+            res.textContent = rl;
+            svg.appendChild(res);
+          }
         }
       }
     }
@@ -838,14 +915,25 @@
       if (!isFinite(S.zoom) || S.zoom <= 0) S.zoom = 1;
     }
 
-    function loadTokens(str, note) {
-      var tokens = parseTokens(str);
-      var root = buildTree(tokens, { maxNodes: cfg.maxNodes, maxHeight: cfg.maxHeight });
+    function loadTokens(str, note, str2) {
+      /* One text field can carry two trees: "[1,2,3] | [1,2,3]". Splitting here
+         keeps the whole dual-tree feature out of the UI layer. */
+      var sa = String(str), sb = str2;
+      if (sb === undefined || sb === null) {
+        var ix = sa.indexOf(cfg.dualSep);
+        if (ix >= 0) { sb = sa.slice(ix + cfg.dualSep.length); sa = sa.slice(0, ix); }
+      }
+      var lim = { maxNodes: cfg.maxNodes, maxHeight: cfg.maxHeight };
+      var root = buildTree(parseTokens(sa), lim);
+      var hasB = !(sb === undefined || sb === null || String(sb).trim() === "");
+      var root2 = hasB ? buildTree(parseTokens(sb), lim) : null;
       S.root = root;
-      S.tokensStr = String(str);
+      S.root2 = root2;
+      S.tokensStr = hasB ? (sa.trim() + " " + cfg.dualSep + " " + String(sb).trim()) : String(str);
       S.note = note || "";
       S.cl = layoutCallTree(root);
       S.tl = layoutTree(root);
+      S.tl2 = root2 ? layoutTree(root2) : null;
       S.trace = buildTrace(root);
       S.zoom = 1;
       fitZoom();
@@ -858,8 +946,8 @@
       return true;
     }
 
-    function tryLoad(str, note) {
-      try { return loadTokens(str, note); }
+    function tryLoad(str, note, str2) {
+      try { return loadTokens(str, note, str2); }
       catch (e) {
         if (ui.err) ui.err.textContent = e && e.message ? e.message : String(e);
         return false;
@@ -939,7 +1027,7 @@
         S.presetIdx = +ui.preset.value;
         if (ui.custom) ui.custom.value = "";
         var p = cfg.presets[S.presetIdx];
-        tryLoad(p.tokens, p.note);
+        tryLoad(p.tokens, p.note, p.tokens2);
       });
     }
     if (ui.load) {
@@ -1004,7 +1092,7 @@
     if (ui.speed) ui.speed.value = String(cfg.defaultSpeed);
     syncVariantBtn();
     var p0 = cfg.presets[S.presetIdx];
-    tryLoad(p0.tokens, p0.note);
+    tryLoad(p0.tokens, p0.note, p0.tokens2);
 
     return inst;
   }
