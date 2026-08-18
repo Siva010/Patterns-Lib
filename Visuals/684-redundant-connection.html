@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>684 &middot; Redundant Connection &mdash; visual guide</title>
+<meta name="description" content="A tree plus one extra edge: walk the edges in order and reject the first whose two ends already share a component. The disjoint-set forest is drawn beside the graph, so find climbing to a root, path compression flattening it, and union by size are visible rather than inferred.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ---------- grid board (graph pages) ---------- */
+.gridwrap { display: flex; justify-content: center; margin: 4px 0 12px; }
+.gboard { display: grid; gap: 5px; }
+.gcell {
+  width: 44px; height: 44px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 15px; font-weight: 500;
+  border: 1.5px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
+  position: relative; transition: background .13s ease, border-color .13s ease,
+                                  color .13s ease, transform .13s ease;
+}
+.gcell.water { border-style: dashed; opacity: .5; }
+.gcell.land  { background: var(--bg); color: var(--fg); border-color: var(--fg-dim); }
+.gcell.done  { background: var(--r-hit-wash); border-color: var(--r-hit); color: var(--r-hit); }
+.gcell.flood { background: var(--r-window-wash); border-color: var(--r-window); color: var(--r-window); }
+.gcell.scan  { box-shadow: inset 0 0 0 2px var(--r-left); border-color: var(--r-left); }
+.gcell.cur   { background: var(--r-anchor-wash); border-color: var(--r-anchor);
+               color: var(--r-anchor); transform: scale(1.07); }
+.gcell .tagno { font-size: 11px; font-weight: 600; }
+
+.gstats { font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim); text-align: center; }
+.gstats b { color: var(--fg); font-weight: 600; }
+
+.islands { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+           margin-top: 10px; min-height: 22px; }
+.isle { font-family: var(--sans); font-size: 11.5px; padding: 3px 9px; border-radius: 100px;
+        border: 1px solid var(--r-hit-line); background: var(--r-hit-wash); color: var(--r-hit); }
+
+.gcell.blocked { background: var(--bg-sunk); border-color: var(--rule-hard);
+                 border-style: dashed; opacity: .45; }
+.gcell.blocked::after { content: ""; position: absolute; width: 60%; height: 1.5px;
+                        background: var(--fg-dim); transform: rotate(-45deg); }
+.gcell.goal { box-shadow: inset 0 0 0 2px var(--r-left); }
+
+/* ---------- BFS queue strip ---------- */
+.qstrip { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
+          margin-top: 10px; min-height: 24px; }
+.qitem { font-family: var(--mono); font-size: 11.5px; padding: 3px 8px; border-radius: 5px;
+         border: 1px solid var(--r-window-line); background: var(--r-window-wash);
+         color: var(--r-window); }
+.qitem.empty { border-color: var(--rule-hard); background: transparent; color: var(--fg-dim);
+               font-family: var(--sans); }
+
+/* ---------- node-link graph ---------- */
+.glayout { position: relative; margin: 4px auto 12px; }
+.gedges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.gedges line { stroke: var(--rule-hard); stroke-width: 1.6; }
+.gedges line.on   { stroke: var(--r-anchor); stroke-width: 2.4; }
+.gedges line.used { stroke: var(--r-hit); stroke-width: 2; }
+.gedges .arrow { fill: var(--rule-hard); }
+.gnode {
+  position: absolute; width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 15px; font-weight: 500;
+  border: 1.5px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-mid);
+  transform: translate(-50%, -50%); transition: background .13s ease, border-color .13s ease,
+                                                color .13s ease, box-shadow .13s ease;
+}
+.gnode.cur    { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor);
+                box-shadow: 0 0 0 3px var(--r-anchor-wash); }
+.gnode.onpath { background: var(--r-window-wash); border-color: var(--r-window); color: var(--r-window); }
+.gnode.target { box-shadow: inset 0 0 0 2px var(--r-hit); }
+.gnode.blocked{ opacity: .4; border-style: dashed; }
+
+.paths { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; min-height: 22px; }
+.pathchip { font-family: var(--mono); font-size: 11.5px; padding: 3px 9px; border-radius: 100px;
+            border: 1px solid var(--r-hit-line); background: var(--r-hit-wash); color: var(--r-hit); }
+.pathchip.lost { border-color: var(--accent-line); background: var(--accent-wash); color: var(--accent);
+                 text-decoration: line-through; }
+
+/* ---------- verdict card: the wrong answer beside the right one ---------- */
+.verdict { margin-top: 10px; text-align: center; font-family: var(--sans); font-size: 13px;
+           color: var(--fg-mid); border: 1px solid var(--accent-line);
+           background: var(--accent-wash); border-radius: 8px; padding: 8px 14px; }
+.verdict .wrong { color: var(--accent); font-family: var(--mono); }
+.verdict .right { color: var(--r-hit); font-family: var(--mono); }
+
+/* ---------- segmented variant control ---------- */
+.seg { display: flex; gap: 0; }
+.seg-btn { border-radius: 0; font-size: 12px; white-space: nowrap; }
+.seg-btn:first-child { border-radius: 8px 0 0 8px; }
+.seg-btn:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
+.seg-btn.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+.dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
+.code .cm { color: var(--fg-dim); font-style: italic; }
+
+@media (max-width: 620px) { .gcell { width: 34px; height: 34px; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .gcell { transition: none !important; transform: none; } }
+
+/* ============================================================
+   684 — disjoint-set union: the graph beside its DSU forest
+   House tokens only. Roles:
+     --r-left   endpoint u of the edge under test
+     --r-right  endpoint v of the edge under test
+     --r-anchor the walker (the node find() is standing on)
+     --r-hit    settled / united / a set root
+     --accent   the rejected answer edge — it IS the answer
+     no hue     an edge not yet considered: dim + dashed
+   ============================================================ */
+
+/* the visual column carries two panels, so it earns a little more room */
+.grid.wide { grid-template-columns: 1.42fr 1fr; }
+@media (max-width: 940px) { .grid.wide { grid-template-columns: 1fr; } }
+
+.duo { display: flex; flex-wrap: wrap; gap: 10px 16px; width: 100%;
+       justify-content: center; align-items: flex-start; overflow-x: auto; }
+.pane { flex: 0 0 auto; max-width: 100%; }
+.pane-h { font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+          letter-spacing: .085em; text-transform: uppercase; color: var(--fg-dim);
+          text-align: center; }
+.pane .glayout { margin: 2px auto 4px; }
+
+.duo .gnode { width: 34px; height: 34px; font-size: 13px; }
+.duo .gnode.eu { background: var(--r-left-wash);  border-color: var(--r-left);  color: var(--r-left); }
+.duo .gnode.ev { background: var(--r-right-wash); border-color: var(--r-right); color: var(--r-right); }
+.duo .gnode.root { box-shadow: inset 0 0 0 2px var(--r-hit); }
+.duo .gnode.cur.root { box-shadow: inset 0 0 0 2px var(--r-hit), 0 0 0 3px var(--r-anchor-wash); }
+.duo .gnode.walk { background: var(--r-anchor-wash); border-color: var(--r-anchor-line); color: var(--r-anchor); }
+.duo .gnode.flat { background: var(--r-hit-wash); border-color: var(--r-hit); color: var(--r-hit); }
+.gnode .sz {
+  position: absolute; top: -7px; right: -10px;
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600; line-height: 14px;
+  min-width: 14px; padding: 0 4px; border-radius: 100px; text-align: center;
+  border: 1px solid var(--r-hit-line); background: var(--bg); color: var(--r-hit);
+}
+
+/* edge states */
+.gedges line.later { stroke: var(--rule); stroke-dasharray: 3 4; opacity: .7; }
+.gedges line.comp  { stroke: var(--r-hit); stroke-width: 2.2; }
+.gedges line.ansed { stroke: var(--accent); stroke-width: 2.6; stroke-dasharray: 5 4; }
+.gedges .arrow.on   { fill: var(--r-anchor); }
+.gedges .arrow.comp { fill: var(--r-hit); }
+
+/* the input edge list, in order, with each edge's fate */
+.elist { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
+         margin-top: 8px; min-height: 24px; }
+.echip { font-family: var(--mono); font-size: 11.5px; padding: 3px 9px; border-radius: 100px;
+         border: 1px solid var(--rule); background: var(--bg-sunk); color: var(--fg-dim);
+         border-style: dashed; }
+.echip.ok  { border-style: solid; border-color: var(--r-hit-line);
+             background: var(--r-hit-wash); color: var(--r-hit); }
+.echip.now { border-style: solid; border-color: var(--r-anchor-line);
+             background: var(--r-anchor-wash); color: var(--r-anchor); }
+.echip.bad { border-style: solid; border-color: var(--accent-line);
+             background: var(--accent-wash); color: var(--accent); }
+
+.gstats.note { color: var(--fg-dim); font-style: italic; max-width: 56ch; }
+.verdict + .verdict { margin-top: 6px; }
+.dot.h { background: var(--r-hit-wash); border-color: var(--r-hit); }
+@media (prefers-reduced-motion: reduce) { .gnode { transition: none !important; } }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+  <div class="eyebrow">Graphs &middot; 1.F / 2.E &middot; the union-find atom <span class="tag">LeetCode 684</span></div>
+  <h1>Redundant Connection <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    <em>n</em> nodes, <em>n</em> edges &mdash; a tree plus exactly one extra. Walk the edges in
+    order and ask one question of each: are these two ends <strong>already in the same
+    component?</strong> The first edge for which the answer is yes is the redundant one.
+    The structure that answers it is a forest of <span class="k">parent</span> pointers, drawn
+    here beside the graph, so that <span class="k">find</span> climbing to a root and
+    <span class="k">union</span> re-rooting are things you watch rather than infer.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Edges in input order &mdash; pair as <code>u,v</code>, edges split by <code>/</code></label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="1,2/1,3/2,3" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="segSmart">Union rule</label>
+      <div class="seg" role="group" aria-label="Variant">
+        <button class="btn seg-btn on" id="segSmart" type="button">by size + compression</button>
+        <button class="btn seg-btn" id="segNaive" type="button">naive &mdash; neither</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid wide">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="duo">
+          <div class="pane">
+            <div class="pane-h">the graph &middot; edges as given</div>
+            <div class="glayout" id="layout"><svg class="gedges" id="edges"></svg></div>
+          </div>
+          <div class="pane">
+            <div class="pane-h">the DSU forest &middot; parent pointers</div>
+            <div class="glayout" id="forest"><svg class="gedges" id="fedges"></svg></div>
+          </div>
+        </div>
+        <div class="gstats" id="gstats"></div>
+        <div class="elist" id="elist"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="verdict" id="verdict" hidden></div>
+        <div class="verdict" id="cost" hidden></div>
+        <div class="gstats note" id="shape"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot l"></i>endpoint <code>u</code></span>
+        <span><i class="dot r"></i>endpoint <code>v</code></span>
+        <span><i class="dot i"></i>where <code>find</code> is standing</span>
+        <span><i class="dot h"></i>set root / united edge</span>
+        <span><i class="dot x"></i>edge not yet considered</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">O(n&middot;&alpha;(n)) time, O(n) space &mdash; effectively linear &nbsp;&middot;&nbsp; union by size and path compression are not tuning. Drop them and <code>find</code> walks a chain instead of a stub: the same answer, arrived at in O(n&sup2;). Flip the toggle and read the two numbers in the second card.</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- source, one array per variant ------------------------------------- */
+  const CODE_SMART = [
+    [['kw','int'],['tx','[] '],['fn','findRedundantConnection'],['tx','('],['kw','int'],['tx','[][] edges) {']],
+    [['tx','    '],['kw','int '],['tx','n = edges.length;']],
+    [['tx','    parent = '],['kw','new int'],['tx','[n + 1];  size = '],['kw','new int'],['tx','[n + 1];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 1; i <= n; i++) { parent[i] = i; size[i] = 1; }']],
+    [['tx','']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int'],['tx','[] e : edges) {']],
+    [['tx','        '],['kw','int '],['tx','ru = find(e[0]), rv = find(e[1]);']],
+    [['tx','        '],['kw','if '],['tx','(ru == rv) '],['kw','return '],['tx','e;        '],['cm','// already one component']],
+    [['tx','        '],['kw','if '],['tx','(size[ru] < size[rv]) { '],['kw','int '],['tx','t = ru; ru = rv; rv = t; }']],
+    [['tx','        parent[rv] = ru;               '],['cm','// smaller hangs off larger']],
+    [['tx','        size[ru] += size[rv];']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return new int'],['tx','[0];                 '],['cm','// no redundant edge']],
+    [['tx','}']],
+    [['tx','']],
+    [['kw','int '],['fn','find'],['tx','('],['kw','int '],['tx','x) {']],
+    [['tx','    '],['kw','int '],['tx','r = x;']],
+    [['tx','    '],['kw','while '],['tx','(parent[r] != r) r = parent[r];      '],['cm','// climb to the root']],
+    [['tx','    '],['kw','while '],['tx','(parent[x] != r) { '],['kw','int '],['tx','nx = parent[x]; parent[x] = r; x = nx; }']],
+    [['tx','    '],['kw','return '],['tx','r;']],
+    [['tx','}']]
+  ];
+
+  const CODE_NAIVE = [
+    [['kw','int'],['tx','[] '],['fn','findRedundantConnection'],['tx','('],['kw','int'],['tx','[][] edges) {   '],['cm','// naive DSU']],
+    [['tx','    '],['kw','int '],['tx','n = edges.length;']],
+    [['tx','    parent = '],['kw','new int'],['tx','[n + 1];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','i = 1; i <= n; i++) parent[i] = i;']],
+    [['tx','']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int'],['tx','[] e : edges) {']],
+    [['tx','        '],['kw','int '],['tx','ru = find(e[0]), rv = find(e[1]);']],
+    [['tx','        '],['kw','if '],['tx','(ru == rv) '],['kw','return '],['tx','e;']],
+    [['tx','        parent[ru] = rv;               '],['cm','// no size test: first under second']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return new int'],['tx','[0];']],
+    [['tx','}']],
+    [['tx','']],
+    [['kw','int '],['fn','find'],['tx','('],['kw','int '],['tx','x) {']],
+    [['tx','    '],['kw','while '],['tx','(parent[x] != x) x = parent[x];      '],['cm','// climb, and rewrite nothing']],
+    [['tx','    '],['kw','return '],['tx','x;']],
+    [['tx','}']]
+  ];
+
+  /* line indices, per variant */
+  const LN = {
+    smart: { loop:5, ret:7, sizes:8, link:9, none:12, fstart:16, fhop:17, fcomp:18, froot:19 },
+    naive: { loop:5, ret:7, sizes:8, link:8, none:10, fstart:13, fhop:14, fcomp:14, froot:15 }
+  };
+
+  const MAXN = 8;    // distinct nodes
+  const MAXE = 12;   // edges
+
+  /* ---- oracle: reachability, no disjoint set anywhere ---------------------
+     For each edge in order, ask whether v is already reachable from u over the
+     edges accepted so far, by plain DFS on an adjacency map. Structurally
+     different from the code under test: no parent array, no roots, no ranks.  */
+  function oracleRedundant(edges){
+    const adj = new Map();
+    const add = (a,b) => { if(!adj.has(a)) adj.set(a,[]); adj.get(a).push(b); };
+    for(let i=0;i<edges.length;i++){
+      const a = edges[i][0], b = edges[i][1];
+      if(a === b) return [a,b];
+      const seen = new Set([a]); const st = [a]; let hit = false;
+      while(st.length){
+        const x = st.pop();
+        if(x === b){ hit = true; break; }
+        const nb = adj.get(x) || [];
+        for(let k=0;k<nb.length;k++) if(!seen.has(nb[k])){ seen.add(nb[k]); st.push(nb[k]); }
+      }
+      if(hit) return [a,b];
+      add(a,b); add(b,a);
+    }
+    return [];
+  }
+
+  /* longest chain of parent pointers anywhere in the forest */
+  function maxDepth(parent){
+    let best = 0;
+    for(let i=0;i<parent.length;i++){
+      let d = 0, x = i, guard = 0;
+      while(parent[x] !== x && guard++ <= parent.length){ x = parent[x]; d++; }
+      if(d > best) best = d;
+    }
+    return best;
+  }
+
+  function normalize(edges){
+    const out = [];
+    if(!Array.isArray(edges)) return out;
+    for(let i=0;i<edges.length;i++){
+      const e = edges[i];
+      if(!Array.isArray(e) || e.length < 2) continue;
+      const a = Number(e[0]), b = Number(e[1]);
+      if(!Number.isFinite(a) || !Number.isFinite(b)) continue;
+      out.push([Math.trunc(a), Math.trunc(b)]);
+    }
+    return out;
+  }
+
+  /* ---- the real implementation, instrumented ------------------------------
+     naive === true drops both defining rules: no size ordering on union, and
+     find rewrites nothing on its way back down.                              */
+  function buildFrames(edgesIn, naive){
+    const edges = normalize(edgesIn);
+    const L = naive ? LN.naive : LN.smart;
+    const frames = [];
+
+    /* compact the node labels; the page shows the labels, the arrays use indices */
+    const labels = [];
+    const seenLab = Object.create(null);
+    for(let i=0;i<edges.length;i++){
+      for(let k=0;k<2;k++){
+        const x = edges[i][k];
+        if(seenLab[x] === undefined){ seenLab[x] = true; labels.push(x); }
+      }
+    }
+    labels.sort(function(p,q){ return p - q; });
+    const idx = Object.create(null);
+    labels.forEach(function(v,i){ idx[v] = i; });
+    const n = labels.length;
+
+    if(!edges.length || !n){
+      frames.push({
+        n:0, labels:[], edges:[], naive:!!naive, parent:[], size:[], accepted:[],
+        rejIdx:-1, ei:-1, u:-1, v:-1, cur:-1, findPath:[], compressed:[], root:-1,
+        hops:0, depth:0, phase:'done', code:L.none,
+        msg:'No edges &mdash; nothing can be redundant.',
+        ans:[], truth:[], done:true
+      });
+      return frames;
+    }
+
+    const parent = labels.map(function(_,i){ return i; });
+    const size   = labels.map(function(){ return 1; });
+    const accepted = [];
+    let rejIdx = -1, ans = [], hops = 0;
+
+    const snap = function(o){
+      frames.push(Object.assign({
+        n:n, labels:labels, edges:edges, naive:!!naive,
+        parent:parent.slice(), size:size.slice(), accepted:accepted.slice(),
+        rejIdx:rejIdx, ei:-1, u:-1, v:-1, cur:-1, root:-1,
+        findPath:[], compressed:[], hops:hops, depth:maxDepth(parent)
+      }, o));
+    };
+
+    /* find, one frame per hop, plus one for the flatten */
+    function find(x, side, ei, u, v){
+      const path = [x];
+      let r = x;
+      snap({ei:ei, u:u, v:v, cur:r, findPath:path.slice(), phase:'find', code:L.fstart,
+        msg:'<span class="k">find(' + labels[x] + ')</span> &mdash; stand on <span class="i">' +
+            labels[x] + '</span> and climb while <span class="k">parent[x] != x</span>.'});
+      while(parent[r] !== r){
+        r = parent[r]; hops++; path.push(r);
+        snap({ei:ei, u:u, v:v, cur:r, findPath:path.slice(), phase:'find', code:L.fhop,
+          msg:'Hop up to <span class="i">' + labels[r] + '</span>. <b>' + hops +
+              '</b> pointer hop' + (hops===1?'':'s') + ' so far this run.'});
+      }
+      const climbed = path.length - 1;
+      snap({ei:ei, u:u, v:v, cur:r, root:r, findPath:path.slice(), phase:'find', code:L.froot,
+        msg:'Root of <span class="' + (side==='u'?'l':'r') + '">' + labels[x] + '</span> is <span class="m">' +
+            labels[r] + '</span> &mdash; ' + (climbed === 0 ? 'it is its own root, no walk needed'
+              : climbed + ' hop' + (climbed===1?'':'s')) + '.'});
+      if(!naive && path.length > 2){
+        const changed = [];
+        for(let i=0;i<path.length-1;i++) if(parent[path[i]] !== r) changed.push(path[i]);
+        for(let i=0;i<path.length-1;i++) parent[path[i]] = r;
+        snap({ei:ei, u:u, v:v, cur:r, root:r, findPath:path.slice(), compressed:changed,
+          phase:'find', code:L.fcomp,
+          msg:'<b>Path compression.</b> ' + changed.map(function(y){
+                return '<span class="m">' + labels[y] + '</span>'; }).join(', ') +
+              ' now point straight at <span class="m">' + labels[r] +
+              '</span>. The climb just paid for itself &mdash; nobody walks that chain again.'});
+      }
+      return r;
+    }
+
+    for(let ei=0; ei<edges.length; ei++){
+      const a = edges[ei][0], b = edges[ei][1];
+      const u = idx[a], v = idx[b];
+      snap({ei:ei, u:u, v:v, phase:'scan', code:L.loop,
+        msg:'Edge <b>' + (ei+1) + '</b> of ' + edges.length + ': <span class="l">' + a +
+            '</span> &mdash; <span class="r">' + b +
+            '</span>. One question only: are these two already in the same set?'});
+
+      if(u === v){
+        rejIdx = ei; ans = [a,b];
+        snap({ei:ei, u:u, v:v, cur:u, phase:'reject', code:L.ret,
+          msg:'<span class="l">' + a + '</span> and <span class="r">' + b +
+              '</span> are the same node &mdash; a self loop is redundant by definition.'});
+        break;
+      }
+
+      const ru = find(u, 'u', ei, u, v);
+      const rv = find(v, 'v', ei, u, v);
+
+      if(ru === rv){
+        rejIdx = ei; ans = [a,b];
+        snap({ei:ei, u:u, v:v, cur:ru, root:ru, phase:'reject', code:L.ret,
+          msg:'Both roots are <span class="m">' + labels[ru] + '</span>. <span class="l">' + a +
+              '</span> and <span class="r">' + b + '</span> were <b>already connected</b>, so this ' +
+              'edge closes a cycle and nothing in the graph needs it. Return it.'});
+        break;
+      }
+
+      let big, small;
+      if(naive){
+        big = rv; small = ru;                       /* parent[ru] = rv, always */
+      } else {
+        big = ru; small = rv;
+        if(size[big] < size[small]){ const t = big; big = small; small = t; }
+        snap({ei:ei, u:u, v:v, root:big, phase:'union', code:L.sizes,
+          msg:'Different roots, so the edge is kept. Sizes: <span class="m">' + labels[ru] + '</span>=' +
+              size[ru] + ', <span class="m">' + labels[rv] + '</span>=' + size[rv] +
+              ' &mdash; the <b>smaller</b> tree hangs off the larger, which is what stops a chain forming.'});
+      }
+      parent[small] = big;
+      size[big] += size[small];
+      accepted.push(ei);
+      snap({ei:ei, u:u, v:v, cur:big, root:big, phase:'union', code:L.link,
+        msg:'Union: <span class="m">' + labels[small] + '</span> now points at <span class="m">' +
+            labels[big] + '</span>. ' + (naive
+              ? 'Naive union always hangs the <em>first</em> root under the second. Nothing consults a size, so a long chain is free to form.'
+              : 'The set rooted at <span class="m">' + labels[big] + '</span> holds ' + size[big] + ' node' +
+                (size[big]===1?'':'s') + '.')});
+    }
+
+    const truth = oracleRedundant(edges);
+    const depth = maxDepth(parent);
+    snap({ei:rejIdx, rejIdx:rejIdx, root:-1, phase:'done', code: rejIdx >= 0 ? L.ret : L.none,
+      msg: rejIdx >= 0
+        ? 'Return <span class="m">[' + ans[0] + ', ' + ans[1] + ']</span> &mdash; edge <b>' + (rejIdx+1) +
+          '</b> of the input. Every earlier edge joined two genuinely separate components; this one joined ' +
+          'a component to itself. Cost so far: <b>' + hops + '</b> pointer hop' + (hops===1?'':'s') +
+          ', deepest chain <b>' + depth + '</b>.'
+        : 'Every edge joined two different components, so nothing was redundant. This input is <span class="x">not ' +
+          'a tree plus one extra edge</span> &mdash; LeetCode guarantees one, but the algorithm has to say ' +
+          'something honest when it is handed anything else. Return the empty array.',
+      ans:ans, truth:truth, hops:hops, depth:depth, done:true});
+
+    return frames;
+  }
+
+  /* ---- driver ------------------------------------------------------------- */
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const $ = function(id){ return document.getElementById(id); };
+  const layoutEl=$('layout'), edgesEl=$('edges'), fLayoutEl=$('forest'), fEdgesEl=$('fedges'),
+        msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'), countEl=$('stepCount'),
+        codeEl=$('code'), inputEl=$('arrInput'), statsEl=$('gstats'), elistEl=$('elist'),
+        vEl=$('verdict'), costEl=$('cost'), shapeEl=$('shape');
+
+  let frames=[], idx=0, timer=null, naive=false, gpos=[], COST=null;
+
+  function esc(x){ return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function renderCode(){
+    const src = naive ? CODE_NAIVE : CODE_SMART;
+    codeEl.innerHTML = src.map(function(line,i){
+      const tx = line.map(function(p){ return '<span class="'+p[0]+'">'+esc(p[1])+'</span>'; }).join('');
+      return '<div class="ln" data-line="'+i+'"><span class="no">'+(i+1)+'</span>'+tx+'</div>';
+    }).join('');
+  }
+
+  /* "1,2/1,3/2,3" -> [[1,2],[1,3],[2,3]] — self loops, repeats and anything
+     past the node/edge cap are dropped, and run() says so on screen. */
+  function parseEdges(str){
+    const parts = String(str == null ? '' : str).split('/');
+    const out = [], pairSeen = Object.create(null), labSeen = Object.create(null);
+    let nLab = 0, dropped = 0;
+    for(let i=0;i<parts.length;i++){
+      const nums = parts[i].split(/[^0-9-]+/).filter(function(s){ return s !== '' && s !== '-'; })
+                           .map(Number).filter(function(x){ return Number.isFinite(x); });
+      if(nums.length < 2){ if(parts[i].trim() !== '') dropped++; continue; }
+      const a = Math.trunc(nums[0]), b = Math.trunc(nums[1]);
+      if(a === b){ dropped++; continue; }
+      const key = (a < b ? a+'|'+b : b+'|'+a);
+      if(pairSeen[key]){ dropped++; continue; }
+      let add = 0;
+      if(labSeen[a] === undefined) add++;
+      if(labSeen[b] === undefined && b !== a) add++;
+      if(nLab + add > MAXN){ dropped++; continue; }
+      if(labSeen[a] === undefined){ labSeen[a] = true; nLab++; }
+      if(labSeen[b] === undefined){ labSeen[b] = true; nLab++; }
+      pairSeen[key] = true;
+      out.push([a,b]);
+      if(out.length >= MAXE) break;
+    }
+    return { edges: out, dropped: dropped, nodes: nLab };
+  }
+
+  /* ---- layouts ------------------------------------------------------------ */
+  function circleLayout(n){
+    const R = n <= 1 ? 0 : (n === 2 ? 44 : 30 + n*7);
+    const W = 2*R + 62, H = 2*R + 62, p = [];
+    for(let i=0;i<n;i++){
+      const t = -Math.PI/2 + 2*Math.PI*i/Math.max(1,n);
+      p.push({ x: W/2 + R*Math.cos(t), y: H/2 + R*Math.sin(t) });
+    }
+    return { pos:p, W:W, H:H };
+  }
+
+  function forestLayout(parent){
+    const n = parent.length, GX = 48, GY = 46;
+    const kids = [], roots = [];
+    for(let i=0;i<n;i++) kids.push([]);
+    for(let i=0;i<n;i++){ if(parent[i] === i) roots.push(i); else kids[parent[i]].push(i); }
+    for(let i=0;i<n;i++) kids[i].sort(function(a,b){ return a-b; });
+    const cell = new Array(n).fill(null);
+    let col = 0, maxd = 0, maxc = 0;
+    function place(x, d){
+      if(d > maxd) maxd = d;
+      if(!kids[x].length){ cell[x] = { c: col, d: d }; col += 1; }
+      else {
+        let lo = Infinity, hi = -Infinity;
+        for(let i=0;i<kids[x].length;i++){
+          place(kids[x][i], d+1);
+          const c = cell[kids[x][i]].c;
+          if(c < lo) lo = c; if(c > hi) hi = c;
+        }
+        cell[x] = { c: (lo+hi)/2, d: d };
+      }
+      if(cell[x].c > maxc) maxc = cell[x].c;
+    }
+    for(let i=0;i<roots.length;i++){ place(roots[i], 0); col += 0.65; }
+    const W = Math.max(120, 52 + maxc*GX), H = Math.max(80, 52 + maxd*GY);
+    const pos = new Array(n);
+    for(let i=0;i<n;i++){
+      const c = cell[i] || { c:0, d:0 };
+      pos[i] = { x: 26 + c.c*GX, y: 26 + c.d*GY };
+    }
+    return { pos:pos, W:W, H:H, roots:roots };
+  }
+
+  function line(svg, a, b, cls){
+    const l = document.createElementNS(SVGNS,'line');
+    l.setAttribute('x1', a.x); l.setAttribute('y1', a.y);
+    l.setAttribute('x2', b.x); l.setAttribute('y2', b.y);
+    if(cls) l.setAttribute('class', cls);
+    svg.appendChild(l);
+    return l;
+  }
+
+  function arrow(svg, a, b, cls){
+    const dx = b.x-a.x, dy = b.y-a.y, len = Math.hypot(dx,dy) || 1;
+    const ux = dx/len, uy = dy/len, px = -uy, py = ux;
+    const tx = b.x - ux*19, ty = b.y - uy*19;
+    const bx = tx - ux*8,  by = ty - uy*8;
+    const poly = document.createElementNS(SVGNS,'polygon');
+    poly.setAttribute('points',
+      tx+','+ty+' '+(bx+px*4.5)+','+(by+py*4.5)+' '+(bx-px*4.5)+','+(by-py*4.5));
+    poly.setAttribute('class','arrow'+(cls?' '+cls:''));
+    svg.appendChild(poly);
+  }
+
+  function sizeSvg(svg, host, W, H){
+    host.style.width = W+'px'; host.style.height = H+'px';
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+  }
+
+  /* the graph panel is built once per run; only classes change per frame */
+  function buildGraph(edges, labels){
+    const olds = layoutEl.querySelectorAll('.gnode');
+    for(let i=0;i<olds.length;i++) olds[i].remove();
+    edgesEl.innerHTML = '';
+    const n = labels.length;
+    const L = circleLayout(n);
+    gpos = L.pos;
+    sizeSvg(edgesEl, layoutEl, L.W, L.H);
+    const at = Object.create(null);
+    labels.forEach(function(v,i){ at[v] = i; });
+    for(let i=0;i<edges.length;i++){
+      const l = line(edgesEl, gpos[at[edges[i][0]]], gpos[at[edges[i][1]]], 'later');
+      l.setAttribute('data-ei', i);
+    }
+    for(let i=0;i<n;i++){
+      const d = document.createElement('div');
+      d.className = 'gnode'; d.setAttribute('data-node', i);
+      d.textContent = labels[i];
+      d.style.left = gpos[i].x+'px'; d.style.top = gpos[i].y+'px';
+      layoutEl.appendChild(d);
+    }
+  }
+
+  function nodeHtml(label, sz){
+    return esc(label) + (sz ? '<span class="sz">'+sz+'</span>' : '');
+  }
+
+  function renderGraph(f){
+    const at = Object.create(null);
+    f.labels.forEach(function(v,i){ at[v] = i; });
+    const roots = [];
+    for(let i=0;i<f.n;i++) if(f.parent[i] === i) roots.push(i);
+    for(let i=0;i<f.n;i++){
+      const el = layoutEl.querySelector('[data-node="'+i+'"]');
+      if(!el) continue;
+      let cls = 'gnode';
+      if(i === f.cur) cls += ' cur';
+      else if(i === f.u) cls += ' eu';
+      else if(i === f.v) cls += ' ev';
+      if(f.parent[i] === i) cls += ' root';
+      el.className = cls;
+      el.innerHTML = nodeHtml(f.labels[i], f.parent[i] === i && f.size[i] > 1 ? f.size[i] : 0);
+    }
+    const acc = Object.create(null);
+    for(let i=0;i<f.accepted.length;i++) acc[f.accepted[i]] = true;
+    const ls = edgesEl.querySelectorAll('line');
+    for(let i=0;i<ls.length;i++){
+      const ei = +ls[i].getAttribute('data-ei');
+      let cls = 'later';
+      if(acc[ei]) cls = 'used';
+      if(ei === f.rejIdx) cls = 'ansed';
+      else if(ei === f.ei && f.phase !== 'done') cls = 'on';
+      ls[i].setAttribute('class', cls);
+    }
+  }
+
+  function renderForest(f){
+    const olds = fLayoutEl.querySelectorAll('.gnode');
+    for(let i=0;i<olds.length;i++) olds[i].remove();
+    fEdgesEl.innerHTML = '';
+    if(!f.n){ sizeSvg(fEdgesEl, fLayoutEl, 120, 80); return; }
+    const L = forestLayout(f.parent);
+    sizeSvg(fEdgesEl, fLayoutEl, L.W, L.H);
+
+    const comp = Object.create(null);
+    for(let i=0;i<f.compressed.length;i++) comp[f.compressed[i]] = true;
+    const stepOf = Object.create(null);
+    for(let k=0;k+1<f.findPath.length;k++) stepOf[f.findPath[k]] = f.findPath[k+1];
+
+    for(let i=0;i<f.n;i++){
+      if(f.parent[i] === i) continue;
+      let cls = '';
+      if(comp[i]) cls = 'comp';
+      else if(stepOf[i] === f.parent[i]) cls = 'on';
+      line(fEdgesEl, L.pos[i], L.pos[f.parent[i]], cls);
+      arrow(fEdgesEl, L.pos[i], L.pos[f.parent[i]], cls);
+    }
+
+    const onPath = Object.create(null);
+    for(let i=0;i<f.findPath.length;i++) onPath[f.findPath[i]] = true;
+    for(let i=0;i<f.n;i++){
+      const d = document.createElement('div');
+      let cls = 'gnode';
+      if(i === f.cur) cls += ' cur';
+      else if(comp[i]) cls += ' flat';
+      else if(onPath[i]) cls += ' walk';
+      else if(i === f.u) cls += ' eu';
+      else if(i === f.v) cls += ' ev';
+      if(f.parent[i] === i) cls += ' root';
+      d.className = cls;
+      d.style.left = L.pos[i].x+'px'; d.style.top = L.pos[i].y+'px';
+      d.innerHTML = nodeHtml(f.labels[i], f.parent[i] === i && f.size[i] > 1 ? f.size[i] : 0);
+      fLayoutEl.appendChild(d);
+    }
+  }
+
+  function render(){
+    const f = frames[idx];
+    if(!f) return;
+    renderGraph(f);
+    renderForest(f);
+
+    let sets = 0;
+    for(let i=0;i<f.n;i++) if(f.parent[i] === i) sets++;
+    statsEl.innerHTML = 'sets <b>' + sets + '</b> &nbsp;&middot;&nbsp; pointer hops <b>' + f.hops +
+      '</b> &nbsp;&middot;&nbsp; deepest chain <b>' + f.depth + '</b>';
+
+    elistEl.innerHTML = f.edges.map(function(e,i){
+      let cls = 'echip';
+      if(i === f.rejIdx) cls += ' bad';
+      else if(f.accepted.indexOf(i) >= 0) cls += ' ok';
+      else if(i === f.ei && f.phase !== 'done') cls += ' now';
+      return '<span class="'+cls+'">'+e[0]+'&ndash;'+e[1]+'</span>';
+    }).join('');
+
+    msgEl.innerHTML = f.msg;
+
+    if(f.done){
+      vEl.hidden = false;
+      if(f.ans && f.ans.length === 2){
+        const agree = f.truth && f.truth.length === 2 &&
+                      f.truth[0] === f.ans[0] && f.truth[1] === f.ans[1];
+        vEl.innerHTML = 'redundant edge <b class="right">[' + f.ans[0] + ', ' + f.ans[1] + ']</b>' +
+          ' &nbsp;&middot;&nbsp; rejected because both ends already sat in one component' +
+          (agree ? '' : ' &nbsp;&middot;&nbsp; <b class="wrong">disagrees with the reachability check ['
+                        + (f.truth||[]).join(', ') + ']</b>');
+      } else {
+        vEl.innerHTML = '<b class="wrong">no redundant edge</b> &nbsp;&middot;&nbsp; ' +
+          'no edge ever closed a cycle, so this input is not a tree plus one extra edge';
+      }
+      if(COST){
+        costEl.hidden = false;
+        costEl.innerHTML = 'by size + compression <b class="right">' + COST.smart.hops + ' hops, depth ' +
+          COST.smart.depth + '</b> &nbsp;&middot;&nbsp; naive <b class="wrong">' + COST.naive.hops +
+          ' hops, depth ' + COST.naive.depth + '</b>';
+      } else { costEl.hidden = true; }
+    } else {
+      vEl.hidden = true; vEl.innerHTML = '';
+      costEl.hidden = true; costEl.innerHTML = '';
+    }
+
+    const pmap = { scan:['scan','● edge'], find:['scan','● find'],
+                   union:['found','✓ union'], reject:['found','✓ answer'],
+                   done:['done','■ complete'] };
+    const p = pmap[f.phase] || ['','idle'];
+    pillEl.className = 'phase-pill ' + p[0]; pillEl.textContent = p[1];
+
+    const lns = codeEl.querySelectorAll('.ln');
+    for(let i=0;i<lns.length;i++) lns[i].classList.remove('exec');
+    const ln = codeEl.querySelector('[data-line="'+f.code+'"]');
+    if(ln) ln.classList.add('exec');
+
+    barEl.style.width = (frames.length <= 1 ? 100 : (idx/(frames.length-1)*100)) + '%';
+    countEl.textContent = (idx+1) + ' / ' + frames.length;
+    $('prevBtn').disabled = idx === 0;
+    $('nextBtn').disabled = idx === frames.length-1;
+  }
+
+  function cost(edges, mode){
+    const last = buildFrames(edges, mode).slice(-1)[0];
+    return { hops: last.hops || 0, depth: last.depth || 0 };
+  }
+
+  function run(str){
+    stop();
+    const p = parseEdges(str);
+    const edges = p.edges;
+    const labels = [];
+    const seen = Object.create(null);
+    for(let i=0;i<edges.length;i++) for(let k=0;k<2;k++){
+      const x = edges[i][k];
+      if(seen[x] === undefined){ seen[x] = true; labels.push(x); }
+    }
+    labels.sort(function(a,b){ return a-b; });
+
+    buildGraph(edges, labels);
+    COST = edges.length ? { smart: cost(edges,false), naive: cost(edges,true) } : null;
+    frames = buildFrames(edges, naive);
+    idx = 0;
+
+    const n = labels.length, m = edges.length;
+    const notes = [];
+    if(p.dropped) notes.push(p.dropped + ' input pair' + (p.dropped===1?'':'s') +
+      ' ignored (self loop, repeat, or past the ' + MAXN + '-node / ' + MAXE + '-edge cap)');
+    if(m && m !== n) notes.push('this is ' + n + ' node' + (n===1?'':'s') + ' and ' + m + ' edge' +
+      (m===1?'':'s') + '; LeetCode 684 always gives exactly n of each');
+    shapeEl.innerHTML = notes.length ? notes.join(' &middot; ') : '';
+
+    render();
+  }
+
+  function next(){ if(idx < frames.length-1){ idx++; render(); } else stop(); }
+  function prev(){ if(idx > 0){ idx--; render(); } }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx >= frames.length-1) idx = 0; $('playBtn').textContent = '⏸'; tick(); }
+  function tick(){ render(); if(idx >= frames.length-1){ stop(); return; }
+                   timer = setTimeout(function(){ idx++; tick(); }, speedMs()); }
+  function stop(){ clearTimeout(timer); timer = null; $('playBtn').textContent = '▶'; }
+
+  const EX = [
+    ['1,2/1,3/2,3',                            'LC ex. 1 — the smallest case, a triangle'],
+    ['1,2/2,3/3,4/1,4/1,5',                    'LC ex. 2 — the loop closes on edge 4'],
+    ['1,2/2,3/3,4/4,5/1,6/1,7/1,8/1,5',        'naive union builds a depth-7 chain'],
+    ['1,2/3,4/5,6/7,8/1,3/5,7/1,5/2,8',        'path compression fires on a 3-hop climb'],
+    ['1,2/2,3/3,4/4,5/5,6/6,1',                'a pure 6-cycle: the last edge is the answer'],
+    ['1,2/2,3',                                'no cycle — degenerate, not a tree plus one']
+  ];
+  (function chips(){
+    const box = $('examples');
+    EX.forEach(function(pair){
+      const c = document.createElement('button');
+      c.className = 'chip';
+      c.innerHTML = esc(pair[0]) + '<b>' + pair[1] + '</b>';
+      c.onclick = function(){ inputEl.value = pair[0]; run(pair[0]); };
+      box.appendChild(c);
+    });
+  })();
+
+  function setVariant(isNaive){
+    naive = isNaive;
+    $('segNaive').classList.toggle('on', isNaive);
+    $('segSmart').classList.toggle('on', !isNaive);
+    renderCode();
+    run(inputEl.value);
+  }
+  $('segSmart').onclick = function(){ setVariant(false); };
+  $('segNaive').onclick = function(){ setVariant(true); };
+
+  $('runBtn').onclick = function(){ run(inputEl.value); };
+  inputEl.addEventListener('keydown', function(e){ if(e.key === 'Enter') run(inputEl.value); });
+  $('nextBtn').onclick = function(){ stop(); next(); };
+  $('prevBtn').onclick = function(){ stop(); prev(); };
+  $('playBtn').onclick = function(){ timer ? stop() : play(); };
+  $('restartBtn').onclick = function(){ stop(); idx = 0; render(); };
+  document.addEventListener('keydown', function(e){
+    if(document.activeElement === inputEl) return;
+    if(e.key === 'ArrowRight'){ stop(); next(); }
+    if(e.key === 'ArrowLeft'){ stop(); prev(); }
+    if(e.key === ' '){ e.preventDefault(); timer ? stop() : play(); }
+  });
+
+  window.__buildFrames = buildFrames;
+  window.__oracle      = oracleRedundant;
+  window.__parseEdges  = parseEdges;
+
+  renderCode();
+  run(inputEl.value);
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

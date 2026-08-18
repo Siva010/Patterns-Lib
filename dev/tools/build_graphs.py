@@ -61,6 +61,8 @@ VIZ = {
           "Interactive visualizer — why a visited set on a DAG silently drops correct paths"),
     207: ("207-course-schedule.html",
           "Interactive visualizer — three colours, and the single visited bit that invents cycles"),
+    684: ("684-redundant-connection.html",
+          "Interactive visualizer — the DSU forest itself, and what naive union costs"),
 }
 
 VIZ_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" '
