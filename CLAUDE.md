@@ -64,21 +64,27 @@ will lose an hour blaming the engine.
 
 ## Current state
 
-Tree Recursion: **22 of 30** pages converted to the lab engine.
-Done: 104 110 112 113 124 129 222 236 257 337 404 437 543 572 687 951 968 979
-1123 1448 100 101.
+Tree Recursion: **24 of 29** pages converted to the lab engine.
+Done: 100 101 104 110 112 113 114 124 129 222 226 236 257 337 404 437 543 572
+687 951 968 979 1123 1448.
 
 Remaining 8, each blocked on an engine capability rather than on authoring:
 
 | capability | pages | note |
 |---|---|---|
-| growing tree | 105, 106, 297, 617 | the recursion *builds* the tree; structure must come from the event log |
-| mutating edges | 226, 114, 117 | edges rewired mid-trace, replay-safe |
+| growing tree | 105, 106, 297, 617 | the recursion *builds* the tree; structure comes from the event log |
 | general graph | 834 | non-binary adjacency, two rooted passes |
 
-Growth and mutation should share one mechanism: `NODE` / `LINK` events
-accumulated during replay and overlaid on the static layout. A partial start on
-this was reverted; nothing is half-built.
+Growth and mutation share one mechanism, shipped in engine 1.2.0: `NODE` /
+`LINK` events accumulated during replay and overlaid on the static layout.
+226 and 114 are converted on it.
+
+**117 is deliberately excluded — it is 29 pages, not 30.** Its algorithm is a
+`while` loop with a dummy head and tail that walks each level along the `next`
+pointers it has already built. There is no recursion in it. This engine's whole
+vocabulary — call stack, recursion tree, holes waiting on children — describes a
+recursion, so mounting a loop on it would draw a call tree that does not exist.
+Its existing visualizer suits it and stays. Do not "finish" 117 by forcing it.
 
 Also outstanding:
 - Binary Search: 4 pages to **write from scratch** (981, 719, 300, 528), plus

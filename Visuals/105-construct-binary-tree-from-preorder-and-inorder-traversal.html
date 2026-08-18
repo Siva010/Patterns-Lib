@@ -47,6 +47,14 @@
   --t-num: #8a4b12;
   --t-com: #83807a;
   --t-ann: #8a4b12;
+
+  /* semantic pointer/state roles — shared with the array & string pages */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
 }
 html[data-theme="dark"] {
   --bg: #121213;
@@ -69,6 +77,13 @@ html[data-theme="dark"] {
   --t-num: #e0a86a;
   --t-com: #7c7a74;
   --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
@@ -719,6 +734,8 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -784,26 +801,7 @@ lookup is O(1).</p>
 preorder &mdash; that hand-off is the mechanism, and every index in lines 7 and 8 is derived from
 it.</p>
 
-<figure class="viz" id="viz-105" data-split>
-  <figcaption class="viz-head"><span class="t">Range arithmetic</span><span>pre = [3,9,20,15,7] &nbsp;·&nbsp; in = [9,3,15,20,7]</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line">TreeNode build(<span class="tok-typ">int</span> preL, <span class="tok-typ">int</span> preR, <span class="tok-typ">int</span> inL, <span class="tok-typ">int</span> inR) {</span
-      ><span class="viz-line">    <span class="tok-key">if</span> (preL &gt; preR) <span class="tok-key">return</span> <span class="tok-key">null</span>;</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> rootVal = pre[preL];</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> k = idx.get(rootVal);</span
-      ><span class="viz-line">    <span class="tok-typ">int</span> leftSize = k - inL;</span
-      ><span class="viz-line">    TreeNode nd = <span class="tok-key">new</span> TreeNode(rootVal);</span
-      ><span class="viz-line">    nd.left  = build(preL + <span class="tok-num">1</span>, preL + leftSize, inL, k - <span class="tok-num">1</span>);</span
-      ><span class="viz-line">    nd.right = build(preL + leftSize + <span class="tok-num">1</span>, preR, k + <span class="tok-num">1</span>, inR);</span
-      ><span class="viz-line">    <span class="tok-key">return</span> nd;</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <h3 class="sec" id="s2-1">2.1 Deriving the four indices, not memorising them</h3>
 
@@ -1297,132 +1295,291 @@ about duplicates is asking you to notice that it is unanswerable.</li>
 
 </script>
 
+
+
 <script>
-/* 105. Construct from Preorder + Inorder — preorder names the root, inorder sizes the halves. */
+/* ============================================================================
+   105. Construct Binary Tree from Preorder and Inorder — lab adapter.
+
+   The problem's input is two ARRAYS, but this engine's presets are trees. That
+   is turned into an advantage: the preset tree IS the answer. The adapter
+   derives its preorder and inorder, runs the real recursion on those arrays,
+   and rebuilds the tree with NODE/LINK events into panel 1. The reader watches
+   the rebuild converge on the original, which also gives the page a real
+   self-check rather than a claimed one.
+
+   Panel 0  the tree the traversals came from
+   Panel 1  the tree being rebuilt
+   Every call refs both, so a source node and its rebuilt copy light together.
+   ========================================================================== */
 (function () {
-  var PRE = [3, 9, 20, 15, 7];
-  var IN  = [9, 3, 15, 20, 7];
+  "use strict";
+  var T = window.TreeLab;
+  if (!T) return;
 
-  function n(v, l, r) { return { v: v, l: l, r: r }; }
-  var FINAL = n(3, n(9), n(20, n(15), n(7)));
-  var L = VizKit.layoutTree(FINAL, { gapX: 62, gapY: 58 });
-  var idOf = {};
-  L.nodes.forEach(function (nd) { idOf[nd.v] = nd.id; });
+  function dim(s) { return '<span class="tl-dim">' + s + "</span>"; }
+  function nd(s) { return '<span class="tl-k-node">' + s + "</span>"; }
+  function hot(s) { return '<span class="tl-k-hit">' + s + "</span>"; }
+  function lf(s) { return '<span class="tl-k-left">' + s + "</span>"; }
+  function rt(s) { return '<span class="tl-k-right">' + s + "</span>"; }
+  function F(v) { return T.fmtVal(v); }
 
-  var pos = {};
-  IN.forEach(function (v, i) { pos[v] = i; });
-
-  var steps = [], built = {};
-
-  function push(o) {
-    var s = { line: o.line, note: o.note, built: {} };
-    for (var k in built) s.built[k] = 1;
-    ["preL", "preR", "inL", "inR", "root", "k", "leftSize", "cur"].forEach(function (f) {
-      if (o[f] !== undefined) s[f] = o[f];
-    });
-    steps.push(s);
+  /* preorder, inorder, and value -> source-node key, in one walk */
+  function walk(root) {
+    var pre = [], ino = [], srcKey = {};
+    (function w(n) {
+      if (!n) return;
+      pre.push(n.val);
+      srcKey[n.val] = n.key;
+      w(n.left);
+      ino.push(n.val);
+      w(n.right);
+    })(root);
+    return { pre: pre, ino: ino, srcKey: srcKey };
   }
 
-  function build(preL, preR, inL, inR, who) {
-    if (preL > preR) {
-      push({ line: 2, preL: preL, preR: preR, inL: inL, inR: inR,
-        note: who + ": the preorder range is empty (<code>" + preL + " &gt; " + preR +
-              "</code>) &mdash; this child is <strong>null</strong>." });
-      return;
+  /* an array with its live window marked, and the root position highlighted */
+  function arr(vals, lo, hi, mark) {
+    var out = [], i;
+    for (i = 0; i < vals.length; i++) {
+      var s = F(vals[i]);
+      if (i === mark) out.push(hot(s));
+      else if (lo !== undefined && lo !== null && i >= lo && i <= hi) out.push(nd(s));
+      else out.push(dim(s));
     }
-    var rootVal = PRE[preL];
-    push({ line: 3, preL: preL, preR: preR, inL: inL, inR: inR, root: preL,
-      note: who + ": preorder range <code>[" + preL + ".." + preR + "]</code> starts with " +
-            "<strong>" + rootVal + "</strong>, so that is this subtree's root." });
-
-    var k = pos[rootVal];
-    push({ line: 4, preL: preL, preR: preR, inL: inL, inR: inR, root: preL, k: k,
-      note: "Look <strong>" + rootVal + "</strong> up in inorder: index <strong>" + k +
-            "</strong>. Everything left of it in <code>[" + inL + ".." + inR +
-            "]</code> is the left subtree." });
-
-    var leftSize = k - inL;
-    push({ line: 5, preL: preL, preR: preR, inL: inL, inR: inR, root: preL, k: k, leftSize: leftSize,
-      note: "<code>leftSize = k − inL = " + k + " − " + inL + " = <strong>" + leftSize +
-            "</strong></code>. Note it is measured from <code>inL</code>, not from 0 &mdash; using " +
-            "<code>k</code> alone works only at the root." });
-
-    built[idOf[rootVal]] = 1;
-    push({ line: 6, preL: preL, preR: preR, inL: inL, inR: inR, root: preL, k: k,
-      leftSize: leftSize, cur: idOf[rootVal],
-      note: "Create node <strong>" + rootVal + "</strong>." });
-
-    push({ line: 7, preL: preL + 1, preR: preL + leftSize, inL: inL, inR: k - 1, cur: idOf[rootVal],
-      note: "Left subtree: preorder <code>[" + (preL + 1) + ".." + (preL + leftSize) +
-            "]</code>, inorder <code>[" + inL + ".." + (k - 1) + "]</code> &mdash; " + leftSize +
-            " node" + (leftSize === 1 ? "" : "s") + " in each, as they must be." });
-    build(preL + 1, preL + leftSize, inL, k - 1, "Left of " + rootVal);
-
-    push({ line: 8, preL: preL + leftSize + 1, preR: preR, inL: k + 1, inR: inR, cur: idOf[rootVal],
-      note: "Right subtree: preorder <code>[" + (preL + leftSize + 1) + ".." + preR +
-            "]</code>, inorder <code>[" + (k + 1) + ".." + inR + "]</code> &mdash; whatever is left." });
-    build(preL + leftSize + 1, preR, k + 1, inR, "Right of " + rootVal);
+    return dim("[") + out.join(dim(",")) + dim("]");
   }
 
-  build(0, PRE.length - 1, 0, IN.length - 1, "Root call");
-  push({ line: 9, note: "Every range is exhausted &mdash; the tree is rebuilt." });
+  var JAVA_RANGE = [
+    "TreeNode build(int preL, int preR, int inL, int inR) {",
+    "    if (preL > preR) return null;",
+    "    int rootVal = pre[preL];",
+    "    int k = idx.get(rootVal);",
+    "    int leftSize = k - inL;",
+    "    TreeNode nd = new TreeNode(rootVal);",
+    "    nd.left  = build(preL + 1, preL + leftSize, inL, k - 1);",
+    "    nd.right = build(preL + leftSize + 1, preR, k + 1, inR);",
+    "    return nd;",
+    "}"
+  ];
+  var L_RANGE = { TOP: 1, NULL: 2, ROOT: 3, FIND: 4, SIZE: 5, MAKE: 6, RECL: 7, RECR: 8, RET: 9 };
 
-  function labelled(text, html) {
-    return '<div style="display:flex;align-items:center;gap:12px">' +
-      '<span style="font-family:var(--sans);font-size:9.5px;font-weight:600;letter-spacing:.09em;' +
-      'text-transform:uppercase;color:var(--fg-dim);min-width:5.4em">' + text + "</span>" + html + "</div>";
-  }
+  var JAVA_CURSOR = [
+    "private int pre = 0;",
+    "TreeNode build(int inL, int inR) {",
+    "    if (inL > inR) return null;",
+    "    int v = preorder[pre++];         // consume in preorder order",
+    "    int k = idx.get(v);",
+    "    TreeNode nd = new TreeNode(v);",
+    "    nd.left  = build(inL, k - 1);    // LEFT first — preorder demands it",
+    "    nd.right = build(k + 1, inR);",
+    "    return nd;",
+    "}"
+  ];
+  var L_CURSOR = { TOP: 2, NULL: 3, ROOT: 4, FIND: 5, SIZE: 5, MAKE: 6, RECL: 7, RECR: 8, RET: 9 };
 
-  VizKit.stepper(document.getElementById("viz-105"), {
-    steps: steps,
-    speed: 1050,
-    render: function (s) {
-      var svg = VizKit.treeSVG(L, function (nd) {
-        if (s.cur === nd.id) return "on";
-        if (s.built[nd.id]) return "done";
-        return "out";
-      }, { r: 17, alt: "The tree being rebuilt from its two traversals" });
+  var JAVA_OFF1 = [
+    "TreeNode build(int preL, int preR, int inL, int inR) {        // ✗",
+    "    if (preL > preR) return null;",
+    "    int rootVal = pre[preL];",
+    "    int k = idx.get(rootVal);",
+    "    int leftSize = k - inL;",
+    "    TreeNode nd = new TreeNode(rootVal);",
+    "    nd.left  = build(preL + 1, preL + leftSize - 1, inL, k - 1);   // one short",
+    "    nd.right = build(preL + leftSize + 1, preR, k + 1, inR);",
+    "    return nd;",
+    "}"
+  ];
+  var L_OFF1 = L_RANGE;
 
-      var preArr = VizKit.arrayHTML(PRE, {
-        stateOf: function (v, i) {
-          if (s.root === i) return "on";
-          if (s.preL !== undefined && i >= s.preL && i <= s.preR) return "region";
-          return "out";
-        },
-        pointerAt: function (i) {
-          if (i === s.preL && i === s.preR) return "L R";
-          if (i === s.preL) return "L";
-          if (i === s.preR) return "R";
-          return "";
-        }
-      });
-      var inArr = VizKit.arrayHTML(IN, {
-        stateOf: function (v, i) {
-          if (s.k === i) return "hit";
-          if (s.inL !== undefined && i >= s.inL && i <= s.inR) return "region";
-          return "out";
-        },
-        pointerAt: function (i) {
-          if (i === s.k) return "k";
-          if (i === s.inL && i === s.inR) return "L R";
-          if (i === s.inL) return "L";
-          if (i === s.inR) return "R";
-          return "";
-        }
-      });
+  /* ------------------------------------------------------------------- run */
+  function run(root, emit, o) {
+    var id = o.id, L = o.L, usingCursor = (id === "cursor");
+    var W = walk(root), pre = W.pre, ino = W.ino, srcKey = W.srcKey;
 
-      return svg + labelled("preorder", preArr) + labelled("inorder", inArr) +
-        (s.leftSize !== undefined ? VizKit.pills("leftSize", [s.leftSize]) : "") +
-        '<div class="viz-legend">' +
-          '<span><i data-state="region"></i> active range</span>' +
-          '<span><i data-state="on"></i> root of this range</span>' +
-          '<span><i data-state="hit"></i> its seat in inorder</span>' +
-          '<span><i data-state="out"></i> outside / not yet built</span></div>';
+    if (Object.keys(srcKey).length !== pre.length) {
+      throw new Error("this problem needs distinct values — that tree repeats one");
     }
+    var idx = {}, i;
+    for (i = 0; i < ino.length; i++) idx[ino[i]] = i;
+
+    var cursor = 0, made = 0;
+    function em(e) { emit(e); return e; }
+
+    em({ type: "START", line: L.TOP, id: id, pre: pre, ino: ino });
+
+    function build(preL, preR, inL, inR, key, parentKey, side, depth) {
+      var empty = usingCursor ? (inL > inR) : (preL > preR);
+
+      /* the root value is known before the call is drawn, so the CALL can name
+         the source node it corresponds to and both panels light together */
+      var rootVal = empty ? null : (usingCursor ? pre[cursor] : pre[preL]);
+      var refs = [];
+      if (!empty) {
+        refs.push({ t: 1, key: key });
+        if (srcKey[rootVal] !== undefined) refs.push({ t: 0, key: srcKey[rootVal] });
+      }
+
+      em({ type: "CALL", key: key, parentKey: parentKey, side: side, depth: depth,
+           isNull: empty, val: rootVal, line: L.TOP,
+           args: usingCursor ? "build(" + inL + ", " + inR + ")"
+                             : "build(" + preL + ", " + preR + ", " + inL + ", " + inR + ")",
+           preL: preL, preR: preR, inL: inL, inR: inR, cursor: cursor,
+           pre: pre, ino: ino, refs: refs });
+
+      if (empty) {
+        em({ type: "BASE", key: key, depth: depth, line: L.NULL, value: null,
+             preL: preL, preR: preR, inL: inL, inR: inR, cursor: cursor, pre: pre, ino: ino });
+        em({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+             value: null, line: L.NULL, reason: "empty range" });
+        return null;
+      }
+
+      var takenAt = usingCursor ? cursor : preL;
+      if (usingCursor) cursor++;
+      var k = idx[rootVal];
+      var leftSize = k - inL;
+
+      em({ type: "CHECK", key: key, line: L.ROOT, kind: "root",
+           rootVal: rootVal, at: takenAt, k: k, leftSize: leftSize,
+           preL: preL, preR: preR, inL: inL, inR: inR, cursor: cursor, pre: pre, ino: ino });
+
+      em({ type: "NODE", t: 1, key: key, val: rootVal, line: L.MAKE });
+      made++;
+
+      var lk, rk;
+      em({ type: "EVAL", key: key, side: "left", line: L.RECL });
+      if (usingCursor) lk = build(0, 0, inL, k - 1, key + "L", key, "left", depth + 1);
+      else if (id === "off1") lk = build(preL + 1, preL + leftSize - 1, inL, k - 1, key + "L", key, "left", depth + 1);
+      else lk = build(preL + 1, preL + leftSize, inL, k - 1, key + "L", key, "left", depth + 1);
+      if (lk) em({ type: "LINK", t: 1, parent: key, side: "left", child: lk, key: key, line: L.RECL });
+
+      em({ type: "EVAL", key: key, side: "right", line: L.RECR });
+      if (usingCursor) rk = build(0, 0, k + 1, inR, key + "R", key, "right", depth + 1);
+      else rk = build(preL + leftSize + 1, preR, k + 1, inR, key + "R", key, "right", depth + 1);
+      if (rk) em({ type: "LINK", t: 1, parent: key, side: "right", child: rk, key: key, line: L.RECR });
+
+      em({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+           value: rootVal, line: L.RET, reason: "built" });
+      return key;
+    }
+
+    build(0, pre.length - 1, 0, ino.length - 1, "R", null, null, 0);
+
+    em({ type: "DONE", line: L.RET, depth: 0, value: pre.length ? pre[0] : null,
+         made: made, total: pre.length, empty: !root, id: id, pre: pre, ino: ino });
+    return made;
+  }
+
+  /* --------------------------------------------------------------- display */
+  function exprOf(f, st) {
+    if (f.isNull) return dim("return null") + " " + dim("— the range is empty, so there is no node here");
+    if (f.result !== undefined) return dim("return ") + nd(F(f.result)) + dim(" — this subtree is finished");
+    return dim("build(") + lf("left") + dim(") then build(") + rt("right") + dim(") — both still open");
+  }
+
+  function checkText(e) {
+    if (!e || e.kind !== "root") return null;
+    return dim("preorder hands over ") + hot(F(e.rootVal)) +
+      dim(" from index " + e.at + "; inorder puts it at ") + hot("k = " + e.k) +
+      dim(", so the left subtree holds ") + lf(String(e.leftSize)) +
+      dim(" node" + (e.leftSize === 1 ? "" : "s"));
+  }
+
+  function narrate(st) {
+    var e = st.event || {};
+    if (e.type === "START") {
+      return { tag: "start", text: "The tree on the left is where these arrays came from; the recursion " +
+        "never sees it. Watch the right-hand tree rebuild it from the arrays alone.<br>" +
+        dim("pre ") + arr(e.pre) + dim("&nbsp;&nbsp;in ") + arr(e.ino) };
+    }
+    if (e.type === "CHECK" && e.kind === "root") {
+      return { tag: "split", text: "Preorder gives this subtree's root: " + hot(F(e.rootVal)) +
+        ". Finding it in inorder at " + hot("k = " + e.k) + " splits the rest into " +
+        lf(e.leftSize + " on the left") + " and " + rt((e.inR - e.k) + " on the right") + ".<br>" +
+        dim("pre ") + arr(e.pre, e.preL, e.preR, e.at) + dim("&nbsp;&nbsp;in ") + arr(e.ino, e.inL, e.inR, e.k) };
+    }
+    if (e.type === "NODE") {
+      return { tag: "make", text: "Node " + nd(F(e.val)) + " exists now. It is hung on its parent only " +
+        "once its own two subtrees are finished — which is why the tree grows from the top but attaches from the bottom." };
+    }
+    if (e.type === "LINK") {
+      return { tag: "attach", text: "The finished " + (e.side === "left" ? lf("left") : rt("right")) +
+        " subtree is attached." };
+    }
+    if (e.type === "BASE") {
+      return { tag: "base", text: "The range is empty" +
+        (e.inL > e.inR ? " (inL " + e.inL + " &gt; inR " + e.inR + ")" : "") + " — that side is null." };
+    }
+    if (e.type === "DONE") {
+      if (e.empty) return { tag: "done", text: "Empty input — nothing to build." };
+      return { tag: "done", text: e.made + " of " + e.total + " nodes rebuilt. " +
+        (e.made === e.total ? "The rebuilt tree matches the one the traversals came from."
+                            : "Nodes are missing — the ranges failed to cover the whole array.") };
+    }
+    return null;
+  }
+
+  function stats(st) {
+    var e = st.event || {}, out = [];
+    if (e.inL !== undefined && e.inR !== undefined) {
+      out.push({ label: "inorder window", html: e.inL > e.inR ? dim("empty") : "[" + e.inL + " … " + e.inR + "]" });
+    }
+    if (e.k !== undefined) out.push({ label: "root at k", html: hot(String(e.k)) });
+    if (e.cursor !== undefined && st.done === null) out.push({ label: "preorder cursor", html: hot(String(e.cursor)) });
+    var b = st.built && st.built[1];
+    out.push({ label: "nodes built", html: "<b>" + (b ? Object.keys(b.nodes).length : 0) + "</b>" });
+    return out;
+  }
+
+  function verdict(st) {
+    if (!st.done) return null;
+    var d = st.done;
+    if (d.empty) return { ok: true, text: "empty input" };
+    if (d.made === d.total) return { ok: true, text: "rebuilt tree matches the source exactly" };
+    return { ok: false, text: "only " + d.made + " of " + d.total + " nodes were rebuilt" };
+  }
+
+  T.mount({
+    mountEl: "#lab",
+    title: "build(preL, preR, inL, inR)",
+    subtitle: "preorder names the root; inorder says where to cut",
+    tag: "interactive",
+    treeLabels: ["the tree these traversals came from", "being rebuilt"],
+    structureNote: "left: the source. right: what the recursion has built so far",
+    callTreeNote: "one call per range, including the empty ranges that become nulls",
+    presets: [
+      { tokens: "[3,9,20,null,null,15,7]", note: "the arrays above — pre [3,9,20,15,7], in [9,3,15,20,7]" },
+      { tokens: "[1,2,3,4,5,6,7]", note: "a perfect tree — every split is even" },
+      { tokens: "[1,2,null,3,null,4]", note: "a left chain — inorder is preorder reversed, and every cut puts everything on the left" },
+      { tokens: "[1,null,2,null,3]", note: "a right chain — every left range is empty" },
+      { tokens: "[5,3,8,2,4,7,9]", note: "a BST shape, so inorder comes out sorted" },
+      { tokens: "[1,2]", note: "two nodes, leaning left" },
+      { tokens: "[1]", note: "one node" },
+      { tokens: "[]", note: "empty" }
+    ],
+    variants: [
+      { id: "range", label: "four indices", java: JAVA_RANGE, lines: L_RANGE },
+      { id: "cursor", label: "shared preorder cursor", java: JAVA_CURSOR, lines: L_CURSOR },
+      { id: "off1", label: "✗ left range one short", java: JAVA_OFF1, lines: L_OFF1 }
+    ],
+    run: run,
+    expr: exprOf,
+    checkText: checkText,
+    narrate: narrate,
+    stats: stats,
+    verdict: verdict,
+    isFail: function () { return false; },
+    nodeResult: function () { return null; },
+    legend: [
+      { state: "active", text: "the call running now" },
+      { state: "path", text: "on the stack" },
+      { state: "done", text: "built and attached" },
+      { state: "ghost", text: "not reached yet" }
+    ]
   });
 })();
 </script>
-
 
 </body>
 </html>
