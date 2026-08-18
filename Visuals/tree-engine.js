@@ -39,7 +39,7 @@
   "use strict";
 
   var SVGNS = "http://www.w3.org/2000/svg";
-  var VERSION = "1.2.0";
+  var VERSION = "1.3.0";
 
   /* ======================================================== small utilities */
 
@@ -229,6 +229,21 @@
       var b = baseMap[key];
       return b && b[which] ? b[which].key : null;
     }
+    /* A LINK whose `side` is a number puts the child in an ordered slot rather
+       than in left/right. That is how a general (n-ary) tree is expressed —
+       834's adjacency lists, for instance. A node built this way carries
+       `kids`, and layoutNary draws it. */
+    function narySlots(key) {
+      var kids = ov.kids[key];
+      if (!kids) return null;
+      var nums = [], k;
+      for (k in kids) if (String(+k) === String(k)) nums.push(+k);
+      if (!nums.length) return null;
+      nums.sort(function (a, b) { return a - b; });
+      var out = [];
+      for (var i = 0; i < nums.length; i++) if (kids[nums[i]] != null) out.push(kids[nums[i]]);
+      return out;
+    }
     function mk(key, depth) {
       if (!key || seen[key] || depth > cap) return null;
       var nd = ov.nodes[key] || baseMap[key];
@@ -236,11 +251,54 @@
       seen[key] = 1;
       var node = { val: nd.val, key: key, depth: depth, left: null, right: null,
                    isNew: !!ov.nodes[key] && !baseMap[key] };
+      var slots = narySlots(key);
+      if (slots) {
+        node.kids = [];
+        for (var s = 0; s < slots.length; s++) {
+          var c = mk(slots[s], depth + 1);
+          if (c) node.kids.push(c);
+        }
+        return node;
+      }
       node.left = mk(side(key, "left"), depth + 1);
       node.right = mk(side(key, "right"), depth + 1);
       return node;
     }
     return mk(rootKey, 0);
+  }
+
+  /**
+   * layoutNary(root, opts) — a tidy layout for a general tree, where each node
+   * carries `kids` instead of left/right. Leaves take the next slot; a parent
+   * centres over its first and last child. Same output shape as layoutTree, so
+   * the renderer treats them identically.
+   * -> { map:{key:{key,val,x,y,depth,kids:[keys]}}, w, h, nary:true }
+   */
+  function layoutNary(root, opts) {
+    opts = opts || {};
+    var XG = pick(opts.gapX, 62), YG = pick(opts.gapY, 66);
+    var map = {}, idx = 0, maxD = 0, seen = {};
+    function place(n, depth) {
+      if (!n || seen[n.key]) return null;
+      seen[n.key] = 1;
+      var kids = n.kids || [];
+      var rec = { key: n.key, val: n.val, x: 0, y: depth * YG, depth: depth, kids: [] };
+      map[n.key] = rec;
+      if (depth > maxD) maxD = depth;
+      if (!kids.length) { rec.x = idx * XG; idx++; return rec; }
+      var first = null, last = null;
+      for (var i = 0; i < kids.length; i++) {
+        var c = place(kids[i], depth + 1);
+        if (!c) continue;
+        rec.kids.push(kids[i].key);
+        if (first === null) first = c;
+        last = c;
+      }
+      rec.x = first ? (first.x + last.x) / 2 : (idx++ * XG);
+      return rec;
+    }
+    place(root, 0);
+    return { map: map, w: Math.max(idx - 1, 0) * XG, h: maxD * YG, nary: true };
   }
 
   /* ================================================================= REPLAY
@@ -528,6 +586,7 @@
       /* dual-tree support. treeLabels captions the panels; dualSep lets the one
          custom-input box carry both trees as "[1,2] | [1,2]". */
       treeLabels: config.treeLabels || null,
+      noBaseTree: !!config.noBaseTree,
       dualSep: pick(config.dualSep, "|"),
       customPlaceholder: pick(config.customPlaceholder, "[3,9,20,null,null,15,7]"),
       holeGlyph: pick(config.holeGlyph, "▢"),
@@ -657,6 +716,8 @@
         variant: variant, id: variant.id, index: S.variantIdx,
         L: L, lines: L, root: root, instance: inst,
         root2: S.root2 || null,
+        preset: cfg.presets[S.presetIdx] || null,
+        tokensStr: S.tokensStr,
         maxNodes: cfg.maxNodes, maxHeight: cfg.maxHeight
       };
 
@@ -862,7 +923,8 @@
     }
 
     function renderStructure(st) {
-      if (!cfg.showStructure || !ui.treeSvg || !S.tl) return;
+      if (!cfg.showStructure || !ui.treeSvg) return;
+      if (!S.tl && !(st.built && (st.built[0] || st.built[1] || st.built[2]))) return;
       var PAD = 30, GAP = 52, svg = ui.treeSvg;
       var B = st.built || {};
 
@@ -872,10 +934,12 @@
       function panelLayout(t, base, staticLay) {
         if (!B[t]) return staticLay;
         var root = assembleTree(base, B[t], { maxDepth: (cfg.maxHeight || 6) + 8 });
-        return root ? layoutTree(root) : { map: {}, w: 0, h: 0 };
+        if (!root) return { map: {}, w: 0, h: 0 };
+        return root.kids ? layoutNary(root) : layoutTree(root);
       }
 
-      var panels = [{ lay: panelLayout(0, S.root, S.tl), t: 0 }];
+      var panels = [];
+      if (S.tl || B[0]) panels.push({ lay: panelLayout(0, S.root, S.tl || { map: {}, w: 0, h: 0 }), t: 0 });
       if (S.tl2 || B[1]) panels.push({ lay: panelLayout(1, S.root2, S.tl2 || { map: {}, w: 0, h: 0 }), t: 1 });
       /* index 2+ exist only when the recursion builds an output tree */
       for (var ti = 2; B[ti]; ti++) panels.push({ lay: panelLayout(ti, null, { map: {}, w: 0, h: 0 }), t: ti });
@@ -915,8 +979,8 @@
           rec = lay.map[keys[j]];
           /* the closure needs its own copies — p/t/ox move on the next pass */
           (function (rec, t, ox, lay) {
-            ["left", "right"].forEach(function (side) {
-              var ck = rec[side];
+            var sides = lay.nary ? (rec.kids || []) : [rec.left, rec.right];
+            sides.forEach(function (ck) {
               if (!ck) return;
               var c = lay.map[ck];
               svg.appendChild(svgEl("line", {
@@ -1020,6 +1084,22 @@
         if (ix >= 0) { sb = sa.slice(ix + cfg.dualSep.length); sa = sa.slice(0, ix); }
       }
       var lim = { maxNodes: cfg.maxNodes, maxHeight: cfg.maxHeight };
+      /* A page whose input is not a binary tree at all (834's edge list) sets
+         noBaseTree and supplies every node through NODE/LINK instead. */
+      if (cfg.noBaseTree) {
+        S.root = null; S.root2 = null; S.tl = null; S.tl2 = null;
+        S.cl = { map: {}, w: 0, h: 0, count: 0 };
+        S.tokensStr = String(str);
+        S.note = note || "";
+        S.trace = buildTrace(null);
+        S.zoom = 1; fitZoom(); stopPlay();
+        if (ui.err) ui.err.textContent = "";
+        if (ui.presetNote) ui.presetNote.textContent = S.note;
+        render(0);
+        if (cfg.onLoad) cfg.onLoad(inst, null);
+        if (cfg.autoplay) startPlay();
+        return true;
+      }
       var root = buildTree(parseTokens(sa), lim);
       var hasB = !(sb === undefined || sb === null || String(sb).trim() === "");
       var root2 = hasB ? buildTree(parseTokens(sb), lim) : null;
@@ -1286,6 +1366,7 @@
     /* layouts */
     layoutTree: layoutTree,
     assembleTree: assembleTree,
+    layoutNary: layoutNary,
     layoutCallTree: layoutCallTree,
     /* the contract */
     replayTo: replayTo,
