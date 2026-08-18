@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>132 interactive visualizers</title>
+<title>133 interactive visualizers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -71,7 +71,7 @@ a.card .d { font-family:var(--sans); font-size:12.5px; color:var(--fg-dim); marg
 <body>
 <div class="wrap">
 <h1>Interactive visualizers</h1>
-<p class="lede">132 pages, one house style. Every diagram is driven by a real,
+<p class="lede">133 pages, one house style. Every diagram is driven by a real,
 instrumented implementation of the algorithm it&rsquo;s showing &mdash; step through with the
 controls or the arrow keys, and the code pane highlights the exact line running at each frame.</p>
 
@@ -406,7 +406,7 @@ twelve mutations of it. What changes between sub-variants is never the traversal
 
 <h2 class="part" id="p6">Pattern 6 &mdash; Graphs</h2>
 <p class="partsub">The graph is usually implicit &mdash; neighbours are computed, never stored &mdash; and the
-only design decisions are what a node is and what you carry. Six pages so far, across traversal and ordering.</p>
+only design decisions are what a node is and what you carry. Seven pages so far, across all three graph patterns.</p>
 
 <h3><span class="sv">A</span> Traversal 1.A &mdash; flood fill on a grid</h3>
 <div class="grid">
@@ -436,6 +436,11 @@ only design decisions are what a node is and what you carry. Six pages so far, a
 <h3><span class="sv">E</span> Ordering 2.E &mdash; union-find, the structure itself</h3>
 <div class="grid">
 <a class="card" href="684-redundant-connection.html"><span class="num">684</span><span class="t">Redundant Connection</span><span class="diff diff-medium">Medium</span><span class="d">the parent forest drawn beside the graph &mdash; and what dropping union-by-size costs</span></a>
+</div>
+
+<h3><span class="sv">E</span> Weighted 3.E &mdash; Bellman&ndash;Ford, and where Dijkstra breaks</h3>
+<div class="grid">
+<a class="card" href="787-cheapest-flights-within-k-stops.html"><span class="num">787</span><span class="t">Cheapest Flights Within K Stops</span><span class="diff diff-medium">Medium</span><span class="d">a stop budget voids Dijkstra&rsquo;s finality &mdash; watch a sealed city block the legal route</span></a>
 </div>
 
 <h2 class="part" id="alt">Also in this folder</h2>

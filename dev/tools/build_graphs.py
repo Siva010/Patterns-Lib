@@ -63,6 +63,8 @@ VIZ = {
           "Interactive visualizer — three colours, and the single visited bit that invents cycles"),
     684: ("684-redundant-connection.html",
           "Interactive visualizer — the DSU forest itself, and what naive union costs"),
+    787: ("787-cheapest-flights-within-k-stops.html",
+          "Interactive visualizer — Dijkstra failing under a stop budget, beside Bellman-Ford"),
 }
 
 VIZ_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" '
