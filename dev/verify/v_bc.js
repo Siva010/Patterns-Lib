@@ -64,11 +64,18 @@ function symByLevels(root) {
 }
 
 /* ---------- well-formed generator ---------- */
-function gen(maxN) {
+/* Depth matters as much as node count: a 13-node chain is 13 levels deep and
+   the engine rightly refuses anything past its cap. Bounding only the node
+   count let this generator emit trees the engine rejects, which crashed the
+   run about one time in three — the failure CLAUDE.md warns about, arriving
+   from the generator rather than the code under test. */
+function gen(maxN, maxDepth) {
+  maxDepth = maxDepth || 5;
   const n = 1 + Math.floor(Math.random() * maxN);
   const out = [1 + Math.floor(Math.random() * 6)];
-  let q = [0], count = 1;
-  while (q.length && count < n) {
+  let q = [0], count = 1, level = 0;
+  while (q.length && count < n && level < maxDepth) {
+    level++;
     const nq = [];
     for (const _ of q) for (let s = 0; s < 2; s++) {
       if (count >= n || Math.random() < 0.3) { out.push("null"); }
@@ -82,7 +89,8 @@ function gen(maxN) {
 }
 /* a tree and its structural mirror, as token strings */
 function mirrorTokens(tok) {
-  const r = tree(tok);
+  let r;
+  try { r = tree(tok); } catch (e) { return tok; }   // engine declined it; caller skips
   const mir = (function m(n) { return n ? { val: n.val, left: m(n.right), right: m(n.left) } : null; })(r);
   // serialise back to a level-order token list
   const out = []; let lvl = [mir];
