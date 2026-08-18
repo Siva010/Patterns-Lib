@@ -57,6 +57,8 @@ VIZ = {
            "Interactive visualizer — a level is a distance, and mark-on-pop run side by side"),
     994: ("994-rotting-oranges.html",
           "Interactive visualizer — every source seeded before the first pop, and the fresh counter"),
+    797: ("797-all-paths-from-source-to-target.html",
+          "Interactive visualizer — why a visited set on a DAG silently drops correct paths"),
 }
 
 VIZ_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" '
