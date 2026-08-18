@@ -47,6 +47,14 @@
   --t-num: #8a4b12;
   --t-com: #83807a;
   --t-ann: #8a4b12;
+
+  /* semantic pointer/state roles — shared with the array & string pages */
+  --r-anchor:  #9c3a1c; --r-anchor-wash:  rgba(156,58,28,.10);  --r-anchor-line:  rgba(156,58,28,.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-left:    #2f5fa8; --r-left-wash:    rgba(47,95,168,.10);  --r-left-line:    rgba(47,95,168,.42);
+  --r-right:   #6b3a8f; --r-right-wash:   rgba(107,58,143,.10); --r-right-line:   rgba(107,58,143,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+  --r-hit:     #1f6b52; --r-hit-wash:     rgba(31,107,82,.10);  --r-hit-line:     rgba(31,107,82,.42);
 }
 html[data-theme="dark"] {
   --bg: #121213;
@@ -69,6 +77,13 @@ html[data-theme="dark"] {
   --t-num: #e0a86a;
   --t-com: #7c7a74;
   --t-ann: #e0a86a;
+
+  --r-anchor:  #e3865f; --r-anchor-wash:  rgba(227,134,95,.14);  --r-anchor-line:  rgba(227,134,95,.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-left:    #7fb0f0; --r-left-wash:    rgba(127,176,240,.14); --r-left-line:    rgba(127,176,240,.46);
+  --r-right:   #bd94e8; --r-right-wash:   rgba(189,148,232,.14); --r-right-line:   rgba(189,148,232,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+  --r-hit:     #5fc9a3; --r-hit-wash:     rgba(95,201,163,.14);  --r-hit-line:     rgba(95,201,163,.46);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
@@ -719,6 +734,8 @@ html { scroll-behavior: auto; }
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
 </script>
+<link rel="stylesheet" href="tree-engine.css">
+<script src="tree-engine.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -805,31 +822,7 @@ ans[c] = ans[p] + n &minus; 2 &middot; size[c]
 child whose subtree holds exactly half the tree gives
 <code class="inl">ans[c] = ans[p]</code>, which is right: the gains and losses cancel.</p>
 
-<figure class="viz" id="viz-834" data-split>
-  <figcaption class="viz-head"><span class="t">Two passes, then reroot</span><span>n = 6 · answer [8,12,6,10,10,10]</span><span class="tag">interactive</span></figcaption>
-  <div class="viz-body">
-    <div class="viz-stage"></div>
-    <div class="viz-code"><pre><code
-      ><span class="viz-line"><span class="tok-key">void</span> post(<span class="tok-typ">int</span> u, <span class="tok-typ">int</span> p) {</span
-      ><span class="viz-line">    size[u] = <span class="tok-num">1</span>;</span
-      ><span class="viz-line">    <span class="tok-key">for</span> (<span class="tok-typ">int</span> v : g[u]) <span class="tok-key">if</span> (v != p) {</span
-      ><span class="viz-line">        post(v, u);</span
-      ><span class="viz-line">        size[u] += size[v];</span
-      ><span class="viz-line">        ans[u]  += ans[v] + size[v];</span
-      ><span class="viz-line">    }</span
-      ><span class="viz-line">}</span
-      ><span class="viz-line"> </span
-      ><span class="viz-line"><span class="tok-key">void</span> pre(<span class="tok-typ">int</span> u, <span class="tok-typ">int</span> p) {</span
-      ><span class="viz-line">    <span class="tok-key">for</span> (<span class="tok-typ">int</span> v : g[u]) <span class="tok-key">if</span> (v != p) {</span
-      ><span class="viz-line">        ans[v] = ans[u] + n - <span class="tok-num">2</span> * size[v];</span
-      ><span class="viz-line">        pre(v, u);</span
-      ><span class="viz-line">    }</span
-      ><span class="viz-line">}</span
-    ></code></pre></div>
-  </div>
-  <p class="viz-note"></p>
-  <div class="viz-bar"></div>
-</figure>
+<div id="lab"></div>
 
 <p>After pass 1, only <code class="inl">ans[0] = 8</code> is a real answer &mdash; every other
 entry holds the sum of distances <em>within its own subtree</em>, which is not what was asked.
@@ -1320,127 +1313,356 @@ contrast for when the full set of values is not actually required.</p>
 
 </script>
 
+
+
 <script>
-/* 834. Sum of Distances in Tree — postorder sizes, then O(1) rerooting downward. */
+/* ============================================================================
+   834. Sum of Distances in Tree — lab adapter.
+
+   The only page here whose input is not a binary tree. It is an undirected edge
+   list, so the page sets `noBaseTree` and supplies every node itself through
+   NODE/LINK events with NUMERIC sides — engine 1.3.0's n-ary form.
+
+   Rooting is shown rather than assumed: the input is undirected, and choosing 0
+   as the root is a decision the algorithm makes. The first few steps draw that
+   choice happening.
+
+   Then two passes over the same tree:
+     post   size[u] and ans[u] for u's own subtree, bottom-up
+     reroot ans[v] = ans[u] + n - 2*size[v], top-down
+
+   The rerooting identity is the whole point. Moving the root from u to an
+   adjacent v brings every node inside v's subtree one step closer (size[v] of
+   them) and pushes every other node one step further (n - size[v] of them), so
+   the total changes by (n - size[v]) - size[v] = n - 2*size[v].
+   ========================================================================== */
 (function () {
-  var N = 6;
-  var EDGES = [[0, 1], [0, 2], [2, 3], [2, 4], [2, 5]];
-  var POS = { 0: [155, 32], 1: [72, 108], 2: [220, 108], 3: [150, 184], 4: [220, 184], 5: [290, 184] };
-  var W = 330, H = 216;
+  "use strict";
+  var T = window.TreeLab;
+  if (!T) return;
 
-  var g = {};
-  for (var i = 0; i < N; i++) g[i] = [];
-  EDGES.forEach(function (e) { g[e[0]].push(e[1]); g[e[1]].push(e[0]); });
+  function dim(s) { return '<span class="tl-dim">' + s + "</span>"; }
+  function nd(s) { return '<span class="tl-k-node">' + s + "</span>"; }
+  function hot(s) { return '<span class="tl-k-hit">' + s + "</span>"; }
+  function sz(s) { return '<span class="tl-k-left">' + s + "</span>"; }
+  function an(s) { return '<span class="tl-k-right">' + s + "</span>"; }
+  function F(v) { return T.fmtVal(v); }
+  var NK = function (u) { return "n" + u; };
 
-  var size = new Array(N).fill(0), ans = new Array(N).fill(0);
-  var steps = [];
-
-  function push(o) {
-    var s = { line: o.line, note: o.note, phase: o.phase,
-              size: size.slice(), ans: ans.slice() };
-    ["u", "v", "settled"].forEach(function (f) { if (o[f] !== undefined) s[f] = o[f]; });
-    if (o.settledSet) s.settledSet = o.settledSet.slice();
-    steps.push(s);
-  }
-
-  /* ---- pass 1 ---- */
-  var seen1 = [];
-  function post(u, p) {
-    size[u] = 1;
-    push({ phase: 1, u: u, line: 2, settledSet: seen1,
-      note: "pass 1 &mdash; enter <strong>" + u + "</strong>; <code>size[" + u + "] = 1</code> for " +
-            "itself." });
-    g[u].forEach(function (v) {
-      if (v === p) return;
-      post(v, u);
-      size[u] += size[v];
-      ans[u] += ans[v] + size[v];
-      push({ phase: 1, u: u, v: v, line: 6, settledSet: seen1,
-        note: "pass 1 &mdash; fold child <strong>" + v + "</strong> into <strong>" + u +
-              "</strong>: <code>size += " + size[v] + "</code>, and <code>ans += ans[" + v + "] + " +
-              size[v] + "</code> &mdash; the <code>+ size[" + v + "]</code> is one extra step from " +
-              u + " down to " + v + ", paid once per node in that subtree." });
-    });
-    seen1.push(u);
-    push({ phase: 1, u: u, line: 7, settledSet: seen1,
-      note: "pass 1 &mdash; <strong>" + u + "</strong> done: <code>size = " + size[u] +
-            "</code>, <code>ans = " + ans[u] + "</code> (distances <em>within its own subtree</em> " +
-            "only &mdash; not the final answer unless " + u + " is the root)." });
-  }
-  post(0, -1);
-  push({ phase: 1, line: 8, settledSet: seen1,
-    note: "Pass 1 complete. Only <strong>ans[0] = " + ans[0] + "</strong> is a real answer; the " +
-          "rest are subtree-local and about to be overwritten." });
-
-  /* ---- pass 2 ---- */
-  var final2 = [0];
-  push({ phase: 2, u: 0, line: 10, settledSet: final2,
-    note: "pass 2 &mdash; start at the root, whose answer is already correct. Every other node is " +
-          "derived from its parent in O(1)." });
-  function pre(u, p) {
-    g[u].forEach(function (v) {
-      if (v === p) return;
-      var before = ans[u];
-      ans[v] = ans[u] + N - 2 * size[v];
-      final2.push(v);
-      push({ phase: 2, u: u, v: v, line: 11, settledSet: final2,
-        note: "pass 2 &mdash; reroot from <strong>" + u + "</strong> to <strong>" + v +
-              "</strong>: " + size[v] + " node" + (size[v] === 1 ? "" : "s") + " get closer, " +
-              (N - size[v]) + " get further. <code>" + before + " + " + N + " − 2·" + size[v] +
-              " = <strong>" + ans[v] + "</strong></code>." });
-      pre(v, u);
-    });
-  }
-  pre(0, -1);
-  push({ phase: 2, line: 15, settledSet: final2,
-    note: "Answer <strong>[" + ans.join(", ") + "]</strong>. Two linear passes &mdash; no node was " +
-          "ever measured from scratch." });
-
-  function graphSVG(stateOf, edgeOn) {
-    var out = ['<svg viewBox="0 0 ' + W + " " + H + '" width="' + W +
-               '" role="img" aria-label="Undirected tree of six nodes">'];
-    EDGES.forEach(function (e) {
-      var a = POS[e[0]], b = POS[e[1]];
-      out.push('<line class="edge' + (edgeOn && edgeOn(e[0], e[1]) ? " is-on" : "") +
-               '" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"/>');
-    });
-    for (var k = 0; k < N; k++) {
-      var st = stateOf(k) || "", p = POS[k];
-      out.push('<circle class="node" data-state="' + st + '" cx="' + p[0] + '" cy="' + p[1] + '" r="17"/>');
-      out.push('<text class="nlabel" data-state="' + st + '" x="' + p[0] + '" y="' + p[1] + '">' + k + "</text>");
+  /* "0-1, 0-2, 2-3" -> [[0,1],[0,2],[2,3]] */
+  function parseEdges(s) {
+    var out = [], parts = String(s || "").split(/[,;\s]+/), i;
+    for (i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (!p) continue;
+      var m = p.match(/^(\d+)\s*[-:>]\s*(\d+)$/);
+      if (!m) throw new Error('"' + p + '" is not an edge — write them as 0-1, 0-2, 2-3');
+      out.push([+m[1], +m[2]]);
     }
-    out.push("</svg>");
-    return out.join("");
+    return out;
   }
 
-  VizKit.stepper(document.getElementById("viz-834"), {
-    steps: steps,
-    speed: 1050,
-    render: function (s) {
-      var settled = {};
-      (s.settledSet || []).forEach(function (k) { settled[k] = 1; });
-      var svg = graphSVG(function (k) {
-        if (s.v === k) return "hit";
-        if (s.u === k) return "on";
-        if (settled[k]) return "done";
-        return "";
-      }, function (a, b) {
-        return (s.u === a && s.v === b) || (s.u === b && s.v === a);
-      });
-
-      return svg +
-        VizKit.pills("size[]", s.size.map(function (x, k) { return k + ":" + x; })) +
-        VizKit.pills("ans[]", s.ans.map(function (x, k) { return k + ":" + x; })) +
-        VizKit.pills("phase", [s.phase === 1 ? "1 · postorder sizes" : "2 · preorder reroot"]) +
-        '<div class="viz-legend">' +
-          '<span><i data-state="on"></i> u — current</span>' +
-          '<span><i data-state="hit"></i> v — child being folded / rerooted</span>' +
-          '<span><i data-state="done"></i> settled for this pass</span></div>';
+  function buildRooted(edges) {
+    var n = 0, i;
+    for (i = 0; i < edges.length; i++) n = Math.max(n, edges[i][0] + 1, edges[i][1] + 1);
+    if (!n) n = 1;
+    if (edges.length !== n - 1) {
+      throw new Error("a tree on " + n + " nodes needs exactly " + (n - 1) +
+                      " edges — that is " + edges.length);
     }
+    var g = [];
+    for (i = 0; i < n; i++) g.push([]);
+    for (i = 0; i < edges.length; i++) { g[edges[i][0]].push(edges[i][1]); g[edges[i][1]].push(edges[i][0]); }
+    for (i = 0; i < n; i++) g[i].sort(function (a, b) { return a - b; });
+
+    /* root at 0 and check it is actually a tree */
+    var parent = [], kids = [], seen = [], order = [], stack = [0];
+    for (i = 0; i < n; i++) { parent.push(-2); kids.push([]); seen.push(false); }
+    parent[0] = -1; seen[0] = true;
+    while (stack.length) {
+      var u = stack.pop();
+      order.push(u);
+      for (i = 0; i < g[u].length; i++) {
+        var v = g[u][i];
+        if (seen[v]) continue;
+        seen[v] = true; parent[v] = u; kids[u].push(v); stack.push(v);
+      }
+    }
+    for (i = 0; i < n; i++) if (!seen[i]) throw new Error("node " + i + " is not connected to node 0");
+    return { n: n, g: g, parent: parent, kids: kids };
+  }
+
+  var JAVA = [
+    "void post(int u, int p) {",
+    "    size[u] = 1;",
+    "    for (int v : g[u]) if (v != p) {",
+    "        post(v, u);",
+    "        size[u] += size[v];",
+    "        ans[u]  += ans[v] + size[v];",
+    "    }",
+    "}",
+    "",
+    "void pre(int u, int p) {",
+    "    for (int v : g[u]) if (v != p) {",
+    "        ans[v] = ans[u] + n - 2 * size[v];",
+    "        pre(v, u);",
+    "    }",
+    "}"
+  ];
+  var L = { PTOP: 1, SIZE1: 2, LOOP: 3, REC: 4, ADDSZ: 5, ADDANS: 6,
+            RTOP: 10, RLOOP: 11, REROOT: 12, RREC: 13 };
+
+  var JAVA_NOREROOT = [
+    "void post(int u, int p) {                     // ✗",
+    "    size[u] = 1;",
+    "    for (int v : g[u]) if (v != p) {",
+    "        post(v, u);",
+    "        size[u] += size[v];",
+    "        ans[u]  += ans[v] + size[v];",
+    "    }",
+    "}",
+    "",
+    "// second pass omitted — ans[u] is left as the SUBTREE sum",
+    "// which is only correct for the root",
+    "",
+    "",
+    ""
+  ];
+
+  var JAVA_SIGN = [
+    "void post(int u, int p) {",
+    "    size[u] = 1;",
+    "    for (int v : g[u]) if (v != p) {",
+    "        post(v, u);",
+    "        size[u] += size[v];",
+    "        ans[u]  += ans[v] + size[v];",
+    "    }",
+    "}",
+    "",
+    "void pre(int u, int p) {                      // ✗",
+    "    for (int v : g[u]) if (v != p) {",
+    "        ans[v] = ans[u] + n - size[v];   // the 2* is missing",
+    "        pre(v, u);",
+    "    }",
+    "}"
+  ];
+
+  /* ------------------------------------------------------------------- run */
+  function run(_ignored, emit, o) {
+    var id = o.id, L = o.L;
+    var edges = parseEdges(o.tokensStr || (o.preset && o.preset.tokens) || "");
+    var R = buildRooted(edges), n = R.n, kids = R.kids;
+    var size = [], ans = [], i;
+    for (i = 0; i < n; i++) { size.push(0); ans.push(0); }
+
+    function em(e) { emit(e); return e; }
+
+    em({ type: "START", line: L.PTOP, id: id, n: n, phase: "root" });
+
+    /* ---- show the rooting: the input was undirected until now ---- */
+    (function draw(u, depth) {
+      em({ type: "NODE", t: 0, key: NK(u), val: u, line: L.PTOP });
+      for (var j = 0; j < kids[u].length; j++) {
+        draw(kids[u][j], depth + 1);
+        em({ type: "LINK", t: 0, parent: NK(u), side: j, child: NK(kids[u][j]), line: L.PTOP });
+      }
+    })(0, 0);
+
+    /* ---- pass 1: sizes and subtree sums, bottom-up ---- */
+    function post(u, key, parentKey, side, depth) {
+      em({ type: "CALL", key: key, parentKey: parentKey, side: side, depth: depth,
+           isNull: false, val: u, line: L.PTOP, args: "post(" + u + ")",
+           phase: "post", refs: [{ t: 0, key: NK(u) }] });
+      size[u] = 1;
+      em({ type: "CHECK", key: key, line: L.SIZE1, kind: "size1", u: u });
+
+      for (var j = 0; j < kids[u].length; j++) {
+        var v = kids[u][j];
+        em({ type: "EVAL", key: key, side: j === 0 ? "left" : "right", line: L.REC });
+        post(v, key + "." + v, key, j === 0 ? "left" : "right", depth + 1);
+        size[u] += size[v];
+        ans[u] += ans[v] + size[v];
+        em({ type: "CHECK", key: key, line: L.ADDANS, kind: "absorb",
+             u: u, v: v, sizeV: size[v], ansV: ans[v], sizeU: size[u], ansU: ans[u] });
+      }
+      em({ type: "NODE", t: 0, key: NK(u), val: u + " · " + ans[u], line: L.ADDANS });
+      em({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+           value: ans[u], line: L.ADDANS, reason: "subtree sum", u: u,
+           sizeU: size[u], ansU: ans[u] });
+    }
+    post(0, "P0", null, null, 0);
+
+    if (id !== "noreroot") {
+      em({ type: "CHECK", key: null, line: L.RTOP, kind: "handover", ansRoot: ans[0], n: n });
+
+      /* ---- pass 2: reroot, top-down ---- */
+      function pre(u, key, parentKey, side, depth) {
+        em({ type: "CALL", key: key, parentKey: parentKey, side: side, depth: depth,
+             isNull: false, val: u, line: L.RTOP, args: "pre(" + u + ")",
+             phase: "pre", refs: [{ t: 0, key: NK(u) }] });
+
+        for (var j = 0; j < kids[u].length; j++) {
+          var v = kids[u][j];
+          var before = ans[v];
+          ans[v] = (id === "sign") ? ans[u] + n - size[v]
+                                   : ans[u] + n - 2 * size[v];
+          em({ type: "CHECK", key: key, line: L.REROOT, kind: "reroot",
+               u: u, v: v, ansU: ans[u], n: n, sizeV: size[v],
+               before: before, after: ans[v], missing2: (id === "sign") });
+          em({ type: "NODE", t: 0, key: NK(v), val: v + " · " + ans[v], line: L.REROOT });
+          em({ type: "EVAL", key: key, side: j === 0 ? "left" : "right", line: L.RREC });
+          pre(v, key + "." + v, key, j === 0 ? "left" : "right", depth + 1);
+        }
+        em({ type: "RETURN", key: key, parentKey: parentKey, side: side, depth: depth,
+             value: ans[u], line: L.RREC, reason: "rerooted", u: u, ansU: ans[u] });
+      }
+      pre(0, "R0", null, null, 0);
+    }
+
+    em({ type: "DONE", line: L.RREC, depth: 0, value: ans.slice(),
+         ans: ans.slice(), size: size.slice(), n: n, id: id });
+    return ans.slice();
+  }
+
+  /* --------------------------------------------------------------- display */
+  function exprOf(f, st) {
+    if (f.result !== undefined) return dim("return ") + an(F(f.result));
+    return dim("waiting on the children of ") + nd(F(f.val));
+  }
+
+  function checkText(e) {
+    if (!e) return null;
+    if (e.kind === "size1") return dim("size[") + nd(F(e.u)) + dim("] = 1 — a node counts itself");
+    if (e.kind === "absorb") {
+      return dim("absorb child ") + nd(F(e.v)) + dim(": size += ") + sz(F(e.sizeV)) +
+        dim(", ans += ans[") + F(e.v) + dim("] + size[") + F(e.v) + dim("] = ") +
+        an(F(e.ansV) + " + " + F(e.sizeV));
+    }
+    if (e.kind === "handover") {
+      return dim("the root's answer is exact: ") + an(F(e.ansRoot)) +
+        dim(" — every other node is derived from it, never recomputed");
+    }
+    if (e.kind === "reroot") {
+      return dim("ans[") + nd(F(e.v)) + dim("] = ") + an(F(e.ansU)) + dim(" + " + e.n + " − ") +
+        (e.missing2 ? dim("") : dim("2×")) + sz(F(e.sizeV)) + dim(" = ") + hot(F(e.after));
+    }
+    return null;
+  }
+
+  function narrate(st) {
+    var e = st.event || {};
+    if (e.type === "START") {
+      return { tag: "rooting", text: "The input is an <em>undirected</em> edge list — it has no root. " +
+        "Choosing node 0 is the algorithm's decision, and it is being drawn now. Everything after " +
+        "depends on that choice, which is exactly why the second pass exists." };
+    }
+    if (e.type === "CHECK") {
+      if (e.kind === "absorb") {
+        return { tag: "absorb", text: "Child " + nd(F(e.v)) + " contributes " + an(F(e.ansV)) +
+          " (its own subtree total) plus " + sz(F(e.sizeV)) + " — one extra step for each of its nodes, " +
+          "because they are all one edge further from " + nd(F(e.u)) + " than from " + nd(F(e.v)) + "." };
+      }
+      if (e.kind === "handover") {
+        return { tag: "handover", text: "Pass one is finished, and only the root's answer is correct — " +
+          "every other node holds the total for its own subtree only. Pass two turns that one exact " +
+          "answer into all of them." };
+      }
+      if (e.kind === "reroot") {
+        var delta = e.n - 2 * e.sizeV;
+        return { tag: "reroot", text: "Moving the root from " + nd(F(e.u)) + " to " + nd(F(e.v)) +
+          ": the " + sz(F(e.sizeV)) + " nodes inside " + F(e.v) + "'s subtree each get one step closer, " +
+          "and the other " + F(e.n - e.sizeV) + " each get one step further. Net change " +
+          hot((delta >= 0 ? "+" : "") + F(delta)) + "." +
+          (e.missing2 ? " <em>But the 2× is missing, so only the further half is being counted.</em>" : "") };
+      }
+    }
+    if (e.type === "RETURN" && e.u !== undefined) {
+      return { tag: "return", text: "Node " + nd(F(e.u)) + " hands up subtree total " + an(F(e.ansU)) + "." };
+    }
+    if (e.type === "DONE") {
+      if (e.id === "noreroot") {
+        return { tag: "done", text: "Only the root is right. Every other node still holds the sum over its " +
+          "own subtree, which is what pass one computes — the numbers look plausible and are wrong." };
+      }
+      if (e.id === "sign") {
+        return { tag: "done", text: "The nodes that move closer were never subtracted, so every answer " +
+          "below the root is too large." };
+      }
+      return { tag: "done", text: "Every node's answer in two passes — O(n) — instead of one BFS per node." };
+    }
+    return null;
+  }
+
+  function stats(st) {
+    var out = [], e = st.event || {};
+    var ph = e.phase || (e.kind === "reroot" || e.kind === "handover" ? "pre" : null);
+    if (ph) out.push({ label: "pass", html: ph === "post" ? sz("sizes &amp; subtree sums") : an("reroot") });
+    if (e.sizeU !== undefined) out.push({ label: "size[" + e.u + "]", html: sz(F(e.sizeU)) });
+    if (e.ansU !== undefined) out.push({ label: "ans[" + e.u + "]", html: an(F(e.ansU)) });
+    if (st.done) {
+      out.push({ label: "answer", html: an("[" + st.done.ans.join(", ") + "]") });
+    }
+    return out;
+  }
+
+  function verdict(st) {
+    if (!st.done) return null;
+    var d = st.done;
+    if (d.id === "noreroot") return { ok: false, text: "only node 0 is correct — the rest are subtree sums" };
+    if (d.id === "sign") return { ok: false, text: "every answer below the root is too large" };
+    return { ok: true, text: "[" + d.ans.join(", ") + "]" };
+  }
+
+  T.mount({
+    mountEl: "#lab",
+    title: "post(u) then pre(u)",
+    subtitle: "one exact answer at the root, then rerooted outward to every other node",
+    tag: "interactive",
+    noBaseTree: true,
+    showCallTree: false,
+    treeLabels: ["rooted at 0 — each node shows its answer once known"],
+    structureNote: "an undirected edge list, rooted at node 0. Labels become u · ans as answers settle",
+    presets: [
+      { tokens: "0-1, 0-2, 2-3, 2-4, 2-5", note: "the example — n = 6, answer [8,12,6,10,10,10]" },
+      { tokens: "0-1", note: "two nodes, one edge — each is distance 1 from the other" },
+      { tokens: "0-1, 1-2, 2-3, 3-4", note: "a path — the ends are worst, the middle is best" },
+      { tokens: "0-1, 0-2, 0-3, 0-4", note: "a star — the centre is 4, every leaf is 7" },
+      { tokens: "0-1, 0-2, 1-3, 1-4, 2-5, 2-6", note: "a perfect binary tree of 7 nodes" },
+      { tokens: "0-1, 1-2, 1-3, 3-4, 3-5, 5-6", note: "lopsided, so rerooting swings the numbers a long way" }
+    ],
+    variants: [
+      { id: "two", label: "two passes", java: JAVA, lines: L },
+      { id: "noreroot", label: "✗ no second pass", java: JAVA_NOREROOT, lines: L },
+      { id: "sign", label: "✗ missing the 2×", java: JAVA_SIGN, lines: L }
+    ],
+    run: run,
+    expr: exprOf,
+    checkText: checkText,
+    narrate: narrate,
+    stats: stats,
+    verdict: verdict,
+    isFail: function () { return false; },
+    nodeResult: function () { return null; },
+    maxEvents: 6000,
+    /* The rooting is drawn as real events so it can be scrubbed back to, but a
+       lab that opens on an empty panel is no use. Land on the first step of the
+       algorithm proper; the rooting is the steps before it. */
+    onLoad: function (inst) {
+      var tr = inst.trace;
+      if (!tr) return;
+      for (var i = 0; i < tr.events.length; i++) {
+        if (tr.events[i].phase === "post") { inst.render(i); return; }
+      }
+    },
+    legend: [
+      { state: "active", text: "the call running now" },
+      { state: "path", text: "on the stack" },
+      { state: "done", text: "answer settled" },
+      { state: "ghost", text: "not reached yet" }
+    ]
   });
 })();
 </script>
-
 
 </body>
 </html>

@@ -64,20 +64,14 @@ will lose an hour blaming the engine.
 
 ## Current state
 
-Tree Recursion: **24 of 29** pages converted to the lab engine.
-Done: 100 101 104 110 112 113 114 124 129 222 226 236 257 337 404 437 543 572
-687 951 968 979 1123 1448.
+Tree Recursion: **29 of 29 — complete.**
 
-Remaining 8, each blocked on an engine capability rather than on authoring:
-
-| capability | pages | note |
-|---|---|---|
-| growing tree | 105, 106, 297, 617 | the recursion *builds* the tree; structure comes from the event log |
-| general graph | 834 | non-binary adjacency, two rooted passes |
-
-Growth and mutation share one mechanism, shipped in engine 1.2.0: `NODE` /
-`LINK` events accumulated during replay and overlaid on the static layout.
-226 and 114 are converted on it.
+Engine capabilities, in the order they were needed:
+- **1.1.0** dual trees and node `refs` (100, 101, 951, 572)
+- **1.2.0** `NODE` / `LINK` structure events — growth and mutation are one
+  mechanism (105, 106, 226, 114, 297, 617)
+- **1.3.0** general n-ary trees: a `LINK` with a NUMERIC side, `layoutNary`,
+  and `noBaseTree` for a page whose input is not a tree at all (834)
 
 **117 is deliberately excluded — it is 29 pages, not 30.** Its algorithm is a
 `while` loop with a dummy head and tail that walks each level along the `next`
@@ -87,8 +81,8 @@ recursion, so mounting a loop on it would draw a call tree that does not exist.
 Its existing visualizer suits it and stays. Do not "finish" 117 by forcing it.
 
 Also outstanding:
-- Binary Search: 4 pages to **write from scratch** (981, 719, 300, 528), plus
-  wiring 15 anchors and the Pattern 5 catalog section.
+- Binary Search: **13 of 15**. 719 and 528 still to write from scratch; 300 and
+  981 are done. Then 15 anchors and the Pattern 5 catalog section.
 - BST: 14 core problems, no coverage yet. `bst.html` already has the `a.viz` CSS.
 
 ## Repository

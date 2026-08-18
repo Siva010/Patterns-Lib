@@ -147,17 +147,28 @@ async function run(lc) {
   // 5 real nodes in, 5 node circles out (per rendered tree).
   const loadBtn = lab && lab.querySelector(".tl-load");
   if (input && loadBtn) {
-    try {
-      const probe = cfgIsDual(lab) ? "[1,2,3,null,4] | [1,2,3,null,4]" : "[1,2,3,null,4]";
-      input.value = probe;
-      loadBtn.click();
-      const n = tsvg.querySelectorAll("circle.tl-nd").length;
-      const want = countRealNodes(probe).reduce((a, b) => a + b, 0);
-      const err = lab.querySelector(".tl-err");
-      const msg = err ? err.textContent.trim() : "";
-      ok("typed tree renders exactly its nodes", n === want && !msg,
-         `got ${n} circles, want ${want}${msg ? ", err: " + msg : ""}`);
-    } catch (e) { ok("typed tree renders exactly its nodes", false, e.message); }
+    /* The assertion with teeth: type a KNOWN tree in and demand exactly that
+       many circles back. It only applies to pages whose input really is a
+       LeetCode array — 834 takes an edge list — so elsewhere it is recorded as
+       not applicable rather than replaced by a made-up input. */
+    const presetLabel = (psel && psel.options && psel.options.length)
+      ? (psel.options[0].textContent || "").trim() : "";
+    const isArrayInput = !presetLabel || /^\s*\[/.test(presetLabel);
+    if (!isArrayInput) {
+      out.checks.push(["typed-tree probe", true, "n/a — this page's input is not a LeetCode array"]);
+    } else {
+      try {
+        const probe = cfgIsDual(lab) ? "[1,2,3,null,4] | [1,2,3,null,4]" : "[1,2,3,null,4]";
+        input.value = probe;
+        loadBtn.click();
+        const n = tsvg.querySelectorAll("circle.tl-nd").length;
+        const want = countRealNodes(probe).reduce((a, b) => a + b, 0);
+        const err = lab.querySelector(".tl-err");
+        const msg = err ? err.textContent.trim() : "";
+        ok("typed tree renders exactly its nodes", n === want && !msg,
+           `got ${n} circles, want ${want}${msg ? ", err: " + msg : ""}`);
+      } catch (e) { ok("typed tree renders exactly its nodes", false, e.message); }
+    }
   }
 
   // dark mode — back on preset 0 first, since the preset sweep above may have
