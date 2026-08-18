@@ -184,7 +184,63 @@ function v981() {
   ok("the empty-string case is exercised", empties > 10, empties + ' cases return ""');
 }
 
+/* ------------------------------- LC 528 ------------------------------- */
+function v528() {
+  console.log("\nLC 528  random pick with weight");
+  let buildFrames;
+  try { buildFrames = extract("528-random-pick-with-weight.html", "buildFrames"); }
+  catch (e) { ok("extract buildFrames", false, e.message); return; }
+
+  /* ORACLE: linear scan over the prefix sums. Exhaustive over the whole input
+     domain — every legal dart for every weight array — which is far stronger
+     than sampling, and a different method from the binary search under test. */
+  const linear = (w, target) => {
+    let s = 0;
+    for (let i = 0; i < w.length; i++) { s += w[i]; if (s > target) return i; }
+    return -1;
+  };
+
+  const arrays = [[1], [1, 3], [1, 3, 2, 4], [5], [1, 1, 1, 1, 1],
+    [0, 5], [5, 0], [0, 1, 0, 1], [3, 0, 0, 2], [7, 1], [1, 7], [2, 2, 2]];
+  for (let i = 0; i < 110; i++) {
+    const n = 1 + Math.floor(Math.random() * 7);
+    const a = Array.from({ length: n }, () => Math.floor(Math.random() * 7));
+    if (a.reduce((x, y) => x + y, 0) === 0) a[0] = 1;
+    arrays.push(a);
+  }
+
+  let pass = 0, tot = 0, bad = [], cbad = null, dist = 0, distBad = [];
+  for (const w of arrays) {
+    const total = w.reduce((a, b) => a + b, 0);
+    const counts = w.map(() => 0);
+    let arrOk = true;
+    for (let t = 0; t < total; t++) {          // EXHAUSTIVE over every legal dart
+      let F;
+      try { F = buildFrames(w.slice(), t); }
+      catch (e) { bad.push([JSON.stringify(w) + " @" + t, "threw " + e.message.slice(0, 40)]); tot++; arrOk = false; continue; }
+      tot++;
+      const want = linear(w, t), got = F[F.length - 1].ans;
+      if (got === want) pass++; else { bad.push([JSON.stringify(w) + " @" + t, "want " + want, "got " + got]); arrOk = false; }
+      if (got >= 0 && got < counts.length) counts[got]++;
+      if (!cbad) cbad = frameContract(F, JSON.stringify(w) + "@" + t);
+    }
+    /* the distribution must be EXACTLY proportional: index i wins for exactly
+       w[i] of the total darts. A zero weight must never win. */
+    if (arrOk) {
+      let exact = true;
+      for (let i = 0; i < w.length; i++) if (counts[i] !== w[i]) exact = false;
+      if (exact) dist++; else distBad.push([JSON.stringify(w), "counts " + JSON.stringify(counts)]);
+    }
+  }
+  ok("matches the linear-scan oracle, exhaustively", pass === tot, `${pass}/${tot} darts`);
+  if (bad.length) console.log("        " + JSON.stringify(bad.slice(0, 3)));
+  ok("frame contract", !cbad, cbad || "flat, final frame carries ans + done:true, no undefined/Infinity");
+  ok("distribution is exactly proportional (zero weights never win)",
+     !distBad.length, distBad.length ? JSON.stringify(distBad.slice(0, 2)) : dist + " arrays, every index won exactly w[i] times");
+}
+
 v300();
 v981();
+v528();
 console.log("\n" + (fails ? fails + " FAILURE(S)" : "ALL PASS"));
 process.exit(fails ? 1 : 0);
