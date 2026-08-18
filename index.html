@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <script>
-(function(){try{var t=localStorage.getItem("tpswbs.v1.theme")||localStorage.getItem("treepat.v1.theme");
+(function(){try{var t=localStorage.getItem("tpswbs.v1.theme")||localStorage.getItem("treepat.v1.theme")||localStorage.getItem("graphpat.v1.theme");
 t=t?JSON.parse(t):"auto";
 var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);}catch(e){}})();
@@ -86,7 +86,7 @@ a{color:var(--accent)}
 <header class="top">
   <div>
     <h1>DSA Patterns — Study Library</h1>
-    <p class="sub">Java 21 · LeetCode-numbered · 130 core problems across 63 sub-variants</p>
+    <p class="sub">Java 21 · LeetCode-numbered · 184 core problems across 94 sub-variants</p>
   </div>
   <div class="topacts">
     <a class="repo" href="https://github.com/Siva010/Patterns-Lib" target="_blank" rel="noopener noreferrer">
@@ -97,7 +97,7 @@ a{color:var(--accent)}
   </div>
 </header>
 
-<p class="lede">Two pattern bundles, same structure: a breakdown of every sub-variant, a
+<p class="lede">Three pattern bundles, same structure: a breakdown of every sub-variant, a
 prerequisite-ordered problem table, compiled Java templates, and a failure-mode table — then a
 cross-pattern recognition guide and spaced-repetition checkpoints.</p>
 
@@ -138,6 +138,22 @@ cross-pattern recognition guide and spaced-repetition checkpoints.</p>
     <span class="cardgo">Open <span aria-hidden="true">→</span></span>
   </a>
 
+  <a class="card" href="graphs/index.html">
+    <span class="cardnum">BUNDLE 03</span>
+    <h3>Graphs, No Gaps</h3>
+    <p class="cardstat">31 sub-variants <span aria-hidden="true">·</span> <b>54</b> core
+      <span aria-hidden="true">·</span> 40 optional
+      <span aria-hidden="true">·</span> 10 anti-pattern</p>
+    <div class="meter" role="img" aria-label="Core progress"><i data-meter="graphpat"></i></div>
+    <p class="cardprog"><span data-count="graphpat">0</span> / 54 core solved</p>
+    <div class="chips">
+      <span><b>01</b> Traversal &amp; Connectivity — 11 sub-variants, 24 core</span>
+      <span><b>02</b> Ordering, Partitions &amp; Spanning — 11 sub-variants, 16 core</span>
+      <span><b>03</b> Weighted Paths &amp; Search — 9 sub-variants, 14 core</span>
+    </div>
+    <span class="cardgo">Open <span aria-hidden="true">→</span></span>
+  </a>
+
 </section>
 
 <hr class="rule">
@@ -147,7 +163,11 @@ cross-pattern recognition guide and spaced-repetition checkpoints.</p>
   <p>LC 437 is LC 560 on a root path. LC 653 is LC 167 on two iterators. LC 220 is an
   ordered-multiset sliding window that happens to use a BST. LC 230 and LC 2476 are binary
   search with pointers instead of indices.</p>
-  <p>If those four sentences read as obvious, the patterns have transferred; if any of them
+  <p>LC 329 is memoised DFS on a DAG — the same &ldquo;return what composes, record what does
+  not&rdquo; split as tree recursion. LC 863 is a tree converted into an undirected graph.
+  LC 778 and LC 1631 are binary search on the answer with a BFS standing in for the
+  feasibility predicate.</p>
+  <p>If those seven sentences read as obvious, the patterns have transferred; if any of them
   reads as a surprise, that is the next thing to study.</p>
 </div>
 
@@ -202,6 +222,12 @@ cross-pattern recognition guide and spaced-repetition checkpoints.</p>
 │  ├─ tree-recursion.html
 │  ├─ bst.html
 │  └─ src/trees.md
+├─ graphs/
+│  ├─ index.html              hub: recognition guide, checkpoints
+│  ├─ traversal.html
+│  ├─ ordering.html
+│  ├─ weighted-paths.html
+│  └─ src/graphs.md
 ├─ Visuals/
 │  ├─ index.html              126 interactive visualizers
 │  └─ &lt;lc-number&gt;-&lt;slug&gt;.html  one self-contained page each
@@ -213,7 +239,7 @@ cross-pattern recognition guide and spaced-repetition checkpoints.</p>
 </div>
 <script>
 (function(){
-var CORE={tpswbs:["p1","p10","p100","p101","p102","p103","p105","p106","p13","p14","p15","p18","p19","p2","p20","p22","p23","p24","p25","p26","p27","p3","p31","p32","p34","p35","p36","p37","p4","p40","p41","p42","p43","p45","p46","p47","p48","p49","p50","p51","p52","p53","p54","p57","p58","p59","p6","p60","p61","p62","p63","p64","p65","p66","p67","p7","p70","p71","p72","p73","p74","p75","p76","p79","p8","p80","p81","p83","p85","p86","p87","p88","p89","p9","p90","p93","p96","p97"],treepat:["p1","p12","p13","p17","p2","p21","p23","p24","p25","p27","p28","p3","p31","p32","p33","p37","p40","p41","p43","p44","p45","p47","p48","p49","p5","p51","p52","p55","p58","p59","p6","p60","p63","p64","p65","p67","p69","p7","p70","p74","p75","p76","p79","p81","p82","p83","p84","p88","p89","p9","p90","p91"]};
+var CORE={tpswbs:["p1","p10","p100","p101","p102","p103","p105","p106","p13","p14","p15","p18","p19","p2","p20","p22","p23","p24","p25","p26","p27","p3","p31","p32","p34","p35","p36","p37","p4","p40","p41","p42","p43","p45","p46","p47","p48","p49","p50","p51","p52","p53","p54","p57","p58","p59","p6","p60","p61","p62","p63","p64","p65","p66","p67","p7","p70","p71","p72","p73","p74","p75","p76","p79","p8","p80","p81","p83","p85","p86","p87","p88","p89","p9","p90","p93","p96","p97"],treepat:["p1","p12","p13","p17","p2","p21","p23","p24","p25","p27","p28","p3","p31","p32","p33","p37","p40","p41","p43","p44","p45","p47","p48","p49","p5","p51","p52","p55","p58","p59","p6","p60","p63","p64","p65","p67","p69","p7","p70","p74","p75","p76","p79","p81","p82","p83","p84","p88","p89","p9","p90","p91"],graphpat:["p1","p101","p103","p104","p11","p12","p15","p16","p17","p18","p2","p20","p21","p22","p26","p28","p29","p3","p30","p32","p35","p36","p37","p41","p45","p47","p48","p50","p52","p58","p59","p60","p61","p62","p63","p64","p68","p7","p73","p77","p78","p8","p83","p84","p85","p88","p9","p91","p92","p94","p95","p97","p98","p99"]};
 function read(ns){try{var v=localStorage.getItem(ns+".v1.solved");
   return v?JSON.parse(v):[];}catch(e){return [];}}
 Object.keys(CORE).forEach(function(ns){
@@ -240,7 +266,8 @@ var btn=document.getElementById("theme");
 if(btn)btn.addEventListener("click",function(){
   var t=order[(order.indexOf(cur())+1)%order.length];
   try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));
-      localStorage.setItem("treepat.v1.theme",JSON.stringify(t));}catch(e){}
+      localStorage.setItem("treepat.v1.theme",JSON.stringify(t));
+      localStorage.setItem("graphpat.v1.theme",JSON.stringify(t));}catch(e){}
   apply(t);
 });
 })();

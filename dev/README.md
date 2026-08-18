@@ -77,7 +77,14 @@ then you spend an hour chasing a bug that is in your generator.
 python dev/tools/add_roles.py Visuals/<page>.html    # the 6 semantic role tokens
 python dev/tools/splice.py <page>.html <adapter>.html  # attach an adapter, idempotent
 python dev/tools/essay_check.py Visuals/<page>.html   # prose survived the edit
+python dev/tools/build_graphs.py --apply             # render Bundle 03 from its markdown
 ```
+
+`build_graphs.py` is the only page generator here. `graphs/src/graphs.md` is the
+source of truth for Bundle 03 and the four `graphs/*.html` pages are its output —
+edit the markdown and rebuild, never the HTML. It borrows the page shell from
+`trees/bst.html` at build time and refuses rather than guessing if the donor has
+lost a marker.
 
 `add_roles.py` and `splice.py` are both idempotent and refuse rather than
 duplicate.

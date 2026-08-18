@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Graphs, No Gaps</title>
+<meta name="description" content="A complete FAANG-prep path through graphs: 31 sub-variants, 64 core problems, Java 21 templates, failure modes, a recognition guide and mastery gates.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Graphs, No Gaps — editorial stylesheet
+   Near-monochrome, one accent. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --h: 52px;              /* header height */
+  --toolbar-h: 46px;      /* measured at runtime */
+  --rail-w: 292px;
+  --measure: 70ch;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+  --mark: #f2e2a8;
+
+  /* code token colours — light */
+  --t-key: #7c3aad;
+  --t-typ: #1d5b7a;
+  --t-str: #46682a;
+  --t-num: #8a4b12;
+  --t-com: #83807a;
+  --t-ann: #8a4b12;
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+  --mark: #5a4a12;
+
+  --t-key: #c191e8;
+  --t-typ: #7bb8d6;
+  --t-str: #9dc271;
+  --t-num: #e0a86a;
+  --t-com: #7c7a74;
+  --t-ann: #e0a86a;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--h) + 16px); }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--serif);
+  font-size: 17.5px;
+  line-height: 1.65;
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+@media (min-width: 1100px) { body { font-size: 18px; } }
+
+a { color: inherit; }
+
+::selection { background: var(--accent-wash); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 200;
+  background: var(--bg); color: var(--fg); padding: 10px 16px;
+  border: 1px solid var(--rule-hard); font-family: var(--sans); font-size: 14px;
+}
+.skip:focus { left: 8px; top: 8px; }
+
+.vh {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ------------------------------------------------------------ header */
+
+.appbar {
+  position: fixed; inset: 0 0 auto 0; z-index: 60;
+  height: var(--h);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans);
+}
+@supports not (backdrop-filter: blur(2px)) { .appbar { background: var(--bg); } }
+
+.appbar .brand {
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.005em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-right: auto; text-decoration: none;
+}
+.appbar .brand .dim { color: var(--fg-dim); font-weight: 400; }
+@media (max-width: 620px) { .appbar .brand .dim { display: none; } }
+
+.progress {
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: transparent; overflow: hidden;
+}
+.progress > i {
+  display: block; height: 100%; width: 100%;
+  background: var(--accent);
+  transform: scaleX(0); transform-origin: 0 50%;
+  will-change: transform;
+}
+
+.iconbtn {
+  appearance: none; border: 1px solid transparent; background: transparent;
+  color: var(--fg-mid); font-family: var(--sans); font-size: 12.5px;
+  height: 32px; min-width: 32px; padding: 0 9px; border-radius: 5px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+}
+.iconbtn:hover { background: var(--bg-sunk); color: var(--fg); }
+.iconbtn[aria-pressed="true"] { border-color: var(--rule-hard); color: var(--fg); }
+.iconbtn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn .kbd { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; line-height: 15px; }
+@media (max-width: 760px) { .iconbtn .lbl, .iconbtn .kbd { display: none; } }
+
+#tocBtn { display: none; }
+@media (max-width: 1000px) { #tocBtn { display: inline-flex; } }
+
+/* ------------------------------------------------------------ layout */
+
+.layout {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  padding-top: var(--h);
+}
+@media (max-width: 1000px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------ rail */
+
+.rail {
+  position: sticky; top: var(--h);
+  height: calc(100vh - var(--h));
+  overflow-y: auto; overscroll-behavior: contain;
+  border-right: 1px solid var(--rule);
+  padding: 22px 8px 60px 20px;
+  font-family: var(--sans);
+  font-size: 13px;
+  scrollbar-width: thin;
+}
+.rail::-webkit-scrollbar { width: 8px; }
+.rail::-webkit-scrollbar-thumb { background: var(--rule-hard); border-radius: 8px; }
+
+.rail h2 {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.13em;
+  color: var(--fg-dim); font-weight: 600; margin: 0 0 12px;
+}
+
+.rail ul { list-style: none; margin: 0; padding: 0; }
+
+.rail .grp { margin-bottom: 4px; }
+.rail .grp > button {
+  appearance: none; background: transparent; border: 0; width: 100%;
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 7px 8px 7px 6px; margin: 0; cursor: pointer;
+  color: var(--fg); font: inherit; font-weight: 600; text-align: left;
+  border-radius: 5px; line-height: 1.35;
+}
+.rail .grp > button:hover { background: var(--bg-sunk); }
+.rail .grp > button .caret {
+  flex: none; width: 9px; color: var(--fg-dim); transition: transform .16s ease;
+  font-size: 9px; line-height: 1.6;
+}
+.rail .grp[data-open="false"] > button .caret { transform: rotate(-90deg); }
+.rail .grp > button .tally {
+  margin-left: auto; font-family: var(--mono); font-size: 10.5px;
+  font-weight: 400; color: var(--fg-dim); font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.rail .grp[data-open="false"] > ul { display: none; }
+.rail .grp > ul { padding: 0 0 6px 0; }
+
+.rail a {
+  display: block; text-decoration: none; color: var(--fg-mid);
+  padding: 4.5px 8px 4.5px 23px; border-left: 2px solid transparent;
+  margin-left: 5px; border-radius: 0 4px 4px 0; line-height: 1.4;
+}
+.rail a:hover { color: var(--fg); background: var(--bg-sunk); }
+.rail a.here { color: var(--accent); border-left-color: var(--accent); font-weight: 500; }
+.rail a .sv { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); margin-right: 6px; }
+.rail a.here .sv { color: var(--accent); }
+
+.rail .toplink {
+  padding-left: 14px; margin-left: 0; font-weight: 600; color: var(--fg);
+}
+
+.railfoot { margin-top: 26px; padding: 14px 8px 0 6px; border-top: 1px solid var(--rule); }
+.railfoot button {
+  appearance: none; background: none; border: 0; padding: 3px 0; cursor: pointer;
+  font: inherit; font-size: 11.5px; color: var(--fg-dim); text-decoration: underline;
+  text-underline-offset: 2px; text-decoration-color: var(--rule-hard);
+}
+.railfoot button:hover { color: var(--accent); }
+.railfoot p { margin: 0 0 8px; font-size: 11.5px; color: var(--fg-dim); line-height: 1.5; }
+
+/* mobile slide-over */
+@media (max-width: 1000px) {
+  .rail {
+    position: fixed; top: var(--h); left: 0; bottom: 0; width: min(340px, 86vw);
+    z-index: 55; background: var(--bg); border-right: 1px solid var(--rule-hard);
+    transform: translateX(-102%); transition: transform .22s ease; height: auto;
+  }
+  .rail[data-shown="true"] { transform: none; }
+  .scrim {
+    position: fixed; inset: var(--h) 0 0 0; z-index: 54;
+    background: rgba(0,0,0,.34); opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  .scrim[data-shown="true"] { opacity: 1; pointer-events: auto; }
+}
+@media (min-width: 1001px) { .scrim { display: none; } }
+
+/* ------------------------------------------------------------ main */
+
+main { min-width: 0; }
+
+.wrap {
+  max-width: 1108px;
+  margin: 0 auto;
+  padding: 30px 34px 140px;
+}
+@media (max-width: 700px) { .wrap { padding: 20px 16px 100px; } }
+
+/* ------------------------------------------------------------ toolbar */
+
+.toolbar {
+  position: sticky; top: var(--h); z-index: 40;
+  margin: 0 -34px 34px; padding: 9px 34px;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  font-family: var(--sans); font-size: 12.5px;
+}
+@supports not (backdrop-filter: blur(2px)) { .toolbar { background: var(--bg); } }
+@media (max-width: 700px) { .toolbar { margin: 0 -16px 26px; padding: 8px 16px; } }
+
+.toolbar .sep { width: 1px; height: 18px; background: var(--rule); margin: 0 3px; }
+.toolbar .grouplabel { color: var(--fg-dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; margin-right: 1px; }
+
+.chip {
+  appearance: none; cursor: pointer; font: inherit;
+  border: 1px solid var(--rule-hard); background: transparent; color: var(--fg-mid);
+  border-radius: 100px; padding: 3.5px 11px; line-height: 1.4; white-space: nowrap;
+}
+.chip:hover { color: var(--fg); border-color: var(--fg-dim); }
+.chip[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-fg);
+}
+.chip .g { font-size: 11px; }
+
+.toolbar .status { margin-left: auto; color: var(--fg-dim); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+.toolbar .status b { font-weight: 600; color: var(--fg); }
+.toolbar .status .hidden-note { color: var(--accent); }
+
+/* ------------------------------------------------------------ typography */
+
+h1, h2, h3 { font-family: var(--sans); font-weight: 620; letter-spacing: -0.012em; color: var(--fg); }
+
+h1 {
+  font-size: clamp(28px, 3.6vw, 40px); line-height: 1.15;
+  margin: 8px 0 4px; letter-spacing: -0.024em;
+}
+h2.pattern {
+  font-size: clamp(22px, 2.4vw, 27px); line-height: 1.22;
+  margin: 104px 0 6px; padding-top: 30px; border-top: 2px solid var(--fg);
+  letter-spacing: -0.02em;
+}
+h2.pattern:first-of-type { margin-top: 40px; }
+hr.rule + h2.pattern { border-top: 0; margin-top: 46px; padding-top: 0; }
+hr.rule + h3.sec { margin-top: 34px; }
+.wrap > hr.rule:last-child { display: none; }
+h3.sec { font-size: 19.5px; margin: 62px 0 14px; line-height: 1.3; }
+h4.sub {
+  font-size: 15.5px; margin: 46px 0 10px; line-height: 1.35;
+  font-weight: 620; letter-spacing: -0.004em;
+}
+h4.sub .letter {
+  font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+  color: var(--accent); background: var(--accent-wash);
+  padding: 2px 6px; border-radius: 4px; margin-right: 9px;
+  vertical-align: 1.5px;
+}
+
+.lede {
+  font-size: 1.06em; color: var(--fg-mid); max-width: var(--measure);
+  margin: 0 0 26px;
+}
+
+p, li { max-width: var(--measure); }
+p { margin: 0 0 1.05em; }
+
+ul.md, ol.md { padding-left: 1.35em; margin: 0 0 1.15em; }
+ul.md li, ol.md li { margin-bottom: .5em; padding-left: .15em; }
+ul.md li::marker { color: var(--fg-dim); }
+ol.md li::marker { color: var(--fg-dim); font-family: var(--sans); font-size: .86em; }
+
+strong { font-weight: 650; }
+em { font-style: italic; }
+
+blockquote {
+  margin: 26px 0; padding: 2px 0 2px 20px;
+  border-left: 2px solid var(--accent-line);
+  color: var(--fg-mid);
+}
+blockquote p { max-width: calc(var(--measure) - 3ch); }
+blockquote p:last-child { margin-bottom: 0; }
+
+hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 54px 0; max-width: 100%; }
+hr.rule.soft { display: none; }
+
+code.inl {
+  font-family: var(--mono); font-size: 0.855em;
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  padding: 0.08em 0.34em; border-radius: 3.5px;
+  overflow-wrap: break-word;
+}
+
+.anchor {
+  font-family: var(--mono); font-size: 0.62em; font-weight: 400;
+  color: var(--fg-dim); text-decoration: none; margin-left: 0.5em;
+  opacity: 0; transition: opacity .13s ease; vertical-align: 2px;
+  padding: 0 3px; cursor: pointer;
+}
+h1:hover .anchor, h2:hover .anchor, h3:hover .anchor, h4:hover .anchor,
+.anchor:focus-visible { opacity: 1; }
+.anchor:hover { color: var(--accent); }
+
+/* ------------------------------------------------------------ badges */
+
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--sans); font-weight: 600;
+  font-size: 10px; letter-spacing: .04em;
+  border: 1px solid var(--rule-hard); border-radius: 4px;
+  min-width: 19px; height: 18px; padding: 0 4px;
+  vertical-align: 1px; position: relative; cursor: help;
+  color: var(--fg-dim); background: transparent; white-space: nowrap;
+}
+.badge.core { color: var(--accent); border-color: var(--accent-line); font-size: 11px; }
+.badge.opt  { color: var(--fg-dim); font-size: 11px; }
+.badge.pro  { font-size: 9px; letter-spacing: .07em; }
+.badge.anti {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-wash);
+  font-size: 11px;
+}
+
+.badge[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  background: var(--fg); color: var(--bg);
+  font-family: var(--sans); font-size: 11px; font-weight: 450; letter-spacing: 0;
+  padding: 5px 9px; border-radius: 4px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .12s ease; z-index: 30;
+}
+.badge[data-tip]:hover::after, .badge[data-tip]:focus-visible::after { opacity: 1; }
+@media (max-width: 700px) { .badge[data-tip]::after { display: none; } }
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  margin: 0 0 26px; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  max-width: 100%;
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ------------------------------------------------------------ tables */
+
+.tablewrap { margin: 0 0 30px; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 0;
+  font-family: var(--sans); font-size: 14px; line-height: 1.52;
+  font-variant-numeric: tabular-nums;
+}
+thead th {
+  position: sticky; top: calc(var(--h) + var(--toolbar-h)); z-index: 20;
+  background: var(--bg);
+  text-align: left; font-weight: 600; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: .095em; color: var(--fg-dim);
+  padding: 9px 14px 9px 0; border-bottom: 1px solid var(--rule-hard);
+  vertical-align: bottom; white-space: nowrap;
+}
+tbody td {
+  padding: 13px 14px 13px 0; border-bottom: 1px solid var(--rule);
+  vertical-align: top; color: var(--fg-mid); max-width: none;
+}
+tbody tr:last-child td { border-bottom: 1px solid var(--rule-hard); }
+tbody tr:hover td { background: var(--bg-sunk); }
+td:last-child, th:last-child { padding-right: 0; }
+td strong { color: var(--fg); font-weight: 620; }
+
+table.plain td:first-child { color: var(--fg); }
+
+/* problem tables */
+table.problems { table-layout: fixed; }
+table.problems col.c-chk  { width: 34px; }
+table.problems col.c-num  { width: 74px; }
+table.problems col.c-prob { width: 25.5%; }
+table.problems col.c-diff { width: 82px; }
+table.problems col.c-sub  { width: 15%; }
+
+table.problems td.c-why { color: var(--fg-mid); }
+table.problems td.c-prob { color: var(--fg); }
+table.problems td.c-num { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; padding-right: 6px; }
+table.problems td.c-num .n { margin-right: 5px; }
+
+tr.anti td { background: var(--accent-wash); }
+tr.anti:hover td { background: var(--bg-sunk); }
+tr.anti:hover td { background: color-mix(in srgb, var(--accent-wash) 70%, var(--bg-sunk)); }
+tr.anti td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+
+tr.done td.c-prob .ptitle { color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--rule-hard); }
+tr.done td { opacity: .82; }
+
+tr.flash td { animation: flash 1.5s ease; }
+@keyframes flash { 0%, 55% { background: var(--accent-wash); } 100% { background: transparent; } }
+
+.chk {
+  appearance: none; -webkit-appearance: none; margin: 2px 0 0; cursor: pointer;
+  width: 15px; height: 15px; border: 1.5px solid var(--rule-hard); border-radius: 3.5px;
+  background: transparent; display: block; position: relative; flex: none;
+}
+.chk:hover { border-color: var(--accent); }
+.chk:checked { background: var(--accent); border-color: var(--accent); }
+.chk:checked::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid var(--accent-fg); border-width: 0 1.8px 1.8px 0; transform: rotate(42deg);
+}
+
+a.lc {
+  color: inherit; text-decoration: none;
+  border-bottom: 1px solid var(--rule-hard);
+}
+a.lc:hover { color: var(--accent); border-bottom-color: var(--accent); }
+a.lc[data-locked] { border-bottom-style: dotted; }
+
+a.viz {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 19px; height: 18px; margin-left: 6px; vertical-align: 1px;
+  border: 1px solid var(--accent-line); border-radius: 4px;
+  color: var(--accent); background: var(--accent-wash);
+  text-decoration: none; flex: none; position: relative; cursor: pointer;
+  transition: background .13s ease, border-color .13s ease, color .13s ease;
+}
+a.viz svg { width: 11px; height: 11px; display: block; }
+a.viz:hover, a.viz:focus-visible { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+a.viz[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  background: var(--fg); color: var(--bg);
+  font-family: var(--sans); font-size: 11px; font-weight: 450; letter-spacing: 0;
+  padding: 5px 9px; border-radius: 4px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .12s ease; z-index: 30;
+}
+a.viz[data-tip]:hover::after, a.viz[data-tip]:focus-visible::after { opacity: 1; }
+@media (max-width: 700px) { a.viz[data-tip]::after { display: none; } }
+tr.done td.c-prob a.viz { opacity: .7; }
+
+a.xref {
+  color: var(--accent); text-decoration: none;
+  border-bottom: 1px solid transparent; font-family: var(--mono); font-size: .9em;
+}
+a.xref:hover { border-bottom-color: var(--accent-line); }
+
+.diff {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .045em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 100px; border: 1px solid var(--rule-hard);
+  color: var(--fg-dim); white-space: nowrap;
+}
+.diff[data-d="Easy"]   { border-color: color-mix(in srgb, var(--fg-dim) 45%, transparent); }
+.diff[data-d="Medium"] { border-color: var(--fg-dim); color: var(--fg-mid); }
+.diff[data-d="Hard"]   { border-color: var(--accent-line); color: var(--accent); background: var(--accent-wash); }
+
+.tcount {
+  font-family: var(--mono); font-size: 11.5px; color: var(--fg-dim);
+  margin: 0 0 9px; font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; row-gap: 3px;
+}
+.tcount b { color: var(--fg); font-weight: 600; }
+.tcount .done-all { color: var(--accent); }
+.tcount .tsep { opacity: .45; }
+.tcount .g-anti { color: var(--accent); }
+.tcount .g-anti b { color: var(--accent); }
+
+/* page-level roll-up in the rail footer */
+.railfoot .pagecount {
+  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+  font-variant-numeric: tabular-nums; margin: 0 0 10px;
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; row-gap: 3px;
+}
+.railfoot .pagecount b { color: var(--fg); font-weight: 600; }
+.railfoot .pagecount .done-all { color: var(--accent); }
+.railfoot .pagecount .tsep { opacity: .45; }
+.railfoot .pagecount:empty { display: none; }
+
+.emptynote {
+  display: none; font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  padding: 14px 0; border-bottom: 1px solid var(--rule); font-style: italic;
+}
+.tablewrap[data-empty="true"] table { display: none; }
+.tablewrap[data-empty="true"] .emptynote { display: block; }
+
+/* responsive tables → stacked cards */
+@media (max-width: 700px) {
+  table, thead, tbody, tr, td, th { display: block; }
+  colgroup, col { display: none; }
+  table.problems { table-layout: auto; }
+  thead { display: none; }
+  tbody tr {
+    border: 1px solid var(--rule); border-radius: 7px;
+    padding: 12px 13px; margin: 0 0 11px; background: var(--bg);
+  }
+  tbody tr:hover td { background: transparent; }
+  tbody td, tbody tr:last-child td {
+    border: 0; padding: 4px 0;
+    display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; align-items: baseline;
+  }
+  tbody td::before {
+    content: attr(data-label);
+    font-family: var(--sans); font-size: 9.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .09em; color: var(--fg-dim);
+    padding-top: 3px;
+  }
+  tbody td[data-label=""]::before { content: none; }
+  tr.anti { border-color: var(--accent); border-left-width: 3px; background: var(--accent-wash); }
+  tr.anti td { background: transparent; }
+  tr.anti td:first-child { box-shadow: none; }
+  tr.flash { animation: flash 1.5s ease; }
+  table.problems td.c-chk { grid-template-columns: 84px 1fr; }
+  table.problems td.c-chk::before { content: "Solved"; }
+}
+
+/* ------------------------------------------------------------ code */
+
+.tmpl { margin: 22px 0 26px; }
+.tmpl > summary {
+  cursor: pointer; list-style: none;
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  padding: 8px 12px; border: 1px solid var(--rule); border-radius: 6px;
+  display: flex; align-items: center; gap: 10px; user-select: none;
+}
+.tmpl > summary::-webkit-details-marker { display: none; }
+.tmpl > summary:hover { border-color: var(--rule-hard); color: var(--fg); }
+.tmpl > summary .tw {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--accent); flex: none;
+}
+.tmpl > summary .hint {
+  color: var(--fg-dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tmpl > summary .cnt { margin-left: auto; color: var(--fg-dim); font-family: var(--mono); font-size: 10.5px; flex: none; }
+.tmpl > summary .arw { flex: none; color: var(--fg-dim); font-size: 9px; transition: transform .16s ease; }
+.tmpl[open] > summary { border-radius: 6px 6px 0 0; border-bottom-color: transparent; }
+.tmpl > summary .hint { flex: 1 1 auto; min-width: 0; }
+.tmpl > summary .cnt { margin-left: 0; }
+.tmpl > summary .copy { flex: none; margin: -3px -6px -3px 0; }
+.tmpl[open] > summary .arw { transform: rotate(90deg); }
+.tmpl[open] .code { border-radius: 0 0 6px 6px; border-top: 0; margin-top: 0; }
+
+.code {
+  border: 1px solid var(--rule); border-radius: 0 0 6px 6px; background: var(--bg-code);
+  margin: 0; overflow: hidden; position: relative;
+}
+.code-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px 6px 13px; border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 10.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--fg-dim);
+}
+.code-bar .spacer { margin-left: auto; }
+.copy {
+  appearance: none; border: 1px solid transparent; background: transparent; cursor: pointer;
+  font-family: var(--sans); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--fg-dim); padding: 3px 8px; border-radius: 4px;
+}
+.copy:hover { color: var(--fg); background: var(--bg-sunk); border-color: var(--rule); }
+.copy[data-ok="true"] { color: var(--accent); }
+
+.code pre {
+  margin: 0; padding: 15px 16px 17px; overflow-x: auto;
+  font-family: var(--mono); font-size: 12.6px; line-height: 1.62;
+  tab-size: 4; scrollbar-width: thin;
+}
+.code pre::-webkit-scrollbar { height: 8px; }
+.code pre::-webkit-scrollbar-thumb { background: var(--rule-hard); border-radius: 8px; }
+.code code { font-family: inherit; color: var(--fg); white-space: pre; }
+
+.tok-key { color: var(--t-key); }
+.tok-typ { color: var(--t-typ); }
+.tok-str { color: var(--t-str); }
+.tok-num { color: var(--t-num); }
+.tok-com { color: var(--t-com); font-style: italic; }
+.tok-ann { color: var(--t-ann); }
+
+/* ------------------------------------------------------------ search */
+
+.searchlayer {
+  position: fixed; inset: 0; z-index: 90; display: none;
+  padding: 12vh 18px 18px; justify-content: center;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 72%, rgba(0,0,0,.4));
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.searchlayer[data-shown="true"] { display: flex; }
+
+.searchbox {
+  width: min(660px, 100%); max-height: 72vh; display: flex; flex-direction: column;
+  background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 9px;
+  overflow: hidden; font-family: var(--sans);
+}
+.searchbox input {
+  appearance: none; border: 0; border-bottom: 1px solid var(--rule);
+  background: transparent; color: var(--fg);
+  font: inherit; font-size: 16px; padding: 15px 17px; width: 100%; outline: none;
+}
+.searchbox input::placeholder { color: var(--fg-dim); }
+#results { overflow-y: auto; padding: 6px; margin: 0; list-style: none; }
+#results li { margin: 0; max-width: none; }
+#results button {
+  appearance: none; width: 100%; text-align: left; background: transparent; border: 0;
+  padding: 9px 11px; border-radius: 6px; cursor: pointer; color: var(--fg);
+  font: inherit; font-size: 13.5px; display: flex; align-items: baseline; gap: 10px;
+}
+#results button:hover, #results li[aria-selected="true"] button { background: var(--bg-sunk); }
+#results .rn { font-family: var(--mono); font-size: 11.5px; color: var(--accent); flex: none; min-width: 38px; }
+#results .rt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#results .rc { margin-left: auto; font-size: 11px; color: var(--fg-dim); flex: none; }
+.searchfoot {
+  padding: 8px 14px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--fg-dim);
+  display: flex; gap: 16px;
+}
+.searchfoot kbd { font-family: var(--mono); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
+
+/* ------------------------------------------------------------ toast */
+
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(8px);
+  background: var(--fg); color: var(--bg); font-family: var(--sans); font-size: 12.5px;
+  padding: 8px 15px; border-radius: 100px; z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+}
+.toast[data-shown="true"] { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ------------------------------------------------------------ misc */
+
+.appendix-note { color: var(--fg-mid); }
+
+mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2px; }
+
+/* ------------------------------------------------------------ reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------ print */
+
+@media print {
+  :root { --h: 0px; }
+  html[data-theme] { --bg: #fff; --bg-sunk: #fff; --bg-code: #fff; --fg: #000; --fg-mid: #1a1a1a;
+                     --fg-dim: #555; --rule: #ccc; --rule-hard: #999; --accent: #7a2c14;
+                     --accent-wash: #f4f0ee; --accent-line: #b08878; }
+  .appbar, .rail, .scrim, .toolbar, .searchlayer, .toast, .anchor, .copy, .chk, .tcount { display: none !important; }
+  .layout { display: block; padding-top: 0; }
+  .wrap { max-width: none; padding: 0; }
+  body { font-size: 10.5pt; line-height: 1.45; }
+  h2.pattern { page-break-before: always; margin-top: 0; }
+  h2.pattern:first-of-type { page-break-before: avoid; }
+  h1, h2, h3, h4 { page-break-after: avoid; }
+  table { font-size: 8.6pt; }
+  thead th { position: static; }
+  tr, .code, .tmpl, blockquote { page-break-inside: avoid; }
+  .code { border: 1px solid #bbb; }
+  .code pre { font-size: 8pt; white-space: pre-wrap; }
+  .tmpl > summary { display: none; }
+  .code { border-radius: 4px; border: 1px solid #bbb; }
+  a.lc, a.xref { border: 0; color: #000; text-decoration: none; }
+  a.viz { display: none; }
+  a.lc[href]::after { content: " [" attr(data-lcnum) "]"; font-size: .8em; color: #666; }
+  td, th { padding: 5px 8px 5px 0; }
+  .legend { display: none; }
+}
+
+
+/* --- cross-bundle library navigation (added by restructure) --- */
+.liblink{display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:4px;
+  font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--fg-dim);
+  text-decoration:none;border:1px solid var(--rule-hard);border-radius:7px;
+  padding:4px 10px;white-space:nowrap;transition:color .12s,border-color .12s}
+.liblink:hover{color:var(--accent);border-color:var(--accent-line)}
+@media (max-width:760px){.liblink .liblbl{display:none}}
+@media print{.liblink{display:none!important}}
+
+/* --- storage health notice + progress import/export (added with the storage fix) --- */
+.railfoot .storagenote {
+  font-family: var(--sans); font-size: 11.5px; line-height: 1.5;
+  color: var(--fg-mid); background: var(--accent-wash);
+  border-left: 2px solid var(--accent); border-radius: 0 6px 6px 0;
+  padding: 9px 11px; margin: 0 0 10px;
+}
+.railfoot .storagenote b { color: var(--fg); font-weight: 600; }
+.railfoot .railio { display: flex; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+.railfoot .railio button { margin: 0; flex: 1 1 auto; }
+@media print { .railfoot .storagenote, .railfoot .railio { display: none !important; } }
+
+/* ============================================================
+   Explanation layer — layered teaching blocks
+   Visible: intuition · mental model · recognition · takeaway
+   Collapsed: why it works · walkthrough · observations · mistakes
+   ============================================================ */
+
+.explain { margin: 0 0 30px; }
+
+/* 1 — one-line intuition */
+.intuition {
+  display: flex; gap: 13px; align-items: flex-start;
+  margin: 0 0 20px; padding: 15px 19px;
+  background: var(--accent-wash);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 9px 9px 0;
+}
+.intuition .ibulb {
+  flex: none; font-size: 15px; line-height: 1.45; opacity: .85;
+}
+.intuition p {
+  margin: 0; font-size: 17.5px; line-height: 1.5; color: var(--fg);
+  font-weight: 500; letter-spacing: -.004em;
+}
+.intuition strong { font-weight: 600; color: var(--accent); }
+
+/* shared label for every explanation stage */
+.elabel {
+  font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--fg-dim);
+  margin: 0 0 9px;
+}
+
+/* 2 — mental model */
+.mm {
+  border: 1px solid var(--rule); border-radius: 10px;
+  padding: 17px 20px 19px; margin: 0 0 20px; background: var(--bg-sunk);
+}
+.mm > p { margin: 0 0 11px; }
+.mm > p:last-child { margin-bottom: 0; }
+.mm .mmsay {
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.6;
+  color: var(--fg-mid); border-left: 2px solid var(--rule-hard);
+  padding: 3px 0 3px 14px; margin: 0 0 13px;
+}
+.mm .mmsay b { color: var(--fg); font-weight: 600; }
+.mm figure { margin: 15px 0 0; }
+.mm svg { display: block; width: 100%; height: auto; }
+.mm figcaption {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  margin-top: 10px; line-height: 1.5;
+}
+
+/* SVG theming hooks */
+.dg-cell   { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.dg-live   { fill: var(--accent-wash); stroke: var(--accent-line); stroke-width: 1; }
+.dg-dead   { fill: var(--bg-sunk); stroke: var(--rule); stroke-width: 1; }
+.dg-hit    { fill: var(--accent); stroke: var(--accent); }
+.dg-x      { stroke: var(--fg-dim); stroke-width: 1.4; opacity: .5; }
+.dg-txt    { fill: var(--fg-mid); font-family: var(--mono); font-size: 11px; }
+.dg-txt-d  { fill: var(--fg-dim); font-family: var(--mono); font-size: 10px; }
+.dg-txt-h  { fill: var(--accent-fg); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.dg-lbl    { fill: var(--fg-dim); font-family: var(--sans); font-size: 10.5px;
+             letter-spacing: .08em; text-transform: uppercase; }
+
+/* 3 — recognition signals */
+.recog { margin: 0 0 22px; }
+.recog ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.recog li {
+  display: flex; gap: 11px; align-items: flex-start;
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.55;
+  color: var(--fg-mid); margin: 0;
+}
+.recog li .sig {
+  flex: none; width: 17px; text-align: center; font-weight: 600;
+  color: var(--accent); padding-top: 1px;
+}
+.recog li[data-no] .sig { color: var(--fg-dim); }
+.recog li b { color: var(--fg); font-weight: 600; }
+
+/* 4-7 — collapsible depth */
+.edrop {
+  border: 1px solid var(--rule); border-radius: 10px;
+  margin: 0 0 11px; background: transparent; overflow: hidden;
+}
+.edrop > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px 17px; font-family: var(--sans); font-size: 14px;
+  font-weight: 500; color: var(--fg-mid);
+}
+.edrop > summary::-webkit-details-marker { display: none; }
+.edrop > summary:hover { background: var(--bg-sunk); color: var(--fg); }
+.edrop > summary .earw {
+  flex: none; font-size: 9px; color: var(--fg-dim);
+  transition: transform .16s ease; display: inline-block;
+}
+.edrop[open] > summary .earw { transform: rotate(90deg); }
+.edrop[open] > summary { border-bottom: 1px solid var(--rule); color: var(--fg); }
+.edrop > summary .ecap { flex: 1; }
+.edrop > summary .ecount {
+  flex: none; font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+}
+.ebody { padding: 17px 20px 19px; }
+.ebody > *:first-child { margin-top: 0; }
+.ebody > *:last-child { margin-bottom: 0; }
+.ebody p { margin: 0 0 12px; }
+
+/* proof / derivation chain */
+.chain { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 0; }
+.chain li {
+  display: grid; grid-template-columns: 26px 1fr; gap: 12px;
+  margin: 0; padding: 0 0 14px; position: relative;
+}
+.chain li:last-child { padding-bottom: 0; }
+.chain li::before {
+  content: ""; position: absolute; left: 12.5px; top: 24px; bottom: 0;
+  border-left: 1px dashed var(--rule-hard);
+}
+.chain li:last-child::before { display: none; }
+.chain li .cn {
+  grid-column: 1; width: 25px; height: 25px; border-radius: 50%;
+  border: 1px solid var(--accent-line); background: var(--bg);
+  color: var(--accent); font-family: var(--mono); font-size: 11.5px;
+  display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.chain li .cb { grid-column: 2; padding-top: 2px; }
+.chain li .cb p { margin: 0 0 6px; }
+.chain li .cb p:last-child { margin: 0; }
+
+/* the payoff line of a proof */
+.qed {
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.6;
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 9px; padding: 13px 17px; margin: 0 0 4px; color: var(--fg);
+}
+.qed b { font-weight: 600; }
+
+/* walkthrough trace table */
+.trace { margin: 0 0 14px; }
+.trace table { font-size: 13.5px; }
+.trace td, .trace th { vertical-align: top; }
+.trace .tstate { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.trace .thit td { background: var(--accent-wash); }
+.trace .thit td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.arr { font-family: var(--mono); color: var(--fg-dim); }
+
+/* pointer-position strip */
+.ptr {
+  font-family: var(--mono); font-size: 13px; line-height: 1.75;
+  background: var(--bg-code); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 13px 16px; margin: 0 0 14px;
+  overflow-x: auto; white-space: pre; color: var(--fg-mid);
+}
+.ptr b { color: var(--accent); font-weight: 600; }
+.ptr .dim { color: var(--fg-dim); }
+
+/* mistakes */
+.mist { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+.mist > li { margin: 0; padding: 0 0 13px; border-bottom: 1px solid var(--rule); }
+.mist > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.mist .mhead {
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  color: var(--fg); margin: 0 0 5px; display: flex; gap: 9px; align-items: baseline;
+}
+.mist .mhead .mx { flex: none; color: #c0392b; font-size: 13px; }
+html[data-theme="dark"] .mist .mhead .mx { color: #e8705f; }
+.mist .mwhy {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.55;
+  color: var(--fg-mid); margin: 0 0 5px;
+}
+.mist .mfix {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.55;
+  color: var(--fg-mid); margin: 0;
+}
+.mist .mfix b { color: var(--fg); font-weight: 600; }
+
+/* 8 — key takeaway */
+.takeaway {
+  border: 1px solid var(--rule-hard); border-radius: 10px;
+  padding: 16px 20px 18px; margin: 18px 0 0;
+}
+.takeaway ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.takeaway li {
+  display: flex; gap: 11px; align-items: flex-start; margin: 0;
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.55; color: var(--fg-mid);
+}
+.takeaway li::before {
+  content: "\2014"; flex: none; color: var(--accent); font-weight: 600;
+}
+.takeaway li b { color: var(--fg); font-weight: 600; }
+
+@media (max-width: 620px) {
+  .intuition p { font-size: 16px; }
+  .ebody { padding: 15px 15px 17px; }
+  .mm { padding: 15px 15px 17px; }
+}
+
+@media print {
+  .edrop { border: 1px solid #ccc; page-break-inside: avoid; }
+  .edrop > summary { display: block; font-weight: 600; }
+  .edrop > summary .earw, .edrop > summary .ecount { display: none; }
+  .edrop .ebody { display: block !important; }
+  .intuition, .mm, .qed, .takeaway { page-break-inside: avoid; }
+}
+
+.mm .vcap {
+  font-family: var(--sans); font-size: 12.5px; line-height: 1.55;
+  color: var(--fg-dim); margin: 10px 0 0;
+}
+.mm .vcap b, .mm .vcap strong { color: var(--fg-mid); font-weight: 600; }
+
+/* --- offscreen render skipping (perf) -------------------------------------
+   These pages carry thousands of nodes. Deferring layout/paint for blocks that
+   are not near the viewport is the single largest rendering win available, and
+   it costs nothing in fidelity: the content is still searchable and still
+   reachable by anchor links.
+   -------------------------------------------------------------------------- */
+.explain      { content-visibility: auto; contain-intrinsic-size: auto 620px; }
+/* .tablewrap is deliberately NOT deferred: its <thead th> is position:sticky against
+   the viewport, and containment would re-anchor it to the wrapper instead. */
+.tmpl         { content-visibility: auto; contain-intrinsic-size: auto 280px; }
+.edrop        { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+
+/* The drawers grow when opened; once open, stop deferring so the height is real. */
+.edrop[open]  { content-visibility: visible; contain-intrinsic-size: none; }
+.tmpl[open]   { content-visibility: visible; contain-intrinsic-size: none; }
+
+@media print {
+  /* Deferred blocks would print blank. Force everything to render. */
+  .explain, .tmpl, .edrop {
+    content-visibility: visible !important;
+    contain-intrinsic-size: none !important;
+  }
+}
+
+===========================================================
+   Multi-document additions: page nav, home cards, foot nav
+   ============================================================ */
+
+/* ---- header pattern switcher */
+
+.pnavwrap { display: flex; gap: 2px; margin-right: 6px; }
+@media (max-width: 940px) { .pnavwrap { display: none; } }
+
+.pnav {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-decoration: none; padding: 5px 10px; border-radius: 5px;
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pnav:hover { color: var(--fg); background: var(--bg-sunk); }
+.pnav.on { color: var(--fg); border-color: var(--rule-hard); }
+.pnav .tally {
+  font-family: var(--mono); font-size: 10px; color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+.pnav.on .tally { color: var(--accent); }
+
+/* ---- rail document list */
+
+.rail .pagelist { margin: 0 0 4px; }
+.rail .secondhead { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.rail a.pageline {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 6px 8px; margin-left: 0; border-left: 2px solid transparent;
+  font-weight: 500; color: var(--fg-mid); border-radius: 0 4px 4px 0;
+}
+.rail a.pageline:hover { color: var(--fg); }
+.rail a.pageline.on { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.rail a.pageline .pn {
+  font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); flex: none; min-width: 15px;
+}
+.rail a.pageline.on .pn { color: var(--accent); }
+.rail a.pageline .tally {
+  margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim);
+  font-variant-numeric: tabular-nums; font-weight: 400;
+}
+.rail a.pageline .tally[data-full="true"] { color: var(--accent); }
+
+/* ---- breadcrumb */
+
+.crumb {
+  font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+  margin: 0 0 14px; letter-spacing: .01em;
+}
+.crumb a { color: var(--fg-dim); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.crumb a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.crumb span { margin: 0 7px; }
+
+/* ---- home cards */
+
+.cards {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); margin: 40px 0 8px;
+}
+@media (max-width: 860px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+
+.card {
+  display: flex; flex-direction: column; gap: 0;
+  background: var(--bg); padding: 22px 22px 20px;
+  text-decoration: none; color: inherit; position: relative;
+}
+.card:hover { background: var(--bg-sunk); }
+.card:focus-visible { outline-offset: -3px; }
+
+.card .cardnum {
+  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+  letter-spacing: .12em; margin-bottom: 10px;
+}
+.card h3 {
+  font-size: 19px; margin: 0 0 8px; letter-spacing: -0.014em; line-height: 1.2;
+}
+.card:hover h3 { color: var(--accent); }
+.card .cardstat {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  margin: 0 0 14px; max-width: none;
+}
+.card .cardstat b { color: var(--fg); font-weight: 600; }
+
+.meter { height: 2px; background: var(--rule-hard); margin: 0 0 8px; }
+.meter > i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+.card .cardprog {
+  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+  margin: 0 0 16px; font-variant-numeric: tabular-nums; max-width: none;
+}
+
+.card .chips {
+  display: flex; flex-direction: column; gap: 3px;
+  font-family: var(--sans); font-size: 12px; color: var(--fg-mid);
+  padding-top: 14px; border-top: 1px solid var(--rule); margin-bottom: 16px;
+}
+.card .chips span { display: flex; gap: 9px; line-height: 1.4; }
+.card .chips b {
+  font-family: var(--mono); font-size: 10.5px; color: var(--accent);
+  font-weight: 500; flex: none; min-width: 12px; padding-top: 1px;
+}
+
+.card .cardgo {
+  margin-top: auto; font-family: var(--sans); font-size: 12.5px;
+  font-weight: 500; color: var(--accent);
+}
+
+/* ---- foot navigation */
+
+.footnav {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+  margin: 84px 0 0;
+}
+.fn {
+  background: var(--bg); padding: 17px 19px; text-decoration: none; color: inherit;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.fn:hover { background: var(--bg-sunk); }
+.fn .fl {
+  font-family: var(--sans); font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--fg-dim);
+}
+.fn .ft { font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--fg); }
+.fn:hover .ft { color: var(--accent); }
+.fn.gate .fl { color: var(--accent); }
+
+.searchfoot .sf-note { margin-left: auto; font-style: italic; }
+
+@media print {
+  .pnavwrap, .footnav, .cards { display: none !important; }
+  .crumb { display: none; }
+}
+
+
+/* --- cross-bundle library navigation (added by restructure) --- */
+.liblink{display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:4px;
+  font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--fg-dim);
+  text-decoration:none;border:1px solid var(--rule-hard);border-radius:7px;
+  padding:4px 10px;white-space:nowrap;transition:color .12s,border-color .12s}
+.liblink:hover{color:var(--accent);border-color:var(--accent-line)}
+@media (max-width:760px){.liblink .liblbl{display:none}}
+@media print{.liblink{display:none!important}}
+
+/* ============================================================
+   Explanation layer — layered teaching blocks
+   Visible: intuition · mental model · recognition · takeaway
+   Collapsed: why it works · walkthrough · observations · mistakes
+   ============================================================ */
+
+.explain { margin: 0 0 30px; }
+
+/* 1 — one-line intuition */
+.intuition {
+  display: flex; gap: 13px; align-items: flex-start;
+  margin: 0 0 20px; padding: 15px 19px;
+  background: var(--accent-wash);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 9px 9px 0;
+}
+.intuition .ibulb {
+  flex: none; font-size: 15px; line-height: 1.45; opacity: .85;
+}
+.intuition p {
+  margin: 0; font-size: 17.5px; line-height: 1.5; color: var(--fg);
+  font-weight: 500; letter-spacing: -.004em;
+}
+.intuition strong { font-weight: 600; color: var(--accent); }
+
+/* shared label for every explanation stage */
+.elabel {
+  font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--fg-dim);
+  margin: 0 0 9px;
+}
+
+/* 2 — mental model */
+.mm {
+  border: 1px solid var(--rule); border-radius: 10px;
+  padding: 17px 20px 19px; margin: 0 0 20px; background: var(--bg-sunk);
+}
+.mm > p { margin: 0 0 11px; }
+.mm > p:last-child { margin-bottom: 0; }
+.mm .mmsay {
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.6;
+  color: var(--fg-mid); border-left: 2px solid var(--rule-hard);
+  padding: 3px 0 3px 14px; margin: 0 0 13px;
+}
+.mm .mmsay b { color: var(--fg); font-weight: 600; }
+.mm figure { margin: 15px 0 0; }
+.mm svg { display: block; width: 100%; height: auto; }
+.mm figcaption {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  margin-top: 10px; line-height: 1.5;
+}
+
+/* SVG theming hooks */
+.dg-cell   { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.dg-live   { fill: var(--accent-wash); stroke: var(--accent-line); stroke-width: 1; }
+.dg-dead   { fill: var(--bg-sunk); stroke: var(--rule); stroke-width: 1; }
+.dg-hit    { fill: var(--accent); stroke: var(--accent); }
+.dg-x      { stroke: var(--fg-dim); stroke-width: 1.4; opacity: .5; }
+.dg-txt    { fill: var(--fg-mid); font-family: var(--mono); font-size: 11px; }
+.dg-txt-d  { fill: var(--fg-dim); font-family: var(--mono); font-size: 10px; }
+.dg-txt-h  { fill: var(--accent-fg); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.dg-lbl    { fill: var(--fg-dim); font-family: var(--sans); font-size: 10.5px;
+             letter-spacing: .08em; text-transform: uppercase; }
+
+/* 3 — recognition signals */
+.recog { margin: 0 0 22px; }
+.recog ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.recog li {
+  display: flex; gap: 11px; align-items: flex-start;
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.55;
+  color: var(--fg-mid); margin: 0;
+}
+.recog li .sig {
+  flex: none; width: 17px; text-align: center; font-weight: 600;
+  color: var(--accent); padding-top: 1px;
+}
+.recog li[data-no] .sig { color: var(--fg-dim); }
+.recog li b { color: var(--fg); font-weight: 600; }
+
+/* 4-7 — collapsible depth */
+.edrop {
+  border: 1px solid var(--rule); border-radius: 10px;
+  margin: 0 0 11px; background: transparent; overflow: hidden;
+}
+.edrop > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px 17px; font-family: var(--sans); font-size: 14px;
+  font-weight: 500; color: var(--fg-mid);
+}
+.edrop > summary::-webkit-details-marker { display: none; }
+.edrop > summary:hover { background: var(--bg-sunk); color: var(--fg); }
+.edrop > summary .earw {
+  flex: none; font-size: 9px; color: var(--fg-dim);
+  transition: transform .16s ease; display: inline-block;
+}
+.edrop[open] > summary .earw { transform: rotate(90deg); }
+.edrop[open] > summary { border-bottom: 1px solid var(--rule); color: var(--fg); }
+.edrop > summary .ecap { flex: 1; }
+.edrop > summary .ecount {
+  flex: none; font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+}
+.ebody { padding: 17px 20px 19px; }
+.ebody > *:first-child { margin-top: 0; }
+.ebody > *:last-child { margin-bottom: 0; }
+.ebody p { margin: 0 0 12px; }
+
+/* proof / derivation chain */
+.chain { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 0; }
+.chain li {
+  display: grid; grid-template-columns: 26px 1fr; gap: 12px;
+  margin: 0; padding: 0 0 14px; position: relative;
+}
+.chain li:last-child { padding-bottom: 0; }
+.chain li::before {
+  content: ""; position: absolute; left: 12.5px; top: 24px; bottom: 0;
+  border-left: 1px dashed var(--rule-hard);
+}
+.chain li:last-child::before { display: none; }
+.chain li .cn {
+  grid-column: 1; width: 25px; height: 25px; border-radius: 50%;
+  border: 1px solid var(--accent-line); background: var(--bg);
+  color: var(--accent); font-family: var(--mono); font-size: 11.5px;
+  display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.chain li .cb { grid-column: 2; padding-top: 2px; }
+.chain li .cb p { margin: 0 0 6px; }
+.chain li .cb p:last-child { margin: 0; }
+
+/* the payoff line of a proof */
+.qed {
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.6;
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 9px; padding: 13px 17px; margin: 0 0 4px; color: var(--fg);
+}
+.qed b { font-weight: 600; }
+
+/* walkthrough trace table */
+.trace { margin: 0 0 14px; }
+.trace table { font-size: 13.5px; }
+.trace td, .trace th { vertical-align: top; }
+.trace .tstate { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.trace .thit td { background: var(--accent-wash); }
+.trace .thit td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.arr { font-family: var(--mono); color: var(--fg-dim); }
+
+/* pointer-position strip */
+.ptr {
+  font-family: var(--mono); font-size: 13px; line-height: 1.75;
+  background: var(--bg-code); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 13px 16px; margin: 0 0 14px;
+  overflow-x: auto; white-space: pre; color: var(--fg-mid);
+}
+.ptr b { color: var(--accent); font-weight: 600; }
+.ptr .dim { color: var(--fg-dim); }
+
+/* mistakes */
+.mist { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+.mist > li { margin: 0; padding: 0 0 13px; border-bottom: 1px solid var(--rule); }
+.mist > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.mist .mhead {
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  color: var(--fg); margin: 0 0 5px; display: flex; gap: 9px; align-items: baseline;
+}
+.mist .mhead .mx { flex: none; color: #c0392b; font-size: 13px; }
+html[data-theme="dark"] .mist .mhead .mx { color: #e8705f; }
+.mist .mwhy {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.55;
+  color: var(--fg-mid); margin: 0 0 5px;
+}
+.mist .mfix {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.55;
+  color: var(--fg-mid); margin: 0;
+}
+.mist .mfix b { color: var(--fg); font-weight: 600; }
+
+/* 8 — key takeaway */
+.takeaway {
+  border: 1px solid var(--rule-hard); border-radius: 10px;
+  padding: 16px 20px 18px; margin: 18px 0 0;
+}
+.takeaway ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.takeaway li {
+  display: flex; gap: 11px; align-items: flex-start; margin: 0;
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.55; color: var(--fg-mid);
+}
+.takeaway li::before {
+  content: "\2014"; flex: none; color: var(--accent); font-weight: 600;
+}
+.takeaway li b { color: var(--fg); font-weight: 600; }
+
+
+.mm .vcap {
+  font-family: var(--sans); font-size: 12.5px; line-height: 1.55;
+  color: var(--fg-dim); margin: 10px 0 0;
+}
+.mm .vcap b, .mm .vcap strong { color: var(--fg-mid); font-weight: 600; }
+
+@media (max-width: 620px) {
+  .intuition p { font-size: 16px; }
+  .ebody { padding: 15px 15px 17px; }
+  .mm { padding: 15px 15px 17px; }
+}
+
+@media print {
+  .edrop { border: 1px solid #ccc; page-break-inside: avoid; }
+  .edrop > summary { display: block; font-weight: 600; }
+  .edrop > summary .earw, .edrop > summary .ecount { display: none; }
+  .edrop .ebody { display: block !important; }
+  .intuition, .mm, .qed, .takeaway { page-break-inside: avoid; }
+}
+
+/* --- storage health notice + progress import/export (added with the storage fix) --- */
+.railfoot .storagenote {
+  font-family: var(--sans); font-size: 11.5px; line-height: 1.5;
+  color: var(--fg-mid); background: var(--accent-wash);
+  border-left: 2px solid var(--accent); border-radius: 0 6px 6px 0;
+  padding: 9px 11px; margin: 0 0 10px;
+}
+.railfoot .storagenote b { color: var(--fg); font-weight: 600; }
+.railfoot .railio { display: flex; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+.railfoot .railio button { margin: 0; flex: 1 1 auto; }
+@media print { .railfoot .storagenote, .railfoot .railio { display: none !important; } }
+
+/* --- offscreen render skipping (perf) -------------------------------------
+   These pages carry thousands of nodes. Deferring layout/paint for blocks that
+   are not near the viewport is the single largest rendering win available, and
+   it costs nothing in fidelity: the content is still searchable and still
+   reachable by anchor links.
+   -------------------------------------------------------------------------- */
+.explain      { content-visibility: auto; contain-intrinsic-size: auto 620px; }
+/* .tablewrap is deliberately NOT deferred: its <thead th> is position:sticky against
+   the viewport, and containment would re-anchor it to the wrapper instead. */
+.tmpl         { content-visibility: auto; contain-intrinsic-size: auto 280px; }
+.edrop        { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+
+/* The drawers grow when opened; once open, stop deferring so the height is real. */
+.edrop[open]  { content-visibility: visible; contain-intrinsic-size: none; }
+.tmpl[open]   { content-visibility: visible; contain-intrinsic-size: none; }
+
+@media print {
+  /* Deferred blocks would print blank. Force everything to render. */
+  .explain, .tmpl, .edrop {
+    content-visibility: visible !important;
+    contain-intrinsic-size: none !important;
+  }
+}
+</style>
+<script>
+/* set the theme before first paint to avoid a flash */
+(function(){try{var p=JSON.parse(localStorage.getItem("graphpat.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="appbar">
+  <button class="iconbtn" id="tocBtn" type="button" aria-expanded="false" aria-controls="rail" aria-label="Toggle table of contents">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <a class="brand" href="index.html">Graphs, No Gaps <span class="dim">— Traversal &amp; Connectivity · Ordering, Partitions &amp; Spanning Structure · Weighted Paths</span></a>
+  <nav class="pnavwrap" aria-label="Patterns"><a class="pnav on" href="index.html" aria-current="page">Home</a><a class="pnav " href="traversal.html">Traversal</a><a class="pnav " href="ordering.html">Ordering</a><a class="pnav " href="weighted-paths.html">Weighted Paths</a></nav>
+  <a class="liblink" href="../index.html" title="All study bundles"><span aria-hidden="true">←</span><span class="liblbl">Library</span></a>
+  <button class="iconbtn" id="searchBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Search problems and sections">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <span class="lbl">Search</span><span class="kbd">/</span>
+  </button>
+  <button class="iconbtn" id="themeBtn" type="button" aria-label="Switch theme">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
+    <span class="lbl">Auto</span>
+  </button>
+  <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="layout">
+  <nav class="rail" id="rail" aria-label="Table of contents" data-shown="false">
+    <h2>Documents</h2>
+    <ul class="pagelist"><li><a class="pageline on" href="index.html" aria-current="page"><span class="pn">⌂</span>Home</a></li><li><a class="pageline " href="traversal.html"><span class="pn">01</span>Traversal &amp; Connectivity</a></li><li><a class="pageline " href="ordering.html"><span class="pn">02</span>Ordering &amp; Partitions</a></li><li><a class="pageline " href="weighted-paths.html"><span class="pn">03</span>Weighted Paths</a></li></ul>
+    <h2 class="secondhead">On this page</h2>
+    <ul>
+      <li><a class="toplink" href="#top">Title &amp; how to read</a></li><li class="grp" data-grp="g0"><button type="button" aria-expanded="true"><span class="caret" aria-hidden="true">▼</span><span>Front matter</span></button><ul><li><a href="#how-to-read-the-tables">How to read the tables</a></li></ul></li><li class="grp" data-grp="g4"><button type="button" aria-expanded="true"><span class="caret" aria-hidden="true">▼</span><span>4 — RECOGNITION GUIDE</span></button><ul><li><a href="#s4-1">4.1 The decision procedure</a></li><li><a href="#s4-2">4.2 Signal → pattern cheat table</a></li><li><a href="#s4-3">4.3 Trap cases — where the obvious machine is wrong</a></li></ul></li><li class="grp" data-grp="g5"><button type="button" aria-expanded="true"><span class="caret" aria-hidden="true">▼</span><span>5 — MASTERY CHECKPOINTS</span></button><ul><li><a href="#s5-1">5.1 Traversal &amp; Connectivity</a></li><li><a href="#s5-2">5.2 Ordering, Partitions &amp; Spanning Structure</a></li><li><a href="#s5-3">5.3 Weighted Paths &amp; Search on the Answer</a></li><li><a href="#s5-4">5.4 Revisit rule for ★ problems</a></li><li><a href="#appendix-a-coverage-summary">Appendix A — Coverage summary</a></li><li><a href="#appendix-b-deliberately-out-of-scope">Appendix B — Deliberately out of scope</a></li><li><a href="#appendix-c-where-this-bundle-connects-to-the-others">Appendix C — Where this bundle connects to the others</a></li></ul></li>
+    </ul>
+<div class="railfoot">
+      <p class="pagecount" id="pageCount" aria-live="polite"></p>
+      <p>Checkbox state, filters, theme and open templates are stored in this browser only.</p>
+      <p class="storagenote" id="storageNote" hidden></p>
+      <div class="railio"><button type="button" id="exportBtn">Export progress</button><button type="button" id="importBtn">Import progress</button><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+      <button type="button" id="resetBtn">Reset solved progress</button>
+    </div>
+  </nav>
+
+  <main id="main">
+    <div class="wrap">
+<h1 id="top" data-plain="Graphs, No Gaps">Graphs,&nbsp;No Gaps</h1>
+<p>Traversal &amp; Connectivity · Ordering, Partitions &amp; Spanning Structure · Weighted Paths — a complete, prerequisite-ordered path through 31 sub-variants, with Java 21 templates, failure-mode tables, a recognition guide, and per-sub-variant mastery gates.</p>
+<p><strong>Calibration:</strong> written for an advanced backend engineer doing FAANG prep in <strong>Java 21</strong>, LeetCode-numbered, and shaped as the third companion to <em>Three Patterns, No Gaps</em> and <em>Trees, No Gaps</em>. The level bracket is left open, so the doc is tiered instead of guessed: the <strong><span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> core path is the minimum sufficient set</strong> (a strong beginner can follow it linearly), <strong><span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> marks optional depth</strong>, and the <span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> problems double as the Extra Reps / transfer-test pool — skip them if the starred problem in the same sub-variant went clean the first time.</p>
+<p><strong>Total core: 64 problems</strong> — 54 <span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> plus 10 <span class="badge anti" data-tip="Anti-pattern — the obvious machine is wrong here" role="img" aria-label="Anti-pattern — the obvious machine is wrong here">⚠︎</span>, out of 104 listed. This is the library convention: <span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> and <span class="badge anti" data-tip="Anti-pattern — the obvious machine is wrong here" role="img" aria-label="Anti-pattern — the obvious machine is wrong here">⚠︎</span> are both must-solve, and the bundle card in the library index reports the <span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> figure with <span class="badge anti" data-tip="Anti-pattern — the obvious machine is wrong here" role="img" aria-label="Anti-pattern — the obvious machine is wrong here">⚠︎</span> shown beside it, exactly as Bundles 01 and 02 do. Everything else is explicitly labelled optional. Nothing here is padding; if a problem is listed, there is exactly one thing it teaches that no earlier problem taught.</p>
+<hr class="rule">
+<h3 class="sec" id="how-to-read-the-tables" data-spy data-plain="How to read the tables">How to read the tables<a class="anchor" href="#how-to-read-the-tables" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Marker</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td data-label="Marker"><span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span></td><td data-label="Meaning">Core. Must solve unaided, from scratch, before advancing.</td></tr><tr><td data-label="Marker"><span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span></td><td data-label="Meaning">Optional. Solve only if the gate check for that sub-variant fails, or you want depth.</td></tr><tr><td data-label="Marker"><span class="badge pro" data-tip="LeetCode Premium — subscription required" role="img" aria-label="LeetCode Premium — subscription required">PRO</span></td><td data-label="Meaning">LeetCode Premium. Free substitute given where one exists.</td></tr><tr><td data-label="Marker"><span class="badge" data-tip="Re-solve of a problem listed earlier, under a different machine — not counted twice" role="img" aria-label="Re-solve of a problem listed earlier — not counted twice">↻</span></td><td data-label="Meaning">Re-solve of a problem already listed elsewhere, under a different machine. Not counted twice.</td></tr><tr><td data-label="Marker"><span class="badge anti" data-tip="Anti-pattern — the obvious machine is wrong here" role="img" aria-label="Anti-pattern — the obvious machine is wrong here">⚠︎</span></td><td data-label="Meaning"><strong>Anti-pattern problem.</strong> Included specifically because the obvious machine is <em>wrong</em>. These are the highest-value problems in the entire document.</td></tr></tbody></table></div>
+<p>Problems within a sub-variant are in strict prerequisite order. Sub-variants themselves are in prerequisite order.</p>
+<p>Three conventions used throughout, because they remove more bugs than anything else:</p>
+<ul class="md"><li><strong>Name the machine before you write code.</strong> Every graph question is answered by exactly one of six machines: <em>traverse</em> (DFS/BFS), <em>order</em> (topological sort), <em>partition</em> (DSU), <em>span</em> (MST), <em>relax</em> (Dijkstra/Bellman-Ford/Floyd), or <em>search the answer</em> (binary search or an offline sweep). Saying which one out loud is most of the skill.</li><li><strong><code class="inl">visited</code> is set on push, not on pop.</strong> Every wrong-answer-that-looks-right in BFS traces back to this line. Setting it on pop lets the same node enter the queue many times, which turns O(V+E) into something worse and can report a non-minimal distance.</li><li><strong>The node is whatever uniquely determines the future.</strong> If two situations differ in anything that affects what is reachable from them — remaining budget, keys held, parity of the step count — they are different nodes, and <code class="inl">visited</code> must be keyed by all of it.</li></ul>
+<hr class="rule">
+<h2 class="pattern" id="4-recognition-guide" data-spy data-plain="4 — RECOGNITION GUIDE">4 — RECOGNITION GUIDE<a class="anchor" href="#4-recognition-guide" aria-label="Copy link to this section">#</a></h2>
+<h3 class="sec" id="s4-1" data-spy data-plain="4.1 The decision procedure">4.1 The decision procedure<a class="anchor" href="#s4-1" aria-label="Copy link to this section">#</a></h3>
+<p>Run these in order. Stop at the first match.</p>
+<p><strong>Step 0 — Is there a graph at all?</strong> Signals: an <code class="inl">edges[][]</code> list, an <code class="inl">n × n</code> relation matrix, a grid, a set of strings one edit apart, an array where <code class="inl">a[i]</code> is itself an index, a set of prerequisites / equations / dependencies. If the problem names a set of objects and a relation between them, it is a graph. Build the adjacency list <em>before</em> you think about which algorithm to run — half of "hard graph" problems are ordinary BFS in an unfamiliar input format.</p>
+<p><strong>Step 1 — Directed or undirected?</strong> Say it out loud. It decides cycle detection (parent-skip vs. three colours), whether <code class="inl">visited</code> alone is sufficient, and whether topological sort is even legal.</p>
+<p><strong>Step 2 — Are the edges weighted?</strong></p>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Weights</th><th scope="col">Machine</th></tr></thead><tbody><tr><td data-label="Weights">None (every step costs 1)</td><td data-label="Machine"><strong>BFS.</strong> Never DFS</td></tr><tr><td data-label="Weights">Non-negative</td><td data-label="Machine"><strong>Dijkstra</strong> (<a class="xref" href="weighted-paths.html#s3-2-a">§3.A</a>)</td></tr><tr><td data-label="Weights">All in <code class="inl">{0, 1}</code></td><td data-label="Machine"><strong>0-1 BFS</strong> with a deque (<a class="xref" href="weighted-paths.html#s3-2-d">§3.D</a>)</td></tr><tr><td data-label="Weights">Negative present, or a cap on edge count</td><td data-label="Machine"><strong>Bellman-Ford</strong> (<a class="xref" href="weighted-paths.html#s3-2-e">§3.E</a>)</td></tr><tr><td data-label="Weights">All pairs needed, <code class="inl">n ≤ ~400</code></td><td data-label="Machine"><strong>Floyd–Warshall</strong> (<a class="xref" href="weighted-paths.html#s3-2-f">§3.F</a>)</td></tr><tr><td data-label="Weights">Weights exist but you only need "can I connect everything cheaply"</td><td data-label="Machine"><strong>MST</strong> (<a class="xref" href="ordering.html#s2-2-h">§2.H</a>)</td></tr></tbody></table></div>
+<p><strong>Step 3 — What is actually being asked?</strong></p>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Ask</th><th scope="col">Machine</th></tr></thead><tbody><tr><td data-label="Ask">Reachability — "can I get there"</td><td data-label="Machine">DFS or BFS, either is fine</td></tr><tr><td data-label="Ask">Component count / grouping / merging</td><td data-label="Machine">DFS component count (<a class="xref" href="traversal.html#s1-2-e">§1.E</a>) or DSU (<a class="xref" href="ordering.html#s2-2-e">§2.E–G</a>)</td></tr><tr><td data-label="Ask">Shortest path, unweighted</td><td data-label="Machine">BFS (<a class="xref" href="traversal.html#s1-2-c">§1.C/D</a>)</td></tr><tr><td data-label="Ask">Shortest path, weighted</td><td data-label="Machine">Dijkstra family (§3)</td></tr><tr><td data-label="Ask"><em>All</em> paths, or a count of ways</td><td data-label="Machine">Backtracking with an undo (<a class="xref" href="traversal.html#s1-2-i">§1.I</a>), or DAG DP (<a class="xref" href="ordering.html#s2-2-d">§2.D</a>)</td></tr><tr><td data-label="Ask">A valid order / schedule</td><td data-label="Machine">Topological sort (<a class="xref" href="ordering.html#s2-2-b">§2.B/C</a>)</td></tr><tr><td data-label="Ask">"Is there a cycle"</td><td data-label="Machine">Three colours if directed (<a class="xref" href="ordering.html#s2-2-a">§2.A</a>); parent-skip DFS or DSU if not (<a class="xref" href="traversal.html#s1-2-f">§1.F</a>)</td></tr><tr><td data-label="Ask">Cheapest set of edges connecting everything</td><td data-label="Machine">MST (<a class="xref" href="ordering.html#s2-2-h">§2.H</a>)</td></tr><tr><td data-label="Ask">Edges whose removal disconnects</td><td data-label="Machine">Bridges, Tarjan (<a class="xref" href="ordering.html#s2-2-i">§2.I</a>)</td></tr><tr><td data-label="Ask">Use every <em>edge</em> exactly once</td><td data-label="Machine">Eulerian path, Hierholzer (<a class="xref" href="ordering.html#s2-2-k">§2.K</a>)</td></tr><tr><td data-label="Ask">The answer is a threshold and feasibility is monotone</td><td data-label="Machine">Binary search + BFS (<a class="xref" href="weighted-paths.html#s3-2-g">§3.G</a>), or an offline DSU sweep (<a class="xref" href="weighted-paths.html#s3-2-h">§3.H</a>)</td></tr></tbody></table></div>
+<p><strong>Step 4 — Is the graph implicit?</strong> Grid, board position, word, lock combination, bitmask of collected keys. Do not materialise an adjacency list — write <code class="inl">neighbours(state)</code> and let the search call it. The node is whatever uniquely determines the future.</p>
+<p><strong>Step 5 — Does the state need augmenting?</strong> If the same physical position can be reached twice with a different remaining budget, key set, colour, or parity, then <code class="inl">visited</code> keyed by position is a <strong>wrong answer</strong>, not a slow one. Size the array by the whole tuple.</p>
+<p><strong>Step 6 — Is the graph a DAG?</strong> If yes: no <code class="inl">visited</code> set is needed for path enumeration, memoisation is legal, and the topological order is a valid DP evaluation order. Most "hard graph DP" is a DAG you failed to notice — strict inequalities in the movement rule (329) and "prerequisites" phrasing are the two tells.</p>
+<p><strong>Step 7 — Does every node have out-degree exactly 1?</strong> <code class="inl">nums[i] = j</code>, <code class="inl">edges[i]</code> is a single int, "each person points to one other". Functional graph: every component is a rho. Label by visit step rather than running generic cycle detection (<a class="xref" href="ordering.html#s2-2-j">§2.J</a>).</p>
+<p><strong>Step 8 — Are the queries offline?</strong> A batch of queries with thresholds, and no requirement to answer in order. Sort the edges <em>and</em> the queries, sweep once with a DSU, write answers back by original index (<a class="xref" href="weighted-paths.html#s3-2-h">§3.H</a>).</p>
+<h3 class="sec" id="s4-2" data-spy data-plain="4.2 Signal → pattern cheat table">4.2 Signal → pattern cheat table<a class="anchor" href="#s4-2" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Signal in the problem statement</th><th scope="col">Most likely</th><th scope="col">Watch out for</th></tr></thead><tbody><tr><td data-label="Signal in the problem statement">"grid", "islands", "regions", "provinces"</td><td data-label="Most likely">Grid DFS/BFS or DSU</td><td data-label="Watch out for">Mark on push</td></tr><tr><td data-label="Signal in the problem statement">"shortest", no weights mentioned</td><td data-label="Most likely">BFS</td><td data-label="Watch out for">DFS returns <em>a</em> path, not the shortest</td></tr><tr><td data-label="Signal in the problem statement">"minimum cost / time / effort", non-negative</td><td data-label="Most likely">Dijkstra</td><td data-label="Watch out for">Heap of <code class="inl">(dist, node)</code>, skip stale pops</td></tr><tr><td data-label="Signal in the problem statement">"at most k stops / edges / moves"</td><td data-label="Most likely">Bellman-Ford, <code class="inl">k+1</code> rounds</td><td data-label="Watch out for">Dijkstra's finality invariant is void</td></tr><tr><td data-label="Signal in the problem statement">"prerequisites", "order", "dependencies", "before"</td><td data-label="Most likely">Topological sort</td><td data-label="Watch out for">Detect the cycle; do not assume a DAG</td></tr><tr><td data-label="Signal in the problem statement">"connected", "groups", "merge", "same set"</td><td data-label="Most likely">DSU</td><td data-label="Watch out for">Union by size + path compression, or it is O(n) per find</td></tr><tr><td data-label="Signal in the problem statement">"minimum cost to connect all"</td><td data-label="Most likely">MST</td><td data-label="Watch out for">This is not shortest path</td></tr><tr><td data-label="Signal in the problem statement">"maximise the minimum edge on a path" / "minimise the maximum"</td><td data-label="Most likely">Bottleneck Dijkstra, or DSU by sorted weight, or binary search</td><td data-label="Watch out for">Three valid solutions — pick deliberately</td></tr><tr><td data-label="Signal in the problem statement">"each node points to exactly one other"</td><td data-label="Most likely">Functional graph</td><td data-label="Watch out for">Not generic cycle detection</td></tr><tr><td data-label="Signal in the problem statement">"all pairs", <code class="inl">n ≤ 400</code></td><td data-label="Most likely">Floyd–Warshall</td><td data-label="Watch out for"><code class="inl">k</code> outermost</td></tr><tr><td data-label="Signal in the problem statement">"remove one edge and the network splits"</td><td data-label="Most likely">Bridges (Tarjan)</td><td data-label="Watch out for">Not brute-force removal</td></tr><tr><td data-label="Signal in the problem statement">"use every ticket / every edge once"</td><td data-label="Most likely">Hierholzer</td><td data-label="Watch out for">Not plain backtracking</td></tr><tr><td data-label="Signal in the problem statement">"how many ways / how many paths"</td><td data-label="Most likely">DAG DP, or counting during relaxation</td><td data-label="Watch out for">Not a shortest-path variant</td></tr><tr><td data-label="Signal in the problem statement">"you may break / remove k walls"</td><td data-label="Most likely">State BFS on <code class="inl">(r, c, k)</code></td><td data-label="Watch out for"><code class="inl">visited[r][c]</code> is a wrong answer</td></tr><tr><td data-label="Signal in the problem statement">"two groups", "dislikes", "cannot be together"</td><td data-label="Most likely">Bipartite 2-colouring</td><td data-label="Watch out for">Loop over all components</td></tr><tr><td data-label="Signal in the problem statement">"strictly increasing path in a matrix"</td><td data-label="Most likely">Memoised DFS on a DAG</td><td data-label="Watch out for">No <code class="inl">visited</code> set</td></tr><tr><td data-label="Signal in the problem statement">Batch of queries each with a limit</td><td data-label="Most likely">Offline sort + DSU sweep</td><td data-label="Watch out for">Answer by original index</td></tr><tr><td data-label="Signal in the problem statement">"cost is 0 if you keep going, 1 if you turn"</td><td data-label="Most likely">0-1 BFS</td><td data-label="Watch out for">Dijkstra also works, one log slower</td></tr><tr><td data-label="Signal in the problem statement">"n nodes, <code class="inl">edges[i] = [a, b]</code>" and the word "tree"</td><td data-label="Most likely">Tree-as-graph (Bundle 02, §1.F)</td><td data-label="Watch out for">There is no root until you pick one</td></tr></tbody></table></div>
+<h3 class="sec" id="s4-3" data-spy data-plain="4.3 Trap cases — where the obvious machine is wrong">4.3 Trap cases — where the obvious machine is wrong<a class="anchor" href="#s4-3" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Problem</th><th scope="col">The obvious (wrong) read</th><th scope="col">Why it fails</th><th scope="col">Correct approach</th></tr></thead><tbody><tr><td data-label="Problem"><strong>797. All Paths From Source to Target</strong></td><td data-label="The obvious (wrong) read">Traversal ⇒ <code class="inl">visited</code> set</td><td data-label="Why it fails">It is a DAG; a global <code class="inl">visited</code> silently drops every path through an already-seen node</td><td data-label="Correct approach">Backtracking with no mark at all</td></tr><tr><td data-label="Problem"><strong>261. Graph Valid Tree</strong></td><td data-label="The obvious (wrong) read">Check for a cycle</td><td data-label="Why it fails">A forest is acyclic and is not a tree</td><td data-label="Correct approach"><code class="inl">edges == n − 1</code> <strong>and</strong> one component</td></tr><tr><td data-label="Problem"><strong>827. Making A Large Island</strong></td><td data-label="The obvious (wrong) read">Flood fill from every <code class="inl">0</code></td><td data-label="Why it fails"><code class="inl">O((mn)²)</code></td><td data-label="Correct approach">Label islands once with sizes, then sum distinct neighbour ids</td></tr><tr><td data-label="Problem"><strong>802. Find Eventual Safe States</strong></td><td data-label="The obvious (wrong) read">DFS with <code class="inl">visited</code></td><td data-label="Why it fails"><code class="inl">visited</code> conflates "on the stack" with "proved safe"</td><td data-label="Correct approach">Three colours, or Kahn on the reversed graph</td></tr><tr><td data-label="Problem"><strong>269. Alien Dictionary</strong></td><td data-label="The obvious (wrong) read">Edge from every character pair</td><td data-label="Why it fails">Only the first differing char of <em>adjacent</em> words is an edge</td><td data-label="Correct approach">And reject <code class="inl">["abc","ab"]</code> explicitly</td></tr><tr><td data-label="Problem"><strong>329. Longest Increasing Path</strong></td><td data-label="The obvious (wrong) read">BFS/DFS with <code class="inl">visited</code></td><td data-label="Why it fails">Cells are legitimately reused across different paths</td><td data-label="Correct approach">Strict increase ⇒ DAG ⇒ memoise</td></tr><tr><td data-label="Problem"><strong>1192. Critical Connections</strong></td><td data-label="The obvious (wrong) read">Remove each edge, recheck connectivity</td><td data-label="Why it fails"><code class="inl">O(E·(V+E))</code></td><td data-label="Correct approach">Tarjan low-links, one DFS</td></tr><tr><td data-label="Problem"><strong>332. Reconstruct Itinerary</strong></td><td data-label="The obvious (wrong) read">Lexicographic greedy DFS</td><td data-label="Why it fails">The smallest next airport can consume your only exit and strand the walk</td><td data-label="Correct approach">Hierholzer: post-order append, then reverse</td></tr><tr><td data-label="Problem"><strong>1631. Path With Minimum Effort</strong></td><td data-label="The obvious (wrong) read">Grid DP</td><td data-label="Why it fails">4-directional movement admits no valid evaluation order</td><td data-label="Correct approach">Dijkstra with <code class="inl">max</code> relaxation, or binary search + BFS</td></tr><tr><td data-label="Problem"><strong>787. Cheapest Flights Within K Stops</strong></td><td data-label="The obvious (wrong) read">Dijkstra</td><td data-label="Why it fails">With a stop budget, the first pop of a node is no longer final</td><td data-label="Correct approach">Bellman-Ford, <code class="inl">k+1</code> snapshot rounds</td></tr><tr><td data-label="Problem"><strong>1091. Shortest Path in Binary Matrix</strong></td><td data-label="The obvious (wrong) read">DFS</td><td data-label="Why it fails">DFS gives a path, not the shortest</td><td data-label="Correct approach">BFS</td></tr><tr><td data-label="Problem"><strong>Any grid BFS marking <code class="inl">visited</code> on pop</strong></td><td data-label="The obvious (wrong) read">"same thing, later"</td><td data-label="Why it fails">The same cell enters the queue many times → TLE and non-minimal distances</td><td data-label="Correct approach">Mark in the same statement that enqueues</td></tr><tr><td data-label="Problem"><strong>Dijkstra with any negative edge</strong></td><td data-label="The obvious (wrong) read">"still a shortest path"</td><td data-label="Why it fails">Finality requires non-negative weights</td><td data-label="Correct approach">Bellman-Ford</td></tr><tr><td data-label="Problem"><strong>1293 / 864 with <code class="inl">visited[r][c]</code></strong></td><td data-label="The obvious (wrong) read">"a cell is a cell"</td><td data-label="Why it fails">Two arrivals with different budgets are different states</td><td data-label="Correct approach">Key <code class="inl">visited</code> by the full tuple</td></tr><tr><td data-label="Problem"><strong>128. Longest Consecutive Sequence</strong> with DSU</td><td data-label="The obvious (wrong) read">"it's a grouping problem"</td><td data-label="Why it fails">Correct but heavier than needed</td><td data-label="Correct approach">Hash set, walk up only from sequence starts</td></tr><tr><td data-label="Problem"><strong>MST for "shortest path from u to v"</strong></td><td data-label="The obvious (wrong) read">"minimum edges, minimum path"</td><td data-label="Why it fails">The MST path between two nodes is often not the shortest</td><td data-label="Correct approach">Dijkstra</td></tr></tbody></table></div>
+<hr class="rule">
+<h2 class="pattern" id="5-mastery-checkpoints" data-spy data-plain="5 — MASTERY CHECKPOINTS">5 — MASTERY CHECKPOINTS<a class="anchor" href="#5-mastery-checkpoints" aria-label="Copy link to this section">#</a></h2>
+<p>Each gate is <strong>pass/fail, no partial credit</strong>. Gate conditions are things you do <em>without an IDE, without hints, and without looking at your own notes.</em> A gate you "mostly" pass is a gate you failed.</p>
+<h3 class="sec" id="s5-1" data-spy data-plain="5.1 Traversal &amp; Connectivity">5.1 Traversal &amp; Connectivity<a class="anchor" href="#s5-1" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Gate</th><th scope="col">You may advance when you can...</th><th scope="col">Fail action</th></tr></thead><tbody><tr><td data-label="Gate"><strong>A → B</strong></td><td data-label="You may advance when you can...">Write the grid DFS blind including the four-guard order (bounds, then contents), and state why sinking the cell is a legal substitute for a <code class="inl">visited</code> array in 200 but not in 79</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p1" title="733. Flood Fill">#1</a>–<a class="xref" href="traversal.html#p3" title="695. Max Area of Island">#3</a></td></tr><tr><td data-label="Gate"><strong>B → C</strong></td><td data-label="You may advance when you can...">State the inversion — "mark what escapes, then take the complement" — unprompted, and explain why 417 traverses <em>uphill from the oceans</em> rather than downhill from every cell</td><td data-label="Fail action">Re-derive the complexity of the forward version on paper before touching another problem</td></tr><tr><td data-label="Gate"><strong>C → D</strong></td><td data-label="You may advance when you can...">Write the level-snapshot BFS blind, and explain in one sentence why marking on pop is wrong rather than merely slow</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p11" title="1091. Shortest Path in Binary Matrix">#11</a>, then hand-trace a 3×3 grid where the pop-marking version reports a larger distance</td></tr><tr><td data-label="Gate"><strong>D → E</strong></td><td data-label="You may advance when you can...">Seed a multi-source BFS from memory and say what the answer is: the last level, a per-cell distance, or a count</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p15" title="994. Rotting Oranges">#15</a>–<a class="xref" href="traversal.html#p17" title="1162. As Far from Land as Possible">#17</a> in one sitting; the three answers are the lesson</td></tr><tr><td data-label="Gate"><strong>E → F</strong></td><td data-label="You may advance when you can...">Turn <code class="inl">int[][] edges</code> into <code class="inl">List&lt;Integer&gt;[]</code> blind in under two minutes, and reproduce 1466's signed-edge trick without re-deriving</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p22" title="1466. Reorder Routes to Make All Paths Lead to the City Zero">#22</a></td></tr><tr><td data-label="Gate"><strong>F → G</strong></td><td data-label="You may advance when you can...">State both conditions for a tree and produce a 4-node counterexample that is acyclic and not a tree</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p27" title="261. Graph Valid Tree">#27</a>. This is the cheapest gate to fail and the most embarrassing to fail in an interview</td></tr><tr><td data-label="Gate"><strong>G → H</strong></td><td data-label="You may advance when you can...">Write the 2-colour BFS blind <em>with</em> the outer component loop, and say what a conflict looks like</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p28" title="785. Is Graph Bipartite?">#28</a>, then run it on a disconnected test you construct yourself</td></tr><tr><td data-label="Gate"><strong>H → I</strong></td><td data-label="You may advance when you can...">Explain why the clone must enter the map before recursing, using a 2-node cycle</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p30" title="133. Clone Graph">#30</a></td></tr><tr><td data-label="Gate"><strong>I → J</strong></td><td data-label="You may advance when you can...">State the rule "permanent mark for shortest path, undone mark for enumeration, no mark on a DAG" and place 797, 79 and 1091 correctly into it without hesitating</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p31" title="797. All Paths From Source to Target">#31</a> and <a class="xref" href="traversal.html#p32" title="79. Word Search">#32</a> back to back. If 797 still feels like it needs <code class="inl">visited</code>, that is the whole gate</td></tr><tr><td data-label="Gate"><strong>J → K</strong></td><td data-label="You may advance when you can...">Given a new grid problem with a budget, name the state tuple and the <code class="inl">visited</code> dimensions <strong>before</strong> writing code</td><td data-label="Fail action">The most transferable gate in the pattern. Redo <a class="xref" href="traversal.html#p36" title="1293. Shortest Path in a Grid with Obstacles Elimination">#36</a>, then solve <a class="xref" href="traversal.html#p37" title="864. Shortest Path to Get All Keys">#37</a> cold</td></tr><tr><td data-label="Gate"><strong>K → done</strong></td><td data-label="You may advance when you can...">Explain why pattern buckets beat pairwise comparison in 127, and state the termination condition of the two-ended search</td><td data-label="Fail action">Redo <a class="xref" href="traversal.html#p41" title="127. Word Ladder">#41</a>; if the bidirectional version is unclear, write the one-directional version first and diff them</td></tr></tbody></table></div>
+<h3 class="sec" id="s5-2" data-spy data-plain="5.2 Ordering, Partitions &amp; Spanning Structure">5.2 Ordering, Partitions &amp; Spanning Structure<a class="anchor" href="#s5-2" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Gate</th><th scope="col">You may advance when you can...</th><th scope="col">Fail action</th></tr></thead><tbody><tr><td data-label="Gate"><strong>A → B</strong></td><td data-label="You may advance when you can...">Write the three-colour DFS blind and say what GREY→BLACK means that GREY→GREY does not</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p45" title="207. Course Schedule">#45</a>, then <a class="xref" href="ordering.html#p46" title="802. Find Eventual Safe States">#46</a>. The pair is the lesson</td></tr><tr><td data-label="Gate"><strong>B → C</strong></td><td data-label="You may advance when you can...">Write Kahn blind, including the <code class="inl">order.size() == n</code> cycle report, in under four minutes</td><td data-label="Fail action">This is the foundation gate. Do not proceed. Rewrite daily until it is muscle memory</td></tr><tr><td data-label="Gate"><strong>C → D</strong></td><td data-label="You may advance when you can...">Given a prose description of dependencies, produce the node set and the edge set <strong>on paper</strong> before writing any code, and state the cycle semantics for that domain</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p50" title="2115. Find All Possible Recipes from Given Supplies">#50</a>, then <a class="xref" href="ordering.html#p51" title="269. Alien Dictionary">#51</a> with only the constraints section visible</td></tr><tr><td data-label="Gate"><strong>D → E</strong></td><td data-label="You may advance when you can...">Explain why 329 needs a memo and not a <code class="inl">visited</code> set, in terms of the graph being acyclic</td><td data-label="Fail action">You have the code but not the pattern. Re-derive on paper before touching another problem</td></tr><tr><td data-label="Gate"><strong>E → F</strong></td><td data-label="You may advance when you can...">Write the DSU class blind — <code class="inl">find</code> with path compression, <code class="inl">union</code> by size, a <code class="inl">components</code> counter decremented in the right branch — in under four minutes with zero compile errors</td><td data-label="Fail action">The second foundation gate. Do not proceed</td></tr><tr><td data-label="Gate"><strong>F → G</strong></td><td data-label="You may advance when you can...">Given a new grouping problem, say whether the answer is <code class="inl">n − components</code>, <code class="inl">components − 1</code>, or a per-component aggregate, <strong>before</strong> coding</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p62" title="947. Most Stones Removed with Same Row or Column">#62</a> and <a class="xref" href="ordering.html#p63" title="1319. Number of Operations to Make Network Connected">#63</a> side by side</td></tr><tr><td data-label="Gate"><strong>G → H</strong></td><td data-label="You may advance when you can...">Explain what union-by-time buys you in 305 that a fresh traversal per step does not</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p68" title="305. Number of Islands II">#68</a> (or its free substitute) and state the complexity of the naive version out loud</td></tr><tr><td data-label="Gate"><strong>H → I</strong></td><td data-label="You may advance when you can...">State the difference between MST and shortest path in one sentence, and give a 4-node graph where the MST path between two nodes is longer than the shortest path</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p73" title="1584. Min Cost to Connect All Points">#73</a> both ways, Kruskal and Prim, and say which suits a complete graph</td></tr><tr><td data-label="Gate"><strong>I → J</strong></td><td data-label="You may advance when you can...">Write the bridge DFS blind and correctly justify <code class="inl">disc[v]</code> on the back edge and <code class="inl">low[v]</code> on the tree edge</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p76" title="1192. Critical Connections in a Network">#76</a>. Hand-trace a 4-cycle with one pendant edge</td></tr><tr><td data-label="Gate"><strong>J → K</strong></td><td data-label="You may advance when you can...">Recognise a functional graph from the <em>input signature alone</em> and state why one global pass suffices</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p77" title="2360. Longest Cycle in a Graph">#77</a></td></tr><tr><td data-label="Gate"><strong>K → done</strong></td><td data-label="You may advance when you can...">Explain, with a concrete 3-airport counterexample, why lexicographic greedy strands the walk in 332</td><td data-label="Fail action">Redo <a class="xref" href="ordering.html#p81" title="332. Reconstruct Itinerary">#81</a>. If the counterexample does not come to hand, you memorised Hierholzer without understanding it</td></tr></tbody></table></div>
+<h3 class="sec" id="s5-3" data-spy data-plain="5.3 Weighted Paths &amp; Search on the Answer">5.3 Weighted Paths &amp; Search on the Answer<a class="anchor" href="#s5-3" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Gate</th><th scope="col">You may advance when you can...</th><th scope="col">Fail action</th></tr></thead><tbody><tr><td data-label="Gate"><strong>A → B</strong></td><td data-label="You may advance when you can...">Write Dijkstra blind in under five minutes with <code class="inl">long</code> distances and the stale-pop skip, and state the finality invariant and its precondition</td><td data-label="Fail action">This is the foundation gate. Do not proceed. Rewrite daily</td></tr><tr><td data-label="Gate"><strong>B → C</strong></td><td data-label="You may advance when you can...">Change the relaxation from <code class="inl">dist[u] + w</code> to <code class="inl">max(dist[u], w)</code> and explain why Dijkstra is still correct under it</td><td data-label="Fail action">Redo <a class="xref" href="weighted-paths.html#p87" title="1631. Path With Minimum Effort">#87</a> and <a class="xref" href="weighted-paths.html#p88" title="778. Swim in Rising Water">#88</a> back to back, in that order, in one sitting</td></tr><tr><td data-label="Gate"><strong>C → D</strong></td><td data-label="You may advance when you can...">Given a new problem, decide whether the state needs augmenting <strong>before</strong> writing code, and name every dimension</td><td data-label="Fail action">Redo <a class="xref" href="weighted-paths.html#p91" title="1129. Shortest Path with Alternating Colors">#91</a>, then <a class="xref" href="weighted-paths.html#p92" title="1786. Number of Restricted Paths From First to Last Node">#92</a>. If 1293 (<a class="xref" href="traversal.html#s1-2-j">§1.J</a>) does not feel like the same idea, re-read <a class="xref" href="#s4-1">§4.1</a> Step 5</td></tr><tr><td data-label="Gate"><strong>D → E</strong></td><td data-label="You may advance when you can...">Write 0-1 BFS blind and explain why the deque frontier stays monotone</td><td data-label="Fail action">Redo <a class="xref" href="weighted-paths.html#p94" title="1368. Minimum Cost to Make at Least One Valid Path in a Grid">#94</a>, then solve <a class="xref" href="weighted-paths.html#p95" title="2290. Minimum Obstacle Removal to Reach Corner">#95</a> cold in under ten minutes</td></tr><tr><td data-label="Gate"><strong>E → F</strong></td><td data-label="You may advance when you can...">State — unprompted — exactly which invariant 787 breaks, then write Bellman-Ford blind with the snapshot and explain what happens without it</td><td data-label="Fail action">787 is the capstone anti-pattern of this bundle. If it fails, run the Dijkstra version against the failing test until you can see the finalisation happen</td></tr><tr><td data-label="Gate"><strong>F → G</strong></td><td data-label="You may advance when you can...">Write Floyd blind with <code class="inl">k</code> outermost and the INF guards, and name the <code class="inl">n</code> at which it stops being viable</td><td data-label="Fail action">Redo <a class="xref" href="weighted-paths.html#p97" title="1334. Find the City With the Smallest Number of Neighbors at a Threshold Distance">#97</a>, then <a class="xref" href="weighted-paths.html#p99" title="1462. Course Schedule IV">#99</a></td></tr><tr><td data-label="Gate"><strong>G → H</strong></td><td data-label="You may advance when you can...">Given any "maximise the minimum" graph problem, produce all three solutions — Dijkstra, binary search + BFS, DSU by weight — and say which you would write in an interview and why</td><td data-label="Fail action">Redo <a class="xref" href="weighted-paths.html#p88" title="778. Swim in Rising Water">#88</a> three ways and write the mapping between them explicitly</td></tr><tr><td data-label="Gate"><strong>H → done</strong></td><td data-label="You may advance when you can...">Explain why sorting the queries is legal, and write the sweep with answers restored to original index order</td><td data-label="Fail action">Redo <a class="xref" href="weighted-paths.html#p103" title="1697. Checking Existence of Edge Length Limited Paths">#103</a>, then <a class="xref" href="weighted-paths.html#p104" title="2503. Maximum Number of Points From Grid Queries">#104</a>. If the index restoration is the bug, that is the whole sub-variant</td></tr></tbody></table></div>
+<h3 class="sec" id="s5-4" data-spy data-plain="5.4 Revisit rule for ★ problems">5.4 Revisit rule for <span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> problems<a class="anchor" href="#s5-4" aria-label="Copy link to this section">#</a></h3>
+<p>Log every starred problem with an outcome the moment you finish it. The interval depends <strong>only</strong> on how you solved it, never on how you felt about it.</p>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Outcome</th><th scope="col">Next revisit</th><th scope="col">Then</th><th scope="col">Then</th><th scope="col">Graduates when</th></tr></thead><tbody><tr><td data-label="Outcome"><strong>Clean</strong> — unaided, optimal, first submission accepted, ≤ 25 min</td><td data-label="Next revisit">+14 days</td><td data-label="Then">+45 days</td><td data-label="Then">done</td><td data-label="Graduates when">2 consecutive clean runs</td></tr><tr><td data-label="Outcome"><strong>Slow</strong> — unaided and optimal, but &gt; 40 min or multiple failed submissions</td><td data-label="Next revisit">+7 days</td><td data-label="Then">+21 days</td><td data-label="Then">+45 days</td><td data-label="Graduates when">2 consecutive clean runs</td></tr><tr><td data-label="Outcome"><strong>Hinted</strong> — you read a hint, a tag, or the pattern name</td><td data-label="Next revisit">+3 days</td><td data-label="Then">+10 days</td><td data-label="Then">+30 days</td><td data-label="Graduates when">2 consecutive <strong>clean</strong> runs (slow doesn't count)</td></tr><tr><td data-label="Outcome"><strong>Solved</strong> — you read the editorial or any solution code</td><td data-label="Next revisit">+1 day</td><td data-label="Then">+4 days</td><td data-label="Then">+12 days</td><td data-label="Graduates when">3 consecutive clean runs</td></tr><tr><td data-label="Outcome"><strong>Suboptimal</strong> — accepted but wrong complexity</td><td data-label="Next revisit">Treat as <strong>Hinted</strong>, and additionally re-solve the <em>previous</em> starred problem in the same sub-variant</td><td data-label="Then"></td><td data-label="Then"></td><td data-label="Graduates when"></td></tr></tbody></table></div>
+<p><strong>Additional rules that matter more than the intervals:</strong></p>
+<ol class="md"><li><strong>Name the machine first.</strong> On every revisit, say which of the six machines this is — traverse, order, partition, span, relax, search the answer — <strong>before</strong> opening the editor. Naming it wrong downgrades the attempt to <em>Hinted</em> regardless of how the code goes.</li><li><strong>Say where <code class="inl">visited</code> is set.</strong> Push or pop, and keyed by what. If you cannot answer both parts instantly, the attempt is <em>Hinted</em>.</li><li><strong>Blind template first.</strong> Write the sub-variant's template from memory before reading the problem. A wrong template downgrades the attempt on its own.</li><li><strong>Two strikes → step back.</strong> Any starred problem that fails to reach <em>Clean</em> on two consecutive revisits: stop, go back one sub-variant, re-solve its last two starred problems. The failure is almost always upstream.</li><li><strong>Failure-mode tagging.</strong> When a revisit isn't clean, tag it with the row number from the relevant §*.4 table. After ten problems you will have two or three dominant tags — those are your actual weaknesses, and they are worth more than any problem count.</li><li><strong>Draw the graph.</strong> Any graph bug that survives two readings of the code gets a hand-drawn 6-node counterexample with exactly one cycle. As with trees, the drawing finds the bug faster than the debugger.</li><li><strong>The sub-variant transfer test.</strong> Once per sub-variant, take an unseen <span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> problem from the same sub-variant and solve it cold. If the core problems are clean but the transfer fails, you learned the problems, not the pattern.</li><li><strong>Never revisit an unstarred problem</strong> unless it is serving as a transfer test.</li><li><strong>Cap the queue at 12 due items.</strong> If more than 12 come due, do the oldest 12 and push the rest. A backlog you avoid is worse than an interval you stretch.</li></ol>
+<hr class="rule">
+<h3 class="sec" id="appendix-a-coverage-summary" data-spy data-plain="Appendix A — Coverage summary">Appendix A — Coverage summary<a class="anchor" href="#appendix-a-coverage-summary" aria-label="Copy link to this section">#</a></h3>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Pattern</th><th scope="col">Sub-variants</th><th scope="col"><span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> core</th><th scope="col"><span class="badge anti" data-tip="Anti-pattern — the obvious machine is wrong here" role="img" aria-label="Anti-pattern — the obvious machine is wrong here">⚠︎</span> (inside core)</th><th scope="col">Core total</th><th scope="col"><span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> optional</th><th scope="col">Listed</th></tr></thead><tbody><tr><td data-label="Pattern">Traversal &amp; Connectivity</td><td data-label="Sub-variants">11</td><td data-label="★ core">24</td><td data-label="⚠︎ (inside core)">3 (827, 261, 797)</td><td data-label="Core total">27</td><td data-label="○ optional">17</td><td data-label="Listed">44</td></tr><tr><td data-label="Pattern">Ordering, Partitions &amp; Spanning</td><td data-label="Sub-variants">11</td><td data-label="★ core">16</td><td data-label="⚠︎ (inside core)">5 (802, 269, 329, 1192, 332)</td><td data-label="Core total">21</td><td data-label="○ optional">17</td><td data-label="Listed">38</td></tr><tr><td data-label="Pattern">Weighted Paths &amp; Search on the Answer</td><td data-label="Sub-variants">9</td><td data-label="★ core">14</td><td data-label="⚠︎ (inside core)">2 (1631, 787)</td><td data-label="Core total">16</td><td data-label="○ optional">6</td><td data-label="Listed">22</td></tr><tr><td data-label="Pattern"><strong>Total</strong></td><td data-label="Sub-variants"><strong>31</strong></td><td data-label="★ core"><strong>54</strong></td><td data-label="⚠︎ (inside core)"><strong>10</strong></td><td data-label="Core total"><strong>64</strong></td><td data-label="○ optional"><strong>40</strong></td><td data-label="Listed"><strong>104</strong></td></tr></tbody></table></div>
+<p>Premium problems: 12 listed, of which 3 are core (261, 269, 305). Free substitutes are named in the table row for each.</p>
+<p>The ten <span class="badge anti" data-tip="Anti-pattern — the obvious machine is wrong here" role="img" aria-label="Anti-pattern — the obvious machine is wrong here">⚠︎</span> problems are the highest-value items in the document. They are the only ones that teach you when <em>not</em> to reach for the obvious machine, which is the difference between someone who has done 400 graph problems and someone who can solve an unseen one.</p>
+<h3 class="sec" id="appendix-b-deliberately-out-of-scope" data-spy data-plain="Appendix B — Deliberately out of scope">Appendix B — Deliberately out of scope<a class="anchor" href="#appendix-b-deliberately-out-of-scope" aria-label="Copy link to this section">#</a></h3>
+<p>Named here so that "no gaps" means what it says. None of these has appeared on a FAANG loop in recent memory; each is one search away if you need it.</p>
+<div class="tablewrap"><table class="plain"><thead><tr><th scope="col">Topic</th><th scope="col">Why it is out</th><th scope="col">Know that</th></tr></thead><tbody><tr><td data-label="Topic">Max flow / min cut (Dinic, Edmonds–Karp)</td><td data-label="Why it is out">Effectively untested at this level</td><td data-label="Know that">Max-flow = min-cut; bipartite matching reduces to it</td></tr><tr><td data-label="Topic">Bipartite matching (Hopcroft–Karp, Hungarian)</td><td data-label="Why it is out">Same</td><td data-label="Know that">Kőnig's theorem links matching to vertex cover</td></tr><tr><td data-label="Topic">Strongly connected components (Kosaraju, Tarjan)</td><td data-label="Why it is out">Almost never the intended solution on LeetCode</td><td data-label="Know that">Condensing a digraph by SCC yields a DAG; that is the one useful fact</td></tr><tr><td data-label="Topic">2-SAT</td><td data-label="Why it is out">Competitive programming only</td><td data-label="Know that">It is an SCC problem on the implication graph</td></tr><tr><td data-label="Topic">Heavy-light decomposition, centroid decomposition</td><td data-label="Why it is out">Competitive programming only</td><td data-label="Know that"></td></tr><tr><td data-label="Topic">LCA by binary lifting</td><td data-label="Why it is out">Appears on trees, not general graphs</td><td data-label="Know that">Bundle 02 covers the recursive LCA</td></tr><tr><td data-label="Topic">A\* and heuristic search</td><td data-label="Why it is out">No LeetCode problem requires the heuristic</td><td data-label="Know that">It is Dijkstra with <code class="inl">f = g + h</code>, admissible <code class="inl">h</code></td></tr><tr><td data-label="Topic">Johnson's algorithm</td><td data-label="Why it is out">Superseded by Floyd at the tested input sizes</td><td data-label="Know that"></td></tr></tbody></table></div>
+<h3 class="sec" id="appendix-c-where-this-bundle-connects-to-the-others" data-spy data-plain="Appendix C — Where this bundle connects to the others">Appendix C — Where this bundle connects to the others<a class="anchor" href="#appendix-c-where-this-bundle-connects-to-the-others" aria-label="Copy link to this section">#</a></h3>
+<ul class="md"><li><strong>LC 329</strong> (longest increasing path) is memoised DFS on a DAG — the same "return what composes, record what does not" split as tree recursion, Bundle 02 §2.C.</li><li><strong>LC 2360</strong> (longest cycle in a functional graph) is <strong>LC 287</strong>'s argument from Bundle 01 §1.G with a different termination proof: the array <em>was</em> a linked list there too.</li><li><strong>LC 778 / 1631 / 1102</strong> are binary search on the answer — Bundle 01 §3.G/H — with a BFS standing in for the feasibility predicate. <strong>LC 1697 / 2503</strong> are the offline version of the same idea.</li><li><strong>LC 310</strong> (minimum height trees) is topological peeling: the same strip-the-frontier motion as multi-source BFS in <a class="xref" href="traversal.html#s1-2-d">§1.D</a>, run on degree instead of distance.</li><li><strong>LC 863</strong> (all nodes distance K, Bundle 02 §1.F) is a tree converted into an undirected graph — which is Step 0 of <a class="xref" href="#s4-1">§4.1</a> here, arriving from the other direction.</li><li><strong>LC 133</strong>'s <code class="inl">Map&lt;Node, Node&gt;</code> is <strong>LC 138</strong>'s random-pointer map: <code class="inl">visited</code> and the memo being the same object is a pattern, not a coincidence.</li><li><strong>LC 787</strong> breaks Dijkstra for exactly the reason a non-monotone <code class="inl">feasible(x)</code> breaks binary search in Bundle 01 §4.3: the algorithm's correctness rests on an invariant, and the problem quietly removes it.</li></ul>
+<p>If those seven sentences read as obvious, the patterns have transferred. If any of them reads as a surprise, that is the next thing to study.</p>
+    </div>
+  </main>
+
+</div>
+
+<div class="searchlayer" id="searchLayer" data-shown="false" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="searchbox">
+    <input id="searchInput" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search problems by name or LeetCode number…" aria-label="Search problems and sections"
+           aria-controls="results">
+    <ul id="results" role="listbox" aria-label="Search results"></ul>
+    <div class="searchfoot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>↵</kbd> jump</span>
+      <span><kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   Graphs, No Gaps — behaviour
+   Vanilla JS, no dependencies, works from file://
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var NS = "graphpat.v1.";
+  /* Storage with an explicit fallback chain. The original version swallowed every
+     exception, which made "the browser is blocking storage" indistinguishable from
+     "nothing was ever saved". Now we probe once and remember which backend works. */
+  var store = (function () {
+    function probe(s) {
+      try {
+        var k = "__probe" + Math.random();
+        s.setItem(k, "1");
+        var ok = s.getItem(k) === "1";
+        s.removeItem(k);
+        return ok;
+      } catch (e) { return false; }
+    }
+    var back = null, mode = "memory", mem = {};
+    try { if (window.localStorage && probe(window.localStorage)) { back = window.localStorage; mode = "local"; } } catch (e) {}
+    if (!back) {
+      try { if (window.sessionStorage && probe(window.sessionStorage)) { back = window.sessionStorage; mode = "session"; } } catch (e) {}
+    }
+    return {
+      mode: mode,
+      get: function (k, d) {
+        try {
+          var v = back ? back.getItem(NS + k)
+                       : (Object.prototype.hasOwnProperty.call(mem, NS + k) ? mem[NS + k] : null);
+          return (v === null || v === undefined) ? d : JSON.parse(v);
+        } catch (e) { return d; }
+      },
+      set: function (k, v) {
+        var raw = JSON.stringify(v);
+        mem[NS + k] = raw;                                  /* always keep an in-page copy */
+        try { if (back) { back.setItem(NS + k, raw); return true; } } catch (e) {}
+        return false;
+      },
+      del: function (k) {
+        delete mem[NS + k];
+        try { if (back) back.removeItem(NS + k); } catch (e) {}
+      },
+      exportAll: function () {
+        var out = {}, i, k;
+        if (back) {
+          for (i = 0; i < back.length; i++) {
+            k = back.key(i);
+            if (k && k.indexOf(NS) === 0) out[k.slice(NS.length)] = back.getItem(k);
+          }
+        }
+        for (k in mem) {
+          if (Object.prototype.hasOwnProperty.call(mem, k) && k.indexOf(NS) === 0) {
+            out[k.slice(NS.length)] = mem[k];
+          }
+        }
+        return out;
+      },
+      importAll: function (obj) {
+        var k, n = 0;
+        for (k in obj) {
+          if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+          mem[NS + k] = obj[k];
+          try { if (back) back.setItem(NS + k, obj[k]); } catch (e) {}
+          n++;
+        }
+        return n;
+      }
+    };
+  })();
+
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------------------------------------------------- toast */
+
+  var toastEl = $("#toast"), toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.setAttribute("data-shown", "true");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.setAttribute("data-shown", "false"); }, 1700);
+  }
+
+  /* ---------------------------------------------------------- theme */
+
+  var themeBtn = $("#themeBtn");
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+
+  function applyTheme(t, persist) {
+    var resolved = t === "auto" ? (mq.matches ? "dark" : "light") : t;
+    document.documentElement.setAttribute("data-theme", resolved);
+    document.documentElement.setAttribute("data-theme-pref", t);
+    if (themeBtn) {
+      themeBtn.setAttribute("aria-label",
+        "Theme: " + t + ". Activate to switch.");
+      var lbl = themeBtn.querySelector(".lbl");
+      if (lbl) lbl.textContent = t === "auto" ? "Auto" : (t === "dark" ? "Dark" : "Light");
+      themeBtn.setAttribute("data-mode", t);
+    }
+    if (persist) store.set("theme", t);
+  }
+
+  applyTheme(store.get("theme", "auto"), false);
+  mq.addEventListener && mq.addEventListener("change", function () {
+    if (store.get("theme", "auto") === "auto") applyTheme("auto", false);
+  });
+
+  if (themeBtn) {
+    themeBtn.addEventListener("click", function () {
+      var order = ["auto", "light", "dark"];
+      var cur = store.get("theme", "auto");
+      applyTheme(order[(order.indexOf(cur) + 1) % 3], true);
+    });
+  }
+
+  /* ---------------------------------------------------------- progress bar */
+
+  var bar = $("#progressBar");
+  if (bar) {
+    var ticking = false;
+    var update = function () {
+      var d = document.documentElement;
+      var max = d.scrollHeight - d.clientHeight;
+      var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      bar.style.transform = "scaleX(" + p.toFixed(4) + ")";
+      ticking = false;
+    };
+    window.addEventListener("scroll", function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    update();
+  }
+
+  /* ---------------------------------------------------------- sticky offsets */
+
+  var toolbarEl = $(".toolbar");
+  function measure() {
+    if (!toolbarEl) return;
+    document.documentElement.style.setProperty("--toolbar-h", toolbarEl.offsetHeight + "px");
+  }
+  measure();
+  if (window.ResizeObserver && toolbarEl) new ResizeObserver(measure).observe(toolbarEl);
+  else window.addEventListener("resize", measure, { passive: true });
+  window.addEventListener("load", measure);
+
+  /* ---------------------------------------------------------- TOC groups */
+
+  $$(".rail .grp").forEach(function (g) {
+    var btn = g.querySelector("button");
+    var id = g.getAttribute("data-grp");
+    var open = store.get("grp." + id, true);
+    g.setAttribute("data-open", open ? "true" : "false");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.addEventListener("click", function () {
+      var now = g.getAttribute("data-open") !== "true";
+      g.setAttribute("data-open", now ? "true" : "false");
+      btn.setAttribute("aria-expanded", now ? "true" : "false");
+      store.set("grp." + id, now);
+    });
+  });
+
+  /* ---------------------------------------------------------- mobile rail */
+
+  var rail = $("#rail"), scrim = $("#scrim"), tocBtn = $("#tocBtn");
+  function setRail(shown) {
+    if (!rail) return;
+    rail.setAttribute("data-shown", shown ? "true" : "false");
+    if (scrim) scrim.setAttribute("data-shown", shown ? "true" : "false");
+    if (tocBtn) tocBtn.setAttribute("aria-expanded", shown ? "true" : "false");
+    document.body.style.overflow = shown && window.innerWidth <= 1000 ? "hidden" : "";
+  }
+  if (tocBtn) tocBtn.addEventListener("click", function () {
+    setRail(rail.getAttribute("data-shown") !== "true");
+  });
+  if (scrim) scrim.addEventListener("click", function () { setRail(false); });
+  if (rail) rail.addEventListener("click", function (e) {
+    if (e.target.closest("a") && window.innerWidth <= 1000) setRail(false);
+  });
+
+  /* ---------------------------------------------------------- scroll spy */
+
+  var links = {};
+  $$(".rail a[href^='#']").forEach(function (a) {
+    links[decodeURIComponent(a.getAttribute("href").slice(1))] = a;
+  });
+  var spied = $$("[data-spy]").filter(function (el) { return links[el.id]; });
+  var current = null;
+
+  function setActive(id) {
+    if (id === current) return;
+    if (current && links[current]) links[current].classList.remove("here");
+    current = id;
+    var a = links[id];
+    if (!a) return;
+    a.classList.add("here");
+    var grp = a.closest(".grp");
+    if (grp && grp.getAttribute("data-open") === "false") {
+      grp.setAttribute("data-open", "true");
+      grp.querySelector("button").setAttribute("aria-expanded", "true");
+    }
+    if (rail && window.innerWidth > 1000) {
+      var rb = rail.getBoundingClientRect(), ab = a.getBoundingClientRect();
+      if (ab.top < rb.top + 40) rail.scrollTop -= (rb.top + 40 - ab.top);
+      else if (ab.bottom > rb.bottom - 40) rail.scrollTop += (ab.bottom - rb.bottom + 40);
+    }
+  }
+
+  if ("IntersectionObserver" in window && spied.length) {
+    var visible = new Set();
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) visible.add(e.target); else visible.delete(e.target);
+      });
+      if (!visible.size) return;
+      var best = null;
+      spied.forEach(function (el) { if (visible.has(el)) best = el; });
+      if (best) setActive(best.id);
+    }, { rootMargin: "-64px 0px -72% 0px", threshold: 0 });
+    spied.forEach(function (el) { io.observe(el); });
+
+    // fallback for the very top of the document
+    window.addEventListener("scroll", function () {
+      if (window.scrollY < 80 && spied[0]) setActive(spied[0].id);
+    }, { passive: true });
+  }
+
+  /* ---------------------------------------------------------- anchors */
+
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest(".anchor");
+    if (!a) return;
+    e.preventDefault();
+    var url = location.href.split("#")[0] + a.getAttribute("href");
+    history.replaceState(null, "", a.getAttribute("href"));
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(
+        function () { toast("Link copied"); },
+        function () { toast("Anchor set"); }
+      );
+    } else { toast("Anchor set"); }
+  });
+
+  /* ---------------------------------------------------------- code copy */
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".copy");
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();   // don't toggle the parent <details>
+    var scope = b.closest("details.tmpl") || b.closest(".code");
+    var pre = scope ? scope.querySelector("code") : null;
+    var txt = pre ? pre.innerText : "";
+    var done = function () {
+      b.setAttribute("data-ok", "true");
+      var old = b.textContent; b.textContent = "Copied";
+      setTimeout(function () { b.textContent = old; b.removeAttribute("data-ok"); }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { legacyCopy(txt); done(); });
+    } else { legacyCopy(txt); done(); }
+  });
+
+  function legacyCopy(t) {
+    var ta = document.createElement("textarea");
+    ta.value = t; ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (err) {}
+    document.body.removeChild(ta);
+  }
+
+  /* ---------------------------------------------------------- template disclosures */
+
+  var tmpls = $$("details.tmpl");
+  tmpls.forEach(function (d) {
+    var id = d.getAttribute("data-tid");
+    var saved = store.get("tmpl." + id, null);
+    if (saved !== null) d.open = saved;
+    d.addEventListener("toggle", function () { store.set("tmpl." + id, d.open); });
+  });
+
+  var expandBtn = $("#expandAll");
+  if (expandBtn) {
+    expandBtn.querySelector(".lbl").textContent =
+      tmpls.some(function (d) { return !d.open; }) ? "Expand all" : "Collapse all";
+    expandBtn.addEventListener("click", function () {
+      var anyClosed = tmpls.some(function (d) { return !d.open; });
+      tmpls.forEach(function (d) {
+        d.open = anyClosed;
+        store.set("tmpl." + d.getAttribute("data-tid"), anyClosed);
+      });
+      expandBtn.querySelector(".lbl").textContent = anyClosed ? "Collapse all" : "Expand all";
+      toast(anyClosed ? "All templates expanded" : "All templates collapsed");
+    });
+  }
+
+  /* ---------------------------------------------------------- progress tracking */
+
+  var rows = $$("tr[data-pid]");
+  var solved = new Set(store.get("solved", []));
+
+  function persist() { store.set("solved", Array.from(solved)); }
+
+  function paintRow(tr) {
+    var on = solved.has(tr.getAttribute("data-pid"));
+    tr.classList.toggle("done", on);
+    var cb = tr.querySelector(".chk");
+    if (cb) cb.checked = on;
+  }
+
+  /* Every marker that can appear on a row, in the order they should be reported. */
+  var GROUPS = [
+    { key: "core",  label: "Core",     cls: "g-core",  tip: "Must solve unaided before advancing" },
+    { key: "anti",  label: "Anti",     cls: "g-anti",  tip: "Anti-patterns \u2014 the obvious approach is wrong here" },
+    { key: "opt",   label: "Optional", cls: "g-opt",   tip: "Optional depth \u2014 solve only if a gate check fails" },
+    { key: "extra", label: "Extra",    cls: "g-extra", tip: "Extra reps \u2014 only if a gate fails" }
+  ];
+
+  /* tallyOf(rowList) -> [{ label, cls, tip, done, total }] for the groups actually present. */
+  function tallyOf(list) {
+    var out = [];
+    GROUPS.forEach(function (g) {
+      var inG = list.filter(function (r) { return r.getAttribute("data-marker") === g.key; });
+      if (!inG.length) return;
+      var done = inG.filter(function (r) { return solved.has(r.getAttribute("data-pid")); }).length;
+      out.push({ label: g.label, cls: g.cls, tip: g.tip, done: done, total: inG.length });
+    });
+    return out;
+  }
+
+  function tallyHTML(list) {
+    return tallyOf(list).map(function (t) {
+      return '<span class="' + t.cls + (t.done === t.total ? " done-all" : "") +
+             '" title="' + t.tip + '">' + t.label + " <b>" + t.done + "</b>/<b>" + t.total +
+             "</b></span>";
+    }).join('<span class="tsep" aria-hidden="true">\u00b7</span>');
+  }
+
+  function tallyText(list) {
+    return tallyOf(list).map(function (t) {
+      return t.label + " " + t.done + "/" + t.total;
+    }).join("  \u00b7  ");
+  }
+
+  function recount() {
+    // per-table
+    $$(".tablewrap[data-hascount]").forEach(function (w) {
+      var el = w.querySelector(".tcount");
+      if (!el) return;
+      el.innerHTML = tallyHTML($$("tr[data-pid]", w));
+    });
+    // per-pattern (rail)
+    $$(".rail .tally[data-pattern]").forEach(function (t) {
+      var p = t.getAttribute("data-pattern");
+      var trs = rows.filter(function (r) {
+        return r.getAttribute("data-pattern") === p && r.getAttribute("data-marker") === "core";
+      });
+      var d = trs.filter(function (r) { return solved.has(r.getAttribute("data-pid")); }).length;
+      t.textContent = trs.length ? d + "/" + trs.length : "";
+      var all = rows.filter(function (r) { return r.getAttribute("data-pattern") === p; });
+      if (all.length) t.setAttribute("title", tallyText(all));   /* every marker, on hover */
+    });
+    // global
+    var g = $("#globalCount");
+    if (g) g.innerHTML = tallyHTML(rows);
+    var pg = $("#pageCount");
+    if (pg) pg.innerHTML = tallyHTML(rows);
+  }
+
+  rows.forEach(function (tr) {
+    paintRow(tr);
+    var cb = tr.querySelector(".chk");
+    if (!cb) return;
+    cb.addEventListener("change", function () {
+      var id = tr.getAttribute("data-pid");
+      if (cb.checked) solved.add(id); else solved.delete(id);
+      persist(); paintRow(tr); recount();
+      if (filters.mode === "unsolved") applyFilters();
+    });
+  });
+
+  var resetBtn = $("#resetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", function () {
+      if (!solved.size) { toast("Nothing to reset"); return; }
+      if (!window.confirm("Clear all " + solved.size + " solved marks? This cannot be undone.")) return;
+      solved.clear(); persist();
+      rows.forEach(paintRow); recount(); applyFilters();
+      toast("Progress cleared");
+    });
+  }
+
+  /* ------------------------------------------------ storage health + export / import */
+  (function () {
+    var note = $("#storageNote");
+    if (note && store.mode !== "local") {
+      note.hidden = false;
+      note.innerHTML = (store.mode === "session")
+        ? "<b>Ticks will not survive closing this tab.</b> This page is being served in a way that only allows temporary storage. Use <b>Export progress</b> before you close it."
+        : "<b>Progress is not being saved.</b> Opening these files directly gives every reload a fresh, isolated storage area, so ticks cannot persist. <b>Fix:</b> double-click <b>serve.bat</b> in the study folder and use the <b>http://localhost:8000</b> address it opens. Until then, use <b>Export progress</b> before closing the tab.";
+    }
+
+    function download(name, text) {
+      try {
+        var blob = new Blob([text], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        return true;
+      } catch (e) { return false; }
+    }
+
+    var ex = $("#exportBtn");
+    if (ex) ex.addEventListener("click", function () {
+      var payload = {
+        format: "dsa-progress",
+        ns: NS,
+        saved: new Date().toISOString(),
+        data: store.exportAll()
+      };
+      var name = NS.replace(/\.$/, "").replace(/\./g, "-") + "-progress.json";
+      toast(download(name, JSON.stringify(payload, null, 2))
+        ? "Progress exported" : "Export failed \u2014 this browser blocked the download");
+    });
+
+    var imp = $("#importBtn"), file = $("#importFile");
+    if (imp && file) {
+      imp.addEventListener("click", function () { file.click(); });
+      file.addEventListener("change", function () {
+        var f = file.files && file.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var parsed = JSON.parse(String(reader.result));
+            var data = (parsed && parsed.data) ? parsed.data : parsed;
+            if (parsed && parsed.ns && parsed.ns !== NS &&
+                !window.confirm("That file came from a different document set (" + parsed.ns +
+                                "). Import it anyway?")) {
+              file.value = ""; return;
+            }
+            var n = store.importAll(data);
+            solved = new Set(store.get("solved", []));
+            rows.forEach(paintRow); recount(); applyFilters();
+            toast("Imported " + n + " saved values");
+          } catch (e) {
+            toast("That file could not be read");
+          }
+          file.value = "";
+        };
+        reader.readAsText(f);
+      });
+    }
+  })();
+
+  /* ---------------------------------------------------------- filters */
+
+  var filters = { mode: store.get("filter.mode", "all"), diffs: new Set(store.get("filter.diffs", [])) };
+
+  function rowMatches(tr) {
+    var m = filters.mode;
+    if (m === "core" && tr.getAttribute("data-marker") !== "core") return false;
+    if (m === "anti" && tr.getAttribute("data-anti") !== "1") return false;
+    if (m === "unsolved" && solved.has(tr.getAttribute("data-pid"))) return false;
+    if (filters.diffs.size) {
+      var d = tr.getAttribute("data-diff");
+      if (!d || !filters.diffs.has(d)) return false;
+    }
+    return true;
+  }
+
+  function applyFilters() {
+    var hidden = 0;
+    rows.forEach(function (tr) {
+      var ok = rowMatches(tr);
+      tr.hidden = !ok;
+      if (!ok) hidden++;
+    });
+    $$(".tablewrap[data-hascount]").forEach(function (w) {
+      var any = $$("tr[data-pid]", w).some(function (t) { return !t.hidden; });
+      w.setAttribute("data-empty", any ? "false" : "true");
+      var n = w.querySelector(".emptynote");
+      if (n) n.textContent = "All " + $$("tr[data-pid]", w).length + " rows in this sub-variant are hidden by the current filter.";
+    });
+    var note = $("#hiddenNote");
+    if (note) {
+      note.textContent = hidden ? hidden + " hidden" : "";
+      note.hidden = !hidden;
+    }
+    $$(".chip[data-mode]").forEach(function (c) {
+      c.setAttribute("aria-pressed", c.getAttribute("data-mode") === filters.mode ? "true" : "false");
+    });
+    $$(".chip[data-diff]").forEach(function (c) {
+      c.setAttribute("aria-pressed", filters.diffs.has(c.getAttribute("data-diff")) ? "true" : "false");
+    });
+    store.set("filter.mode", filters.mode);
+    store.set("filter.diffs", Array.from(filters.diffs));
+  }
+
+  $$(".chip[data-mode]").forEach(function (c) {
+    c.addEventListener("click", function () { filters.mode = c.getAttribute("data-mode"); applyFilters(); });
+  });
+  $$(".chip[data-diff]").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var d = c.getAttribute("data-diff");
+      if (filters.diffs.has(d)) filters.diffs.delete(d); else filters.diffs.add(d);
+      applyFilters();
+    });
+  });
+
+  /* ---------------------------------------------------------- search */
+
+  var layer = $("#searchLayer"), input = $("#searchInput"), results = $("#results"), searchBtn = $("#searchBtn");
+  var index = [];
+
+  rows.forEach(function (tr) {
+    index.push({
+      n: tr.getAttribute("data-lc") || "",
+      title: tr.getAttribute("data-title") || "",
+      ctx: tr.getAttribute("data-ctx") || "",
+      el: tr, kind: "problem"
+    });
+  });
+  $$("[data-spy]").forEach(function (h) {
+    index.push({ n: "", title: h.getAttribute("data-plain") || h.textContent.replace(/#$/, "").trim(), ctx: "Section", el: h, kind: "section" });
+  });
+
+  var sel = -1, shown = [];
+
+  function openSearch() {
+    layer.setAttribute("data-shown", "true");
+    input.value = ""; render("");
+    input.focus();
+    if (searchBtn) searchBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeSearch() {
+    layer.setAttribute("data-shown", "false");
+    if (searchBtn) searchBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function render(q) {
+    q = q.trim().toLowerCase();
+    var out;
+    if (!q) {
+      out = index.filter(function (i) { return i.kind === "problem"; }).slice(0, 12);
+    } else {
+      var scored = [];
+      index.forEach(function (i) {
+        var t = i.title.toLowerCase(), s = -1;
+        if (i.n && (i.n === q || i.n.indexOf(q) === 0)) s = 0;
+        else if (t.indexOf(q) === 0) s = 1;
+        else if (t.indexOf(q) > -1) s = 2;
+        else if (i.ctx.toLowerCase().indexOf(q) > -1) s = 3;
+        if (s > -1) scored.push({ s: s, i: i });
+      });
+      scored.sort(function (a, b) { return a.s - b.s; });
+      out = scored.slice(0, 40).map(function (x) { return x.i; });
+    }
+    shown = out; sel = out.length ? 0 : -1;
+    results.innerHTML = out.map(function (i, k) {
+      return '<li role="option" aria-selected="' + (k === 0 ? "true" : "false") + '"><button type="button" data-k="' + k + '">' +
+        '<span class="rn">' + (i.n ? i.n : "§") + '</span>' +
+        '<span class="rt">' + esc(i.title) + '</span>' +
+        '<span class="rc">' + esc(i.ctx) + '</span></button></li>';
+    }).join("") || '<li class="rt" style="padding:14px 12px;color:var(--fg-dim);font-size:13px">No match.</li>';
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function moveSel(d) {
+    if (!shown.length) return;
+    var items = $$("#results li[role='option']");
+    if (items[sel]) items[sel].setAttribute("aria-selected", "false");
+    sel = (sel + d + shown.length) % shown.length;
+    items[sel].setAttribute("aria-selected", "true");
+    items[sel].scrollIntoView({ block: "nearest" });
+  }
+
+  function go(k) {
+    var it = shown[k];
+    if (!it) return;
+    closeSearch();
+    if (it.kind === "problem" && it.el.hidden) { filters.mode = "all"; filters.diffs.clear(); applyFilters(); }
+    var target = it.el;
+    var y = target.getBoundingClientRect().top + window.scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--h")) + 78);
+    window.scrollTo({ top: y, behavior: reduceMotion ? "auto" : "smooth" });
+    if (it.kind === "problem") {
+      target.classList.remove("flash");
+      void target.offsetWidth;
+      target.classList.add("flash");
+      setTimeout(function () { target.classList.remove("flash"); }, 1700);
+    }
+  }
+
+  if (searchBtn) searchBtn.addEventListener("click", openSearch);
+  if (layer) layer.addEventListener("mousedown", function (e) { if (e.target === layer) closeSearch(); });
+  if (input) {
+    input.addEventListener("input", function () { render(input.value); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); moveSel(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); moveSel(-1); }
+      else if (e.key === "Enter") { e.preventDefault(); go(sel); }
+    });
+  }
+  if (results) results.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-k]");
+    if (b) go(parseInt(b.getAttribute("data-k"), 10));
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    var typing = tag === "input" || tag === "textarea" || e.target.isContentEditable;
+    if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); openSearch(); }
+    else if (e.key === "Escape") {
+      if (layer && layer.getAttribute("data-shown") === "true") { closeSearch(); }
+      else if (rail && rail.getAttribute("data-shown") === "true") { setRail(false); }
+    }
+  });
+
+  /* ---------------------------------------------------------- print */
+
+  var printMemo = null;
+  function beforePrint() {
+    printMemo = tmpls.map(function (d) { return d.open; });
+    tmpls.forEach(function (d) { d.open = true; });
+    rows.forEach(function (r) { r.hidden = false; });
+    $$(".tablewrap").forEach(function (w) { w.setAttribute("data-empty", "false"); });
+  }
+  function afterPrint() {
+    if (printMemo) tmpls.forEach(function (d, i) { d.open = printMemo[i]; });
+    printMemo = null;
+    applyFilters();
+  }
+  window.addEventListener("beforeprint", beforePrint);
+  window.addEventListener("afterprint", afterPrint);
+  if (window.matchMedia) {
+    var pm = window.matchMedia("print");
+    pm.addEventListener && pm.addEventListener("change", function (e) { e.matches ? beforePrint() : afterPrint(); });
+  }
+
+  /* ---------------------------------------------------------- boot */
+
+  recount();
+  applyFilters();
+
+  if (location.hash) {
+    var t = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (t) setTimeout(function () { t.scrollIntoView(); window.scrollBy(0, -8); }, 30);
+  }
+})();
+
+</script>
+<script>
+(function(){
+function openAll(){document.querySelectorAll('details.edrop').forEach(function(d){if(!d.open){d.dataset.wasShut='1';d.open=true;}});}
+function restore(){document.querySelectorAll('details.edrop[data-wasShut]').forEach(function(d){d.open=false;delete d.dataset.wasShut;});}
+window.addEventListener('beforeprint',openAll);window.addEventListener('afterprint',restore);
+})();
+</script>
+<!-- storage-health-banner -->
+<style>
+.sbanner {
+  position: fixed; left: 0; right: 0; z-index: 59;
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 16px;
+  font-family: var(--sans, system-ui, sans-serif); font-size: 13px; line-height: 1.5;
+  background: var(--accent, #9c3a1c); color: var(--accent-fg, #fff);
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+}
+.sbanner b { font-weight: 650; }
+.sbanner code {
+  font-family: var(--mono, ui-monospace, monospace); font-size: 12px;
+  padding: 1px 5px; border-radius: 3px;
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28);
+}
+.sbanner .sbtxt { flex: 1 1 auto; }
+.sbanner .sbx {
+  flex: none; appearance: none; background: transparent; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.4); border-radius: 4px;
+  color: inherit; font: inherit; line-height: 1; padding: 4px 8px;
+}
+.sbanner .sbx:hover { background: rgba(255,255,255,.18); }
+@media print { .sbanner { display: none !important; } }
+</style>
+<script>
+(function () {
+  function usable(s) {
+    try {
+      var k = "__sb" + Math.random();
+      s.setItem(k, "1");
+      var ok = s.getItem(k) === "1";
+      s.removeItem(k);
+      return ok;
+    } catch (e) { return false; }
+  }
+  var mode = "memory";
+  try { if (window.localStorage && usable(window.localStorage)) mode = "local"; } catch (e) {}
+  if (mode !== "local") {
+    try { if (window.sessionStorage && usable(window.sessionStorage)) mode = "session"; } catch (e) {}
+  }
+  if (mode === "local") return;
+
+  function mount() {
+    var bar = document.createElement("div");
+    bar.className = "sbanner";
+    bar.setAttribute("role", "status");
+    var msg = (mode === "session")
+      ? "<b>Your ticks will not survive closing this tab.</b> This page can only use temporary storage. " +
+        "To keep progress for good, double-click <code>serve.bat</code> in the study folder and use the " +
+        "<code>http://localhost:8000</code> address it opens."
+      : "<b>Progress is not being saved.</b> You opened this file directly (<code>file://</code>), and the browser " +
+        "gives such pages a throwaway storage area &mdash; ticks vanish on reload. " +
+        "<b>Fix:</b> double-click <code>serve.bat</code> in the study folder, then use the " +
+        "<code>http://localhost:8000</code> page it opens. Bookmark that address and tick away.";
+    bar.innerHTML = '<span class="sbtxt">' + msg + '</span>' +
+                    '<button class="sbx" type="button" aria-label="Dismiss">Dismiss</button>';
+    document.body.appendChild(bar);
+
+    function place() {
+      var ab = document.querySelector(".appbar");
+      var top = ab ? Math.round(ab.getBoundingClientRect().height) : 0;
+      bar.style.top = top + "px";
+      document.body.style.paddingTop =
+        (top + Math.round(bar.getBoundingClientRect().height)) + "px";
+    }
+    place();
+    window.addEventListener("resize", place);
+    bar.querySelector(".sbx").addEventListener("click", function () {
+      bar.remove();
+      document.body.style.paddingTop = "";
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mount);
+  } else { mount(); }
+})();
+</script>
+<!-- save-verifier -->
+<style>
+.svfy {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(8px);
+  z-index: 120; max-width: min(560px, calc(100vw - 32px));
+  font-family: var(--sans, system-ui, sans-serif); font-size: 13px; line-height: 1.45;
+  padding: 9px 15px; border-radius: 100px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .16s ease, transform .16s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,.22);
+}
+.svfy[data-shown="true"] { opacity: 1; transform: translateX(-50%) translateY(0); }
+.svfy[data-ok="true"]  { background: #1d6f3f; color: #fff; }
+.svfy[data-ok="false"] { background: #9c3a1c; color: #fff; white-space: normal; border-radius: 10px; }
+@media print { .svfy { display: none !important; } }
+</style>
+<script>
+(function () {
+  var NS = "graphpat.v1.", KEY = NS + "solved";
+  var el = null, timer = null;
+
+  function say(ok, msg) {
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "svfy";
+      el.setAttribute("role", "status");
+      document.body.appendChild(el);
+    }
+    el.setAttribute("data-ok", ok ? "true" : "false");
+    el.textContent = msg;
+    el.setAttribute("data-shown", "true");
+    clearTimeout(timer);
+    timer = setTimeout(function () { el.setAttribute("data-shown", "false"); }, ok ? 1800 : 7000);
+  }
+
+  document.addEventListener("change", function (e) {
+    var cb = e.target;
+    if (!cb || !cb.classList || !cb.classList.contains("chk")) return;
+    var tr = cb.closest("tr[data-pid]");
+    if (!tr) return;
+    var pid = tr.getAttribute("data-pid");
+
+    /* let the page's own handler write first */
+    setTimeout(function () {
+      var raw = null, err = null;
+      try { raw = window.localStorage.getItem(KEY); }
+      catch (ex) { err = ex && ex.name ? ex.name : String(ex); }
+
+      if (err) {
+        say(false, "NOT SAVED — the browser refused to read storage (" + err +
+                   "). Ticks will disappear on reload.");
+        return;
+      }
+      if (raw === null) {
+        say(false, "NOT SAVED — nothing was written to localStorage. " +
+                   "Ticks will disappear on reload.");
+        return;
+      }
+      var list;
+      try { list = JSON.parse(raw); } catch (ex) { list = null; }
+      if (!Array.isArray(list)) {
+        say(false, "NOT SAVED — stored value is corrupt: " + String(raw).slice(0, 80));
+        return;
+      }
+      var present = list.indexOf(pid) > -1;
+      if (present === !!cb.checked) {
+        say(true, (cb.checked ? "Saved · " : "Unticked · ") + list.length + " solved");
+      } else {
+        say(false, "NOT SAVED — the write did not stick for " + pid +
+                   ". Ticks will disappear on reload.");
+      }
+    }, 0);
+  }, true);
+})();
+</script>
+</body>
+</html>

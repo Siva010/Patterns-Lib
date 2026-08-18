@@ -193,6 +193,10 @@ on a plane, works in five years when today's framework is a memory.
 │  ├─ index.html           hub
 │  ├─ traversal.html  tree-recursion.html  bst.html
 │  └─ src/trees.md
+├─ graphs/               Traversal & Connectivity · Ordering, Partitions & Spanning · Weighted Paths
+│  ├─ index.html           hub
+│  ├─ traversal.html  ordering.html  weighted-paths.html
+│  └─ src/graphs.md
 ├─ Visuals/              every interactive visualizer
 │  ├─ index.html           catalog, grouped by pattern and sub-variant
 │  └─ <lc>-<slug>.html     one self-contained page each
@@ -203,12 +207,13 @@ on a plane, works in five years when today's framework is a memory.
 
 ## Status
 
-The study documents are **complete** for all six patterns — every sub-variant, table, template,
-failure mode, recognition guide and checkpoint is written.
+The study documents are **complete** for all nine patterns across three bundles — every
+sub-variant, table, template, failure mode, recognition guide and checkpoint is written.
 
 Visualizer coverage is **still growing**. Traversal, Tree Recursion, Two Pointers and Sliding
-Window are fully covered; Binary Search is partial and Binary Search Trees is next up. A problem
-without a visualizer yet simply has no icon beside it in the table — everything else works.
+Window are fully covered; Binary Search is partial, Binary Search Trees is next up, and the
+graph patterns have none yet — a graph lab needs a different engine from the tree one. A problem
+without a visualizer simply has no icon beside it in the table — everything else works.
 
 <br>
 

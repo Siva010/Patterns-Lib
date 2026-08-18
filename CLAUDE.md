@@ -14,7 +14,8 @@ visualizer.
   destroys a reader's saved progress. The display `<span class="n">` numbers are
   cosmetic and may be renumbered — but they are coupled to `<a class="xref">`
   labels, so relabel those in the same pass.
-- localStorage namespaces: `tpswbs.v1.*` (arrays/strings), `treepat.v1.*` (trees).
+- localStorage namespaces: `tpswbs.v1.*` (arrays/strings), `treepat.v1.*` (trees),
+  `graphpat.v1.*` (graphs).
 
 ## The rule that matters most
 
@@ -64,6 +65,9 @@ will lose an hour blaming the engine.
 
 ## Current state
 
+Study documents: **three bundles, complete.** Bundle 01 `three-patterns/`,
+Bundle 02 `trees/`, Bundle 03 `graphs/` (31 sub-variants, 104 listed problems).
+
 Tree Recursion: **29 of 29 — complete.**
 
 Engine capabilities, in the order they were needed:
@@ -84,6 +88,36 @@ Also outstanding:
 - Binary Search: **13 of 15**. 719 and 528 still to write from scratch; 300 and
   981 are done. Then 15 anchors and the Pattern 5 catalog section.
 - BST: 14 core problems, no coverage yet. `bst.html` already has the `a.viz` CSS.
+- Graphs: no visualizers. `tree-engine.js` speaks call stacks and recursion
+  trees; a graph lab needs grids, queues, DSU forests and heaps, which is a
+  different engine, not an adapter. Do not force one onto the tree engine.
+
+## Bundle 03 — Graphs
+
+`graphs/` is **generated**, not hand-edited. `graphs/src/graphs.md` is the source
+of truth; `dev/tools/build_graphs.py` renders it into the four pages.
+
+```bash
+python dev/tools/build_graphs.py            # dry run
+python dev/tools/build_graphs.py --apply
+```
+
+**Edit the markdown and rebuild — never the HTML.** The generator adds structure
+(ids, anchors, the rail, checkboxes, `§`/`#n` cross-links, badges) and no prose.
+The page shell — stylesheet, appbar, search layer, behaviour script — is lifted
+verbatim from `trees/bst.html` at build time, so a fix to the house chrome
+propagates instead of forking. It refuses rather than guessing if the donor
+loses a marker or a problem row will not parse.
+
+Conventions the generator encodes:
+- `data-pid` is the md's own problem number, `p1`–`p104`, and is stable as long
+  as the numbering in the markdown is.
+- `★⚠︎` rows are `data-marker="anti"` and carry both badges. Core counts are
+  ★-only, matching how Bundles 01 and 02 already report on the library card.
+- `↻` re-solve rows get **no** `data-pid` and no checkbox — they point at a
+  problem listed elsewhere and must not be counted twice.
+- `SLUG_FIX` overrides the LeetCode slug where the doc shortens a title
+  (1489 says "MST", LeetCode says "Minimum Spanning Tree").
 
 ## Repository
 
