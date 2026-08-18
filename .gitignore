@@ -19,3 +19,6 @@ node_modules/
 
 # spent adapters and pre-conversion snapshots — the page itself is the source of truth
 dev/work/
+
+# harness scratch: agent worktrees and launch config
+.claude/
