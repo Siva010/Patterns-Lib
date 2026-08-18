@@ -128,13 +128,25 @@ function contract(cfg, tr, panel) {
   return bad;
 }
 
+/* Every index on short traces; an evenly spaced sample on long ones, since the
+   check is O(events^2) and a runaway variant's trace is deliberately long. The
+   sample always includes the first and last index. */
 function structuralPurity(tr, panel) {
-  const up = [], down = [];
-  for (let i = 0; i < tr.events.length; i++)
-    up.push(shape(T.assembleTree(null, T.replayTo(tr, i).built[panel])));
-  for (let i = tr.events.length - 1; i >= 0; i--)
+  const n = tr.events.length;
+  const idxs = [];
+  if (n <= 220) { for (let i = 0; i < n; i++) idxs.push(i); }
+  else {
+    const step = Math.ceil(n / 200);
+    for (let i = 0; i < n; i += step) idxs.push(i);
+    if (idxs[idxs.length - 1] !== n - 1) idxs.push(n - 1);
+  }
+  const up = {}, down = {};
+  for (const i of idxs) up[i] = shape(T.assembleTree(null, T.replayTo(tr, i).built[panel]));
+  for (let j = idxs.length - 1; j >= 0; j--) {
+    const i = idxs[j];
     down[i] = shape(T.assembleTree(null, T.replayTo(tr, i).built[panel]));
-  for (let i = 0; i < up.length; i++) if (up[i] !== down[i]) return `index ${i}: up ${up[i]} vs down ${down[i]}`;
+  }
+  for (const i of idxs) if (up[i] !== down[i]) return `index ${i}: up ${up[i]} vs down ${down[i]}`;
   return null;
 }
 
@@ -185,6 +197,7 @@ function verify(lc, correctIds, panel) {
   return !bad.length && !cv.length && !sp.length && wrongOk;
 }
 
-const ok = verify("105", ["range", "cursor"], 1);
-console.log(ok ? "ALL PASS" : "FAILURES ABOVE");
-process.exit(ok ? 0 : 1);
+const a = verify("105", ["range", "cursor"], 1);
+const b = verify("106", ["cursor", "range"], 1);
+console.log(a && b ? "ALL PASS" : "FAILURES ABOVE");
+process.exit(a && b ? 0 : 1);
