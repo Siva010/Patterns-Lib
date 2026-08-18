@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LeetCode 300 &middot; Longest Increasing Subsequence &mdash; visual guide</title>
+<meta name="description" content="Patience sorting in O(n log n): binary-search a maintained tails array — and why tails is not the answer subsequence, only its length.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ---------- 300: two tapes, one of them a scoreboard ---------- */
+.rowwrap { display:flex; flex-direction:column; align-items:center; gap:7px; width:100%; }
+.viewlab { font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--fg-dim); text-align:center; }
+.viewlab code { font-family:var(--mono); font-size:11px; letter-spacing:0; text-transform:none; color:var(--accent); }
+
+.tape .col.sm { width:46px; }
+@media (max-width:560px) { .tape .col.sm { width:36px; } }
+.tape .col.sm .cell { font-size:15px; border-radius:8px; }
+.caret { white-space:nowrap; overflow:visible; }
+.tape .col.sm .caret { font-size:10px; }
+.caret .pM { color:var(--accent-fg); background:var(--r-window); }
+
+/* window / probe / ruled-out slots of tails */
+.cell.win   { background:var(--r-window-wash); border-color:var(--r-window-line); color:var(--r-window); }
+.cell.probe { background:var(--r-anchor-wash); border-color:var(--r-anchor); color:var(--r-anchor); font-weight:600; }
+.cell.out   { opacity:.30; border-style:dashed; border-color:var(--rule); color:var(--fg-dim); background:transparent; }
+.cell.wrote { background:var(--r-hit-wash); border-color:var(--r-hit); color:var(--r-hit); font-weight:600; opacity:1; border-style:solid; }
+.cell.ghost { border-style:dashed; border-color:var(--rule-hard); color:var(--fg-dim); background:transparent; font-size:15px; }
+.idx.ghosti { opacity:.55; }
+
+.vlegend { font-family:var(--sans); font-size:10.5px; color:var(--fg-dim); text-align:center; max-width:560px; }
+.stats-row { font-family:var(--mono); font-size:13px; color:var(--fg-dim);
+  display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+.stats-row b { color:var(--fg); font-weight:500; }
+.stats-row b.vlo  { color:var(--r-left); }
+.stats-row b.vhi  { color:var(--r-right); }
+.stats-row b.vmid { color:var(--r-anchor); }
+.stats-row b.vlen { color:var(--r-hit); }
+
+.result-banner { font-family:var(--sans); font-size:13.5px; font-weight:600; padding:7px 16px;
+  border-radius:999px; border:1px solid transparent; }
+.result-banner.ok { color:var(--r-hit); background:var(--r-hit-wash); border-color:var(--r-hit-line); }
+.result-banner:empty { display:none; }
+
+.proof { font-family:var(--sans); font-size:13px; line-height:1.7; color:var(--fg-mid);
+  border:1px solid var(--rule-hard); border-radius:9px; padding:11px 14px; max-width:600px; width:100%; }
+.proof:empty { display:none; border:0; padding:0; }
+.proof .ph { font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--fg-dim); display:block; margin-bottom:3px; }
+.proof .seq { font-family:var(--mono); font-size:13px; color:var(--fg); }
+.proof b { color:var(--fg); }
+.proof .ok { font-family:var(--mono); color:var(--r-hit); font-weight:600; }
+.proof .no { font-family:var(--mono); color:var(--fg-dim); font-weight:600;
+  text-decoration:line-through; text-decoration-thickness:1.5px; }
+.proof p + p { margin-top:8px; }
+
+.claim { margin-top:16px; padding:13px 16px; border:1px solid var(--r-hit-line); background:var(--r-hit-wash);
+  border-radius:9px; font-family:var(--sans); font-size:13.5px; line-height:1.65; color:var(--fg-mid); }
+.claim b { color:var(--fg); }
+.claim code, .lesson code { font-family:var(--mono); font-size:.9em; color:var(--accent);
+  background:var(--accent-wash); padding:1px 5px; border-radius:4px; }
+.lesson { margin-top:16px; padding:13px 16px; border:1px solid var(--rule-hard);
+  border-left:3px solid var(--accent); border-radius:9px; background:var(--bg-sunk);
+  font-family:var(--sans); font-size:13.5px; line-height:1.65; color:var(--fg-mid); }
+.lesson b { color:var(--fg); }
+.lesson p + p { margin-top:7px; }
+.lesson .stepn { font-family:var(--mono); font-size:11.5px; color:var(--accent); background:var(--accent-wash);
+  border:1px solid var(--accent-line); border-radius:4px; padding:1px 6px; margin-right:6px; }
+
+.dot.w   { background:var(--r-window-wash); border-color:var(--r-window); }
+.dot.mid { background:var(--r-anchor-wash); border-color:var(--r-anchor); }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+
+<div class="eyebrow">Binary Search &mdash; search inside a maintained array <span class="tag">LeetCode 300</span></div>
+  <h1>Longest Increasing Subsequence <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    One left-to-right pass over the input, maintaining a second array <code>tails</code> where
+    <code>tails[j]</code> is the <em>smallest value that can end</em> an increasing subsequence of length
+    <code>j+1</code>. <code>tails</code> is sorted by construction, so each new value is placed by binary
+    search &mdash; overwrite the first tail <span class="r">&ge;</span> it, or append if there is none.
+    The answer is <code>tails.length</code>. <b>Its length. Not its contents.</b>
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">nums (comma-separated, up to 12)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="10, 9, 2, 5, 3, 7, 101, 18" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="rowwrap">
+          <div class="viewlab">The input &mdash; one pass, each value read exactly once</div>
+          <div class="tape" id="inTape"></div>
+        </div>
+        <div class="rowwrap">
+          <div class="viewlab"><code>tails</code> &mdash; slot <code>j</code> = smallest tail of an increasing run of length <code>j+1</code></div>
+          <div class="tape" id="tailTape"></div>
+          <div class="vlegend" id="vlegend">the dashed slot on the right is the append slot &mdash; landing there is the only thing that grows the answer</div>
+        </div>
+        <div class="stats-row" id="statsRow"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="result-banner" id="banner"></div>
+        <div class="proof" id="proof"></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10227;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="7"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot i"></i>the value being placed &middot; the probed slot</span>
+        <span><i class="dot l"></i>lo</span>
+        <span><i class="dot r"></i>hi</span>
+        <span><i class="dot w"></i>live search window</span>
+        <span><i class="dot m"></i>slot just written &middot; a real LIS</span>
+        <span><i class="dot x"></i>ruled out &middot; already consumed</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="claim">
+    <b>The one thing to take away: <code>tails</code> is not the answer subsequence.</b>
+    Its length is exactly right, always. Its contents are usually not an increasing subsequence of the
+    input at all &mdash; frequently not even a <em>sub</em>sequence of the input, in any order. Run the
+    <code>1, 3, 5, 2</code> chip: it ends with <code>tails = [1, 2, 5]</code>, and the input has no
+    <code>5</code> after its only <code>2</code>. The length 3 is right; the array is wreckage.
+    The reason is the overwrite on line&nbsp;11: writing <code>x</code> into slot <code>j</code> claims
+    only that <em>some</em> increasing run of length <code>j+1</code> ends at <code>x</code>
+    <em>at this moment</em>. The slots to its left may already have been overwritten by values that
+    arrived later, so the array is a mixture of eras. Only the high-water mark &mdash; the length &mdash;
+    is a statement about the whole prefix. Recovering the actual subsequence needs a parent pointer per
+    index, which is why the reconstruction shown below is done with the O(n&sup2;) DP instead.
+  </div>
+
+  <div class="lesson">
+    <p><span class="stepn">why binary search</span>The naive DP asks, for each <code>i</code>, &ldquo;which
+    earlier <code>j</code> has <code>nums[j] &lt; nums[i]</code> and the best <code>dp[j]</code>?&rdquo; &mdash;
+    an O(n) scan, O(n&sup2;) overall. Patience sorting replaces that scan with a lookup into a
+    <b>sorted</b> array, and a lookup into a sorted array is a binary search. That is the entire
+    n&sup2; &rarr; n&nbsp;log&nbsp;n step, and it is the log factor you can see on screen.</p>
+    <p><span class="stepn">why tails stays sorted</span>Slot <code>j</code> is the best tail for length
+    <code>j+1</code>; a longer run needs a strictly larger tail to keep going, so
+    <code>tails[0] &lt; tails[1] &lt; &hellip;</code> holds after every write. Overwriting the
+    <em>first</em> tail <code>&ge; x</code> with <code>x</code> preserves it: the neighbour to the left is
+    <code>&lt; x</code> (that is why the search moved past it) and the neighbour to the right was already
+    <code>&ge;</code> the value being replaced.</p>
+    <p><span class="stepn">the one-character variant</span>Strictly increasing uses
+    <b>lower_bound</b> &mdash; the first tail <code>&ge; x</code> &mdash; so an equal value overwrites
+    rather than extends, and duplicates cannot lengthen a run. For the <b>non-decreasing</b> variant, switch
+    to <b>upper_bound</b>: change the test on line&nbsp;8 from <code>tails[mid] &lt; x</code> to
+    <code>tails[mid] &lt;= x</code>. Equal values then land past the run of equals and append, which is
+    exactly what non-decreasing means. Nothing else in the method changes.</p>
+  </div>
+
+  <div class="foot">O(n&nbsp;log&nbsp;n) time &middot; O(n) space &nbsp;&middot;&nbsp; the binary search is not over the input &mdash; it is over an array the algorithm is building, whose height is the answer and whose contents are scaffolding.</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const CODE = [
+    [['kw','public '],['ty','int '],['fn','lengthOfLIS'],['tx','('],['kw','int'],['tx','[] nums) {']],
+    [['tx','    '],['kw','int'],['tx','[] tails = '],['kw','new int'],['tx','[nums.length];']],
+    [['tx','    '],['kw','int '],['tx','len = 0;                      '],['fn','// tails[0..len) is live']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','x : nums) {']],
+    [['tx','        '],['kw','int '],['tx','lo = 0, hi = len;         '],['fn','// lower_bound over the live part']],
+    [['tx','        '],['kw','while '],['tx','(lo < hi) {']],
+    [['tx','            '],['kw','int '],['tx','mid = (lo + hi) >>> 1;']],
+    [['tx','            '],['kw','if '],['tx','(tails[mid] < x) lo = mid + 1;  '],['fn','// too small: cannot be the first >= x']],
+    [['tx','            '],['kw','else'],['tx','             hi = mid;      '],['fn','// candidate: keep mid in the window']],
+    [['tx','        }']],
+    [['tx','        tails[lo] = x;            '],['fn','// overwrite the first tail >= x ...']],
+    [['tx','        '],['kw','if '],['tx','(lo == len) len++;        '],['fn','// ... or, if there was none, extend']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','len;                   '],['fn','// the LENGTH. not the subsequence.']],
+    [['tx','}']]
+  ];
+
+  /* ------------------------------------------------------------------
+     buildFrames(nums) -> flat array of frames.
+     `nums` is an array of numbers. The final frame carries ans (the real
+     return value) and done:true.
+     ------------------------------------------------------------------ */
+  function buildFrames(nums){
+    const F = [], n = nums.length;
+
+    /* A structurally different formulation, used only for the verdict card
+       and to reconstruct one genuine LIS to hold up next to `tails`.
+       O(n^2) DP with parent pointers — nothing to do with patience sorting. */
+    function dpLIS(a){
+      const m = a.length;
+      if(m === 0) return {len:0, seq:[], idx:[]};
+      const dp = new Array(m).fill(1), par = new Array(m).fill(-1);
+      let best = 0;
+      for(let i=0;i<m;i++){
+        for(let j=0;j<i;j++) if(a[j] < a[i] && dp[j] + 1 > dp[i]){ dp[i] = dp[j] + 1; par[i] = j; }
+        if(dp[i] > dp[best]) best = i;
+      }
+      const idx = []; let c = best;
+      while(c >= 0){ idx.push(c); c = par[c]; }
+      idx.reverse();
+      return {len:dp[best], seq:idx.map(function(i){ return a[i]; }), idx:idx};
+    }
+
+    /* greedy left-to-right match: is `sub` a subsequence of `arr`? */
+    function subseqMatch(sub, arr){
+      let p = 0; const match = [];
+      for(let t=0;t<sub.length;t++){
+        let f = -1;
+        while(p < arr.length){ if(arr[p] === sub[t]){ f = p; p++; break; } p++; }
+        match.push(f);
+        if(f < 0) return {ok:false, match:match, fail:t};
+      }
+      return {ok:true, match:match, fail:-1};
+    }
+
+    const truthObj = dpLIS(nums);
+    let tails = [];
+    function base(o){
+      return Object.assign({
+        nums: nums.slice(), tails: tails.slice(),
+        i:null, x:null, lo:null, hi:null, mid:null, landAt:null, wrote:null, lisIdx:null
+      }, o);
+    }
+
+    if(n === 0){
+      F.push(base({phase:'done', code:13, done:true, ans:0, truth:0, i:0,
+        lis:[], lisIdx:[], isSub:true, subMatch:[], subFail:-1, appends:0, overwrites:0, probes:0,
+        msg:'The input is empty, so the loop body never runs. <span class="k">tails</span> stays empty and the answer is its length: <span class="m">0</span>.'}));
+      return F;
+    }
+
+    let totalProbes = 0, appends = 0, overwrites = 0;
+
+    F.push(base({phase:'setup', code:2,
+      msg:'<span class="k">tails</span> starts empty and <span class="k">len = 0</span>. Slot <b>j</b> will hold the smallest value known to end an increasing subsequence of length <b>j+1</b>, which makes <span class="k">tails</span> sorted &mdash; and therefore binary-searchable.'}));
+
+    for(let i=0;i<n;i++){
+      const x = nums[i];
+      F.push(base({phase:'take', i:i, x:x, code:3,
+        msg:'Take <span class="i">nums[' + i + '] = ' + x + '</span>. Two questions in one: does it extend the longest run so far, or does it merely make some shorter run end lower?'}));
+
+      let lo = 0, hi = tails.length, probes = 0;
+      F.push(base({phase:'search', i:i, x:x, lo:lo, hi:hi, code:4,
+        msg: hi === 0
+          ? '<span class="k">tails</span> is empty, so the window <b>[0, 0)</b> is empty and the loop on line 6 never runs. Landing slot is <b>0</b> &mdash; the append slot.'
+          : 'Binary-search the ' + hi + ' live slot' + (hi === 1 ? '' : 's') + ' for the <b>first tail &ge; ' + x + '</b>. Window <span class="l">lo = 0</span> &hellip; <span class="r">hi = ' + hi + '</span>.'}));
+
+      while(lo < hi){
+        const mid = lo + Math.floor((hi - lo) / 2);
+        probes++; totalProbes++;
+        F.push(base({phase:'probe', i:i, x:x, lo:lo, hi:hi, mid:mid, code:6,
+          msg:'Probe <span class="i">mid = ' + mid + '</span>: <span class="k">tails[' + mid + '] = ' + tails[mid] + '</span>. Compare with ' + x + '.'}));
+        if(tails[mid] < x){
+          F.push(base({phase:'probe', i:i, x:x, lo:mid+1, hi:hi, mid:mid, code:7,
+            msg:tails[mid] + ' &lt; ' + x + ' &mdash; a run of length ' + (mid+1) + ' already ends below ' + x + ', so slot ' + mid + ' and everything left of it are <span class="x">not the first tail &ge; ' + x + '</span>. <span class="l">lo = ' + (mid+1) + '</span>.'}));
+          lo = mid + 1;
+        } else {
+          F.push(base({phase:'probe', i:i, x:x, lo:lo, hi:mid, mid:mid, code:8,
+            msg:tails[mid] + ' &ge; ' + x + ' &mdash; slot ' + mid + ' is itself a candidate, so it stays inside the window. <span class="r">hi = ' + mid + '</span>.'}));
+          hi = mid;
+        }
+      }
+
+      const pos = lo, append = (pos === tails.length), old = append ? null : tails[pos];
+      F.push(base({phase:'land', i:i, x:x, lo:pos, hi:pos, landAt:pos, code:9,
+        msg:'<span class="l">lo</span> met <span class="r">hi</span> at <b>' + pos + '</b> after ' + probes + ' probe' + (probes === 1 ? '' : 's') + '. That is where ' + x + ' goes.'}));
+
+      if(append){
+        tails.push(x); appends++;
+        F.push(base({phase:'append', i:i, x:x, lo:pos, hi:pos, wrote:pos, code:11,
+          msg:'No tail was &ge; ' + x + ', so ' + x + ' extends the longest run there is: <span class="m">append at slot ' + pos + '</span> and <span class="k">len++</span> &rarr; <b>' + tails.length + '</b>. Line 11 is the <em>only</em> line that ever increases the answer.'}));
+      } else {
+        tails[pos] = x; overwrites++;
+        F.push(base({phase:'overwrite', i:i, x:x, lo:pos, hi:pos, wrote:pos, code:10,
+          msg:'<span class="m">Overwrite slot ' + pos + '</span>: ' + old + ' &rarr; ' + x + '. A run of length ' + (pos+1) + ' can now end on a ' + (x < old ? 'smaller' : 'no larger') + ' value, which leaves more room for whatever comes next. The answer does <b>not</b> move &mdash; len stays ' + tails.length + '.'}));
+      }
+    }
+
+    const sub = subseqMatch(tails, nums);
+    F.push(base({phase:'done', code:13, done:true, ans:tails.length, truth:truthObj.len, i:n,
+      lis:truthObj.seq.slice(), lisIdx:truthObj.idx.slice(),
+      isSub:sub.ok, subMatch:sub.match.slice(), subFail:sub.fail,
+      appends:appends, overwrites:overwrites, probes:totalProbes,
+      msg:'All ' + n + ' value' + (n === 1 ? '' : 's') + ' placed in ' + totalProbes + ' probe' + (totalProbes === 1 ? '' : 's') + ' &mdash; ' + appends + ' append' + (appends === 1 ? '' : 's') + ', ' + overwrites + ' overwrite' + (overwrites === 1 ? '' : 's') + '. <b>Return len = <span class="m">' + tails.length + '</span></b>. Now read the panel below before you trust the array on screen.'}));
+    return F;
+  }
+
+  /* ---------------- wiring ---------------- */
+  const $ = function(id){ return document.getElementById(id); };
+  const inTapeEl=$('inTape'), tailTapeEl=$('tailTape'), legEl=$('vlegend'), statsEl=$('statsRow'),
+        msgEl=$('message'), bannerEl=$('banner'), proofEl=$('proof'), pillEl=$('phasePill'),
+        barEl=$('bar'), countEl=$('stepCount'), codeEl=$('code'), arrEl=$('arrInput');
+  let frames=[], idx=0, playing=false, timer=null;
+
+  function esc(x){ return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  (function renderCode(){
+    codeEl.innerHTML = CODE.map(function(line,i){
+      const tx = line.map(function(s){ return '<span class="'+s[0]+'">'+esc(s[1])+'</span>'; }).join('');
+      return '<div class="ln" data-line="'+i+'"><span class="no">'+(i+1)+'</span>'+tx+'</div>';
+    }).join('');
+  })();
+
+  function parseArr(s){
+    return String(s).split(/[,;\s]+/)
+      .map(function(t){ return t.trim(); })
+      .filter(function(t){ return t !== ''; })
+      .map(Number)
+      .filter(function(v){ return isFinite(v); })
+      .map(function(v){ return Math.round(v); })
+      .slice(0, 12);
+  }
+
+  function render(){
+    const f = frames[idx]; if(!f) return;
+    const lisSet = {}; (f.lisIdx || []).forEach(function(j){ lisSet[j] = 1; });
+
+    /* ---- the input tape ---- */
+    let h = '';
+    if(f.nums.length === 0){
+      h = '<div class="col sm"><div class="caret"></div><div class="cell ghost">&empty;</div><div class="idx ghosti">&mdash;</div></div>';
+    } else {
+      f.nums.forEach(function(v,j){
+        let cls = 'cell', car = '';
+        if(f.i !== null && j === f.i){ cls += ' fixed'; car = '<span class="p pI">x</span>'; }
+        else if(f.i !== null && j < f.i){ cls += lisSet[j] ? ' found' : ' skipped'; }
+        h += '<div class="col sm"><div class="caret">'+car+'</div><div class="'+cls+'">'+v+
+             '</div><div class="idx'+(f.i === j ? ' on' : '')+'">'+j+'</div></div>';
+      });
+    }
+    inTapeEl.innerHTML = h;
+
+    /* ---- tails, plus the append slot on the right ---- */
+    const len = f.tails.length;
+    const searching = (f.lo !== null && f.hi !== null && f.lo < f.hi);
+    let t = '';
+    for(let j=0;j<=len;j++){
+      const ghost = (j === len);
+      let cls = 'cell' + (ghost ? ' ghost' : '');
+      if(!ghost){
+        if(f.mid === j) cls += ' probe';
+        else if(searching && j >= f.lo && j < f.hi) cls += ' win';
+        else if(searching) cls += ' out';
+      }
+      if(f.landAt === j) cls += ' probe';
+      if(f.wrote === j) cls = 'cell wrote';
+      const pins = [];
+      if(f.lo === j) pins.push('<span class="p pL">lo</span>');
+      if(f.mid === j) pins.push('<span class="p pM">mid</span>');
+      if(f.hi === j) pins.push('<span class="p pR">hi</span>');
+      t += '<div class="col sm"><div class="caret">'+pins.join('')+'</div><div class="'+cls+'">'+
+           (ghost ? '+' : f.tails[j])+'</div><div class="idx'+(ghost ? ' ghosti' : '')+'">'+j+'</div></div>';
+    }
+    tailTapeEl.innerHTML = t;
+
+    legEl.innerHTML = f.done
+      ? 'final <code>tails</code> &mdash; <b>' + len + '</b> slot' + (len === 1 ? '' : 's') + ', and <b>' + len + '</b> is the answer'
+      : (searching
+          ? 'solid slots are still in the window; dashed slots are ruled out; the dashed slot on the right is the append slot'
+          : 'the dashed slot on the right is the append slot &mdash; landing there is the only thing that grows the answer');
+
+    /* ---- stats ---- */
+    const fmt = function(v){ return (v === null || v === undefined) ? '&mdash;' : v; };
+    statsEl.innerHTML =
+      '<span>i = <b>' + (f.i === null ? '&mdash;' : (f.i >= f.nums.length ? 'end' : f.i)) + '</b></span>' +
+      '<span>x = <b>' + fmt(f.x) + '</b></span>' +
+      '<span>lo = <b class="vlo">' + fmt(f.lo) + '</b></span>' +
+      '<span>hi = <b class="vhi">' + fmt(f.hi) + '</b></span>' +
+      '<span>mid = <b class="vmid">' + fmt(f.mid) + '</b></span>' +
+      '<span>len = <b class="vlen">' + len + '</b></span>';
+
+    msgEl.innerHTML = f.msg;
+
+    const pmap = {setup:['','&#9671; empty tails'], take:['scan','&#9670; next value'],
+      search:['scan','&rarr; open window'], probe:['scan','&#8623; probe mid'],
+      land:['scan','&#9679; landed'], append:['found','&uarr; append'],
+      overwrite:['','&#8635; overwrite'], done:['done','&#9632; converged']};
+    const pm = pmap[f.phase] || ['','idle'];
+    pillEl.className = 'phase-pill ' + pm[0]; pillEl.innerHTML = pm[1];
+
+    codeEl.querySelectorAll('.ln').forEach(function(l){ l.classList.remove('exec'); });
+    const ln = codeEl.querySelector('[data-line="'+f.code+'"]'); if(ln) ln.classList.add('exec');
+
+    /* ---- verdict + the panel that is the whole point of the page ---- */
+    bannerEl.className = 'result-banner'; bannerEl.innerHTML = '';
+    proofEl.innerHTML = '';
+    if(f.done){
+      bannerEl.className = 'result-banner ok';
+      bannerEl.innerHTML = '&#10003; lengthOfLIS = ' + f.ans;
+      const tl = f.tails;
+      let walk;
+      if(tl.length === 0){
+        walk = '<span class="ok">the empty sequence &mdash; trivially yes</span>';
+      } else {
+        const parts = [];
+        for(let t2=0;t2<tl.length;t2++){
+          const m2 = (f.subMatch && t2 < f.subMatch.length) ? f.subMatch[t2] : -1;
+          if(m2 >= 0){ parts.push('<span class="ok">' + tl[t2] + '@' + m2 + '</span>'); }
+          else {
+            parts.push('<span class="no">' + tl[t2] + '</span>');
+            parts.push('&mdash; no <b>' + tl[t2] + '</b> anywhere after index ' + (t2 > 0 ? f.subMatch[t2-1] : -1) + ', so the match dies here');
+            break;
+          }
+        }
+        walk = parts.join(' &middot; ');
+      }
+      proofEl.innerHTML =
+        '<p><span class="ph">the array on screen</span><span class="seq">tails = [' + tl.join(', ') +
+          ']</span> &mdash; ' + tl.length + ' slot' + (tl.length === 1 ? '' : 's') +
+          ', and <b>' + tl.length + '</b> is the returned answer. The O(n&sup2;) DP independently says <b>' +
+          f.truth + '</b>' + (f.truth === f.ans ? ' &mdash; agreed.' : ' &mdash; disagreement!') + '</p>' +
+        '<p><span class="ph">but is tails a subsequence of the input?</span>' + walk + '<br>' +
+          (f.isSub
+            ? '<b>Yes &mdash; this time.</b> A coincidence of this input, not a property of the method. Try the <code>1, 3, 5, 2</code> chip.'
+            : '<b>No.</b> Not even a subsequence, never mind an increasing one. The length is still correct.') + '</p>' +
+        '<p><span class="ph">an actual longest increasing subsequence</span><span class="seq">[' +
+          (f.lis || []).join(', ') + ']</span> at input indices [' + (f.lisIdx || []).join(', ') +
+          '] &mdash; highlighted on the tape above. Same length, ' +
+          ((f.lis || []).join(',') === tl.join(',') ? 'same contents here, but that is luck.' : 'different contents.') + '</p>';
+    }
+
+    barEl.style.width = (frames.length <= 1 ? 100 : (idx / (frames.length - 1) * 100)) + '%';
+    countEl.textContent = (idx + 1) + ' / ' + frames.length;
+    $('prevBtn').disabled = idx === 0;
+    $('nextBtn').disabled = idx === frames.length - 1;
+  }
+
+  function run(){
+    stop();
+    const nums = parseArr(arrEl.value);
+    arrEl.value = nums.join(', ');
+    frames = buildFrames(nums);
+    idx = 0; render();
+  }
+  function next(){ if(idx < frames.length-1){ idx++; render(); } else stop(); }
+  function prev(){ if(idx > 0){ idx--; render(); } }
+  function speedMs(){ return 1000 - $('speed').value * 88; }
+  function play(){ if(idx >= frames.length-1) idx = 0; playing = true; $('playBtn').textContent = '⏸'; tick(); }
+  function tick(){ render(); if(idx >= frames.length-1){ stop(); return; } timer = setTimeout(function(){ idx++; tick(); }, speedMs()); }
+  function stop(){ playing = false; clearTimeout(timer); $('playBtn').textContent = '▶'; }
+  function togglePlay(){ playing ? stop() : play(); }
+
+  const EX = [
+    {v:'10, 9, 2, 5, 3, 7, 101, 18', note:'the classic — answer 4'},
+    {v:'1, 3, 5, 2',                 note:'final tails is NOT a subsequence'},
+    {v:'0, 1, 0, 3, 2, 3',           note:'duplicates — answer 4'},
+    {v:'7, 7, 7, 7, 7, 7, 7',        note:'all equal — answer 1, slot 0 rewritten'},
+    {v:'9, 8, 7, 6, 5',              note:'strictly decreasing — answer 1'},
+    {v:'4',                          note:'one element — one append, zero probes'},
+    {v:'',                           note:'empty — answer 0'}
+  ];
+  (function chips(){
+    const box = $('examples');
+    EX.forEach(function(ex){
+      const c = document.createElement('button');
+      c.className = 'chip'; c.type = 'button';
+      c.innerHTML = (ex.v === '' ? '[ ]' : '[' + esc(ex.v.replace(/\s/g,'')) + ']') + '<b>' + ex.note + '</b>';
+      c.onclick = function(){ arrEl.value = ex.v; run(); };
+      box.appendChild(c);
+    });
+  })();
+
+  $('runBtn').onclick = run;
+  arrEl.addEventListener('keydown', function(e){ if(e.key === 'Enter') run(); });
+  $('nextBtn').onclick = function(){ stop(); next(); };
+  $('prevBtn').onclick = function(){ stop(); prev(); };
+  $('playBtn').onclick = togglePlay;
+  $('restartBtn').onclick = function(){ stop(); idx = 0; render(); };
+  document.addEventListener('keydown', function(e){
+    if(document.activeElement === arrEl) return;
+    if(e.key === 'ArrowRight'){ stop(); next(); }
+    if(e.key === 'ArrowLeft'){ stop(); prev(); }
+    if(e.key === ' '){ e.preventDefault(); togglePlay(); }
+  });
+
+  window.__buildFrames300 = buildFrames;
+  run();
+})();
+</script>
+
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>
