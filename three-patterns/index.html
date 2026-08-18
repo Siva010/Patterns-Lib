@@ -518,6 +518,10 @@ a.xref:hover { border-bottom-color: var(--accent-line); }
 /* responsive tables → stacked cards */
 @media (max-width: 700px) {
   table, thead, tbody, tr, td, th { display: block; }
+  /* The line above is an author rule, so it beats the UA sheet's [hidden]
+     regardless of order. Without this the filter marks rows hidden and the
+     stacked layout keeps showing them. */
+  tr[hidden] { display: none; }
   colgroup, col { display: none; }
   table.problems { table-layout: auto; }
   thead { display: none; }
