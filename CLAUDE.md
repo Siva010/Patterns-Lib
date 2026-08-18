@@ -114,8 +114,14 @@ Conventions the generator encodes:
   as the numbering in the markdown is.
 - `★⚠︎` rows are `data-marker="anti"` and carry both badges. Core counts are
   ★-only, matching how Bundles 01 and 02 already report on the library card.
-- `↻` re-solve rows get **no** `data-pid` and no checkbox — they point at a
-  problem listed elsewhere and must not be counted twice.
+- `↻` re-solve rows get an `x-<key>-<n>` `data-pid` and no checkbox. They must not
+  be counted twice, and they are not: `resolve` is not one of the shell's marker
+  groups, so it reaches no tally. But the pid is required — the search index and
+  the filters both key off `tr[data-pid]`, and without one the row is unfindable
+  and stays on screen under a filter that has hidden everything around it.
+- `data-tid` is `g<pattern>t<n>`, unique across the bundle. Template open/closed
+  state is stored as `NS + "tmpl." + tid`, so a tid repeated on another page makes
+  two unrelated templates share one saved state.
 - `SLUG_FIX` overrides the LeetCode slug where the doc shortens a title
   (1489 says "MST", LeetCode says "Minimum Spanning Tree").
 

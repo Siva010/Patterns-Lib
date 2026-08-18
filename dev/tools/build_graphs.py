@@ -348,7 +348,10 @@ def problem_row(cells, pat, letter, ctx):
 
     title_txt = re.sub(r"\*", "", title).strip()
     single = re.match(r"^\d+$", lc.strip())
-    full = ("%s. %s" % (lc.strip(), title_txt)) if single else title_txt
+    # "547" + "Number of Provinces" -> "547. Number of Provinces"
+    # "1293 / 864" + "(see §1.J)"   -> "1293 / 864 (see §1.J)", so search still finds it
+    full = (("%s. %s" % (lc.strip(), title_txt)) if single
+            else ("%s %s" % (lc.strip(), title_txt)).strip())
 
     badges = ""
     if kind == "anti":
@@ -376,14 +379,25 @@ def problem_row(cells, pat, letter, ctx):
     diffcell = ('<span class="diff" data-d="%s">%s</span>' % (diff, diff)) if diff else ""
 
     if kind == "resolve":
-        return ('<tr data-marker="resolve" class="resolve">'
+        # A re-solve row points at a problem listed elsewhere, so it must never reach a
+        # tally \u2014 "resolve" is not one of the shell's marker groups, so it never does.
+        # It still needs a data-pid and the data-* the shell reads, or the row is
+        # invisible to the search index and untouched by the filters, which leaves it
+        # on screen under a filter that has hidden everything around it.
+        ctx["nresolve"] += 1
+        rid = "x-%s-%d" % (key, ctx["nresolve"] - 1)
+        return ('<tr data-pid="%s" data-marker="resolve" data-anti="0" data-diff="%s" '
+                'data-lc="%s" data-pattern="%s" data-title="%s" data-ctx="%s" id="%s" '
+                'class="resolve">'
                 '<td class="c-chk" data-label=""></td>'
                 '<td class="c-num" data-label="No."><span class="n">\u2014</span>%s</td>'
                 '<td class="c-prob" data-label="Problem">%s</td>'
                 '<td class="c-diff" data-label="Difficulty">%s</td>'
                 '<td class="c-sub" data-label="Sub-variant">%s</td>'
                 '<td class="c-why" data-label="Why">%s</td></tr>'
-                % (badges, prob, diffcell, letter, inline(why, ctx)))
+                % (rid, diff, lc.strip() if single else "", key,
+                   html.escape(full, quote=True), html.escape(ctxlabel, quote=True), rid,
+                   badges, prob, diffcell, letter, inline(why, ctx)))
 
     pid = "p%s" % num.strip()
     esc_title = html.escape(full, quote=True)
@@ -459,7 +473,10 @@ def collect_problems(blocks):
 def render(blocks, want, problems):
     """Render the blocks belonging to `want` (a pattern number, or 'hub')."""
     file = HUB if want == "hub" else PATTERNS[want][0]
-    ctx = {"file": file, "problems": problems}
+    ctx = {"file": file, "problems": problems, "nresolve": 0}
+    # Template open/closed state is stored per bundle as NS + "tmpl." + tid, so a tid
+    # that repeats on another page makes the two templates share one saved state.
+    tidpre = "gx" if want == "hub" else "g%d" % want
     out = []
     toc = []           # rail entries: (level, id, label, letter)
     pat = None         # pattern currently being read
@@ -573,14 +590,14 @@ def render(blocks, want, problems):
             first = src.split("\n")[0].strip()
             hint = first[2:].strip() if first.startswith("//") else ""
             nlines = len([l for l in src.split("\n") if l.strip()])
-            out.append('<details class="tmpl" data-tid="t%d" open><summary>'
+            out.append('<details class="tmpl" data-tid="%st%d" open><summary>'
                        '<span class="arw" aria-hidden="true">\u25b6</span>'
                        '<span class="tw">%s</span><span class="hint">%s</span>'
                        '<span class="cnt">%d lines</span>'
                        '<button class="copy" type="button" aria-label="Copy this template to the '
                        'clipboard">Copy</button></summary><div class="code"><pre><code>%s</code>'
                        '</pre></div></details>'
-                       % (tid[0], "Java" if lang in ("java", "") else html.escape(lang),
+                       % (tidpre, tid[0], "Java" if lang in ("java", "") else html.escape(lang),
                           html.escape(hint, quote=False), nlines, java(src)))
         prev_head = None
 
