@@ -59,6 +59,8 @@ VIZ = {
           "Interactive visualizer — every source seeded before the first pop, and the fresh counter"),
     797: ("797-all-paths-from-source-to-target.html",
           "Interactive visualizer — why a visited set on a DAG silently drops correct paths"),
+    207: ("207-course-schedule.html",
+          "Interactive visualizer — three colours, and the single visited bit that invents cycles"),
 }
 
 VIZ_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" '
