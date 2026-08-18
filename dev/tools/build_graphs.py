@@ -48,6 +48,18 @@ SLUG_FIX = {
     1489: "find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree",
 }
 
+# LC number -> (Visuals page, what the visualizer shows). The a.viz CSS already
+# rides along in the shell, so a row only needs the anchor.
+VIZ = {
+    200: ("200-number-of-islands.html",
+          "Interactive visualizer — sink as you go, and why the mark comes first"),
+}
+
+VIZ_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" '
+           'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+           '<circle cx="8" cy="2.6" r="1.9"/><circle cx="3" cy="12.4" r="1.9"/>'
+           '<circle cx="13" cy="12.4" r="1.9"/><path d="M6.6 4.2 4.2 10.7M9.4 4.2l2.4 6.5"/></svg>')
+
 BADGE = {
     "core": ('<span class="badge core" data-tip="Core \u2014 must solve unaided before advancing" '
              'role="img" aria-label="Core \u2014 must solve unaided before advancing">\u2605</span>'),
@@ -369,6 +381,12 @@ def problem_row(cells, pat, letter, ctx):
         prob = ('<a class="lc ptitle" href="https://leetcode.com/problems/%s/" target="_blank" '
                 'rel="noopener" data-lcnum="%d"%s>%s</a>'
                 % (lc_slug(lcnum, title_txt), lcnum, locked, html.escape(full, quote=False)))
+        if lcnum in VIZ:
+            page, tip = VIZ[lcnum]
+            tip = html.escape(tip, quote=True)
+            prob += ('<a class="viz" href="../Visuals/%s" target="_blank" rel="noopener" '
+                     'data-tip="%s" aria-label="%s" title="%s">%s</a>'
+                     % (page, tip, tip, tip, VIZ_SVG))
     else:
         prob = inline(title, ctx)
         if lc.strip():
