@@ -55,6 +55,8 @@ VIZ = {
           "Interactive visualizer — sink as you go, and why the mark comes first"),
     1091: ("1091-shortest-path-in-binary-matrix.html",
            "Interactive visualizer — a level is a distance, and mark-on-pop run side by side"),
+    994: ("994-rotting-oranges.html",
+          "Interactive visualizer — every source seeded before the first pop, and the fresh counter"),
 }
 
 VIZ_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" '
