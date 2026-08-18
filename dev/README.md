@@ -78,7 +78,15 @@ python dev/tools/add_roles.py Visuals/<page>.html    # the 6 semantic role token
 python dev/tools/splice.py <page>.html <adapter>.html  # attach an adapter, idempotent
 python dev/tools/essay_check.py Visuals/<page>.html   # prose survived the edit
 python dev/tools/build_graphs.py --apply             # render Bundle 03 from its markdown
+python dev/tools/add_toolbar.py --apply <page.html>  # restore the filter toolbar
 ```
+
+`add_toolbar.py` lifts the toolbar block verbatim from `three-patterns/two-pointers.html`
+and inserts it at the top of the content column. Bundles 02 and 03 carried all of
+its CSS and the behaviour script that drives it but never had the markup, so the
+filters were unreachable — and `--toolbar-h` kept its 46px placeholder, which
+stranded every sticky table header 46px below the appbar. Idempotent; refuses on
+a page that already has one or is missing the CSS it depends on.
 
 `build_graphs.py` is the only page generator here. `graphs/src/graphs.md` is the
 source of truth for Bundle 03 and the four `graphs/*.html` pages are its output —

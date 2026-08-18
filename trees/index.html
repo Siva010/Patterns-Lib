@@ -1410,7 +1410,25 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   </nav>
 
   <main id="main">
-    <div class="wrap"><h1 id="top" data-plain="Trees, No Gaps">Trees, No&nbsp;Gaps</h1>
+    <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
+<h1 id="top" data-plain="Trees, No Gaps">Trees, No&nbsp;Gaps</h1>
 <p class="lede">Traversal · Tree Recursion · Binary Search Trees — a complete, prerequisite-ordered path through 28 sub-variants, with compiled Java&nbsp;21 templates, failure-mode tables, a recognition guide, and per-sub-variant mastery gates.</p>
 <p><strong>Calibration:</strong> written for an advanced backend engineer doing FAANG prep in <strong>Java 21</strong>, LeetCode-numbered, and shaped as a companion to <em>Three Patterns, No Gaps</em>. The level bracket is left open, so the doc is tiered instead of guessed: the <strong><span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> core path is the minimum sufficient set</strong> (a strong beginner can follow it linearly), <strong><span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> marks optional depth</strong>, and <strong>Extra Reps</strong> are pure repetition — skip them if the starred problem went clean the first time.</p>
 <p><strong>Total core: 58 problems</strong> — 52 <span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> plus 6 <span class="badge anti" data-tip="Anti-pattern — the obvious approach is wrong here" role="img" aria-label="Anti-pattern — the obvious approach is wrong here">⚠︎</span>. Everything else is explicitly labelled optional. Nothing here is padding; if a problem is listed, there is exactly one thing it teaches that no earlier problem taught.</p>

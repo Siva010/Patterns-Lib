@@ -1433,7 +1433,25 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   </nav>
 
   <main id="main">
-    <div class="wrap"><h2 class="pattern" id="pattern-3-binary-search-trees" data-spy data-plain="PATTERN 3 — BINARY SEARCH TREES">PATTERN 3 — BINARY SEARCH TREES<a class="anchor" href="#pattern-3-binary-search-trees" aria-label="Copy link to this section">#</a></h2>
+    <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
+<h2 class="pattern" id="pattern-3-binary-search-trees" data-spy data-plain="PATTERN 3 — BINARY SEARCH TREES">PATTERN 3 — BINARY SEARCH TREES<a class="anchor" href="#pattern-3-binary-search-trees" aria-label="Copy link to this section">#</a></h2>
 <h3 class="sec" id="s3-1" data-spy data-plain="3.1 Pattern Breakdown">3.1 Pattern Breakdown<a class="anchor" href="#s3-1" aria-label="Copy link to this section">#</a></h3>
 <p>A BST is a binary tree plus one promise: <strong>for every node, everything in the left subtree is smaller and everything in the right subtree is larger.</strong> The promise is worth exactly two things, and everything in this pattern is one of them.</p>
 <ol class="md"><li><strong>You may skip a subtree.</strong> Comparing once tells you an entire half is irrelevant — this is binary search with pointers instead of indices, and it is why <code class="inl">search</code>, <code class="inl">insert</code>, <code class="inl">delete</code>, <code class="inl">range</code>, and <code class="inl">LCA</code> are all O(h).</li><li><strong>Inorder is sorted.</strong> Any question about <em>order statistics</em> — k-th, successor, closest, minimum difference, mode — becomes a question about a sorted sequence you never have to materialise.</li></ol>

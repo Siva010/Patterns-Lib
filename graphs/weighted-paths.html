@@ -1434,6 +1434,23 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
 
   <main id="main">
     <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
 <h2 class="pattern" id="pattern-3-weighted-paths-search-on-the-answer" data-spy data-plain="PATTERN 3 — WEIGHTED PATHS &amp; SEARCH ON THE ANSWER">PATTERN 3 — WEIGHTED PATHS &amp; SEARCH ON THE ANSWER<a class="anchor" href="#pattern-3-weighted-paths-search-on-the-answer" aria-label="Copy link to this section">#</a></h2>
 <div class="intuition"><span class="ibulb" aria-hidden="true">&#9679;</span><p>The machine: relax edges until no relaxation improves anything — or stop asking for the optimum and start asking whether a candidate is feasible.</p></div>
 <h3 class="sec" id="s3-1" data-spy data-plain="3.1 Sub-variant map">3.1 Sub-variant map<a class="anchor" href="#s3-1" aria-label="Copy link to this section">#</a></h3>

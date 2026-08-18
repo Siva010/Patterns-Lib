@@ -1433,7 +1433,25 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   </nav>
 
   <main id="main">
-    <div class="wrap"><h2 class="pattern" id="pattern-2-tree-recursion" data-spy data-plain="PATTERN 2 — TREE RECURSION">PATTERN 2 — TREE RECURSION<a class="anchor" href="#pattern-2-tree-recursion" aria-label="Copy link to this section">#</a></h2>
+    <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
+<h2 class="pattern" id="pattern-2-tree-recursion" data-spy data-plain="PATTERN 2 — TREE RECURSION">PATTERN 2 — TREE RECURSION<a class="anchor" href="#pattern-2-tree-recursion" aria-label="Copy link to this section">#</a></h2>
 <h3 class="sec" id="s2-1" data-spy data-plain="2.1 Pattern Breakdown">2.1 Pattern Breakdown<a class="anchor" href="#s2-1" aria-label="Copy link to this section">#</a></h3>
 <p>Pattern 1 asks <em>&quot;in what order do I touch the nodes?&quot;</em> Pattern 2 asks a harder question: <strong>&quot;what does a subtree owe its parent?&quot;</strong></p>
 <p>Every problem here is solved by answering three questions, in this order, <em>before writing code</em>:</p>

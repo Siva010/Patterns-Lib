@@ -1434,6 +1434,23 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
 
   <main id="main">
     <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
 <h1 id="top" data-plain="Graphs, No Gaps">Graphs,&nbsp;No Gaps</h1>
 <p>Traversal &amp; Connectivity · Ordering, Partitions &amp; Spanning Structure · Weighted Paths — a complete, prerequisite-ordered path through 31 sub-variants, with Java 21 templates, failure-mode tables, a recognition guide, and per-sub-variant mastery gates.</p>
 <p><strong>Calibration:</strong> written for an advanced backend engineer doing FAANG prep in <strong>Java 21</strong>, LeetCode-numbered, and shaped as the third companion to <em>Three Patterns, No Gaps</em> and <em>Trees, No Gaps</em>. The level bracket is left open, so the doc is tiered instead of guessed: the <strong><span class="badge core" data-tip="Core — must solve unaided before advancing" role="img" aria-label="Core — must solve unaided before advancing">★</span> core path is the minimum sufficient set</strong> (a strong beginner can follow it linearly), <strong><span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> marks optional depth</strong>, and the <span class="badge opt" data-tip="Optional depth — solve only if a gate check fails" role="img" aria-label="Optional depth — solve only if a gate check fails">○</span> problems double as the Extra Reps / transfer-test pool — skip them if the starred problem in the same sub-variant went clean the first time.</p>

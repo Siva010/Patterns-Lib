@@ -675,6 +675,20 @@ def donor_parts():
     head = t[:t.index("<body>") + len("<body>")]
     tail = t[t.rindex("</main>") + len("</main>"):]
 
+    # The filter toolbar comes from the donor for the same reason the rest of the
+    # chrome does: one toolbar library-wide, not three that drift. It also carries
+    # the height the sticky table headers offset themselves by, so a page without
+    # it strands them 46px below the appbar.
+    # Anchored on the toolbar's own last child. Matching to the "next </div>"
+    # overshoots whenever the donor's toolbar is not followed by a newline, and
+    # silently drags the donor's first heading and prose into every page here.
+    m = re.search(r'[ \t]*<div class="toolbar" role="group".*?</span>\s*\n\s*</div>', t, re.S)
+    if not m:
+        raise SystemExit("donor %s has no toolbar block \u2014 refusing" % DONOR)
+    toolbar = m.group(0)
+    if "</h" in toolbar or "<table" in toolbar:
+        raise SystemExit("donor toolbar match ran past the toolbar \u2014 refusing")
+
     head = head.replace("treepat.v1.", NS)
     head = re.sub(r"<title>.*?</title>", "<title>{{TITLE}}</title>", head, flags=re.S)
     head = re.sub(r'(<meta name="description" content=")[^"]*(">)',
@@ -684,7 +698,7 @@ def donor_parts():
 
     tail = tail.replace("treepat.v1.", NS)
     tail = tail.replace("Trees, No Gaps \u2014 behaviour", BUNDLE + " \u2014 behaviour")
-    return head, tail
+    return head, tail, toolbar
 
 
 CHROME = '''
@@ -729,7 +743,8 @@ CHROME = '''
   </nav>
 
   <main id="main">
-    <div class="wrap">'''
+    <div class="wrap">
+{TOOLBAR}'''
 
 
 def pnav(page):
@@ -743,11 +758,11 @@ def pnav(page):
     return "".join(out)
 
 
-def build_page(page, title, body, toc, head, tail):
+def build_page(page, title, body, toc, head, tail, toolbar):
     plist, tochtml = rail(page, toc)
     chrome = (CHROME.replace("{BUNDLE}", BUNDLE).replace("{SUBTITLE}", SUBTITLE)
               .replace("{PNAV}", pnav(page)).replace("{PAGELIST}", plist)
-              .replace("{TOC}", tochtml))
+              .replace("{TOC}", tochtml).replace("{TOOLBAR}", toolbar))
     return head.replace("{{TITLE}}", title) + chrome + "\n" + body + "\n    </div>\n  </main>\n" + tail
 
 
@@ -759,7 +774,7 @@ def main():
     text = io.open(MD, encoding="utf-8").read()
     blocks = read_blocks(text)
     problems = collect_problems(blocks)
-    head, tail = donor_parts()
+    head, tail, toolbar = donor_parts()
 
     targets = [("hub", HUB, BUNDLE)]
     for i in (1, 2, 3):
@@ -767,7 +782,7 @@ def main():
 
     for want, fname, title in targets:
         body, toc = render(blocks, want, problems)
-        out = build_page(fname, title, body, toc, head, tail)
+        out = build_page(fname, title, body, toc, head, tail, toolbar)
         path = os.path.join(OUTDIR, fname)
         print("%-22s %7d bytes  %3d toc entries" % (fname, len(out), len(toc)))
         if apply:

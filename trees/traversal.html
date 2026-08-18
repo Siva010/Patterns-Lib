@@ -1434,7 +1434,25 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   </nav>
 
   <main id="main">
-    <div class="wrap"><h2 class="pattern" id="pattern-1-traversal" data-spy data-plain="PATTERN 1 — TRAVERSAL">PATTERN 1 — TRAVERSAL<a class="anchor" href="#pattern-1-traversal" aria-label="Copy link to this section">#</a></h2>
+    <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
+<h2 class="pattern" id="pattern-1-traversal" data-spy data-plain="PATTERN 1 — TRAVERSAL">PATTERN 1 — TRAVERSAL<a class="anchor" href="#pattern-1-traversal" aria-label="Copy link to this section">#</a></h2>
 <h3 class="sec" id="s1-1" data-spy data-plain="1.1 Pattern Breakdown">1.1 Pattern Breakdown<a class="anchor" href="#s1-1" aria-label="Copy link to this section">#</a></h3>
 <p>Traversal is not one technique. It is a family united by a single idea: <strong>impose a total order on the nodes, then visit each one exactly once.</strong> The sub-variants differ in <em>what imposes the order</em> and <em>what state rides along with the visit</em>.</p>
 <div class="tablewrap"><table class="plain"><thead><tr><th scope="col">#</th><th scope="col">Sub-variant</th><th scope="col">Order imposed by</th><th scope="col">State carried</th><th scope="col">Space</th></tr></thead><tbody><tr><td data-label="#"><strong>A</strong></td><td data-label="Sub-variant"><strong>Recursive DFS — the three orders</strong></td><td data-label="Order imposed by">the call stack</td><td data-label="State carried">the implicit root-path</td><td data-label="Space">O(h)</td></tr><tr><td data-label="#"><strong>B</strong></td><td data-label="Sub-variant"><strong>Iterative DFS — explicit stack</strong></td><td data-label="Order imposed by">a stack you own</td><td data-label="State carried">whatever you push</td><td data-label="Space">O(h)</td></tr><tr><td data-label="#"><strong>C</strong></td><td data-label="Sub-variant"><strong>BFS — level order</strong></td><td data-label="Order imposed by">a FIFO queue + a size snapshot</td><td data-label="State carried">the current frontier</td><td data-label="Space">O(w)</td></tr><tr><td data-label="#"><strong>D</strong></td><td data-label="Sub-variant"><strong>Level-order derivatives</strong></td><td data-label="Order imposed by">as C, then a per-level rule</td><td data-label="State carried">one accumulator per level</td><td data-label="Space">O(w)</td></tr><tr><td data-label="#"><strong>E</strong></td><td data-label="Sub-variant"><strong>Coordinate-indexed traversal</strong></td><td data-label="Order imposed by">a computed <code class="inl">(row, col)</code> or heap index</td><td data-label="State carried">an index per node</td><td data-label="Space">O(n)</td></tr><tr><td data-label="#"><strong>F</strong></td><td data-label="Sub-variant"><strong>Tree as a graph</strong></td><td data-label="Order imposed by">a parent map + BFS from any node</td><td data-label="State carried"><code class="inl">visited</code> — trees stop being acyclic-by-direction</td><td data-label="Space">O(n)</td></tr><tr><td data-label="#"><strong>G</strong></td><td data-label="Sub-variant"><strong>Morris threading</strong></td><td data-label="Order imposed by">temporary right-child threads</td><td data-label="State carried">none</td><td data-label="Space"><strong>O(1)</strong></td></tr><tr><td data-label="#"><strong>H</strong></td><td data-label="Sub-variant"><strong>N-ary / generalized children</strong></td><td data-label="Order imposed by">a child list instead of <code class="inl">left</code>/<code class="inl">right</code></td><td data-label="State carried">as A–D</td><td data-label="Space">O(h) or O(w)</td></tr></tbody></table></div>

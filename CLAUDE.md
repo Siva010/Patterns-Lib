@@ -119,6 +119,10 @@ Conventions the generator encodes:
   groups, so it reaches no tally. But the pid is required — the search index and
   the filters both key off `tr[data-pid]`, and without one the row is unfindable
   and stays on screen under a filter that has hidden everything around it.
+- The filter toolbar is lifted from the donor too, anchored on its own closing
+  `</span></div>`. Matching to the *next* `</div>` overshoots — the donor's
+  toolbar is not followed by a newline — and drags the donor's first heading and
+  prose into every generated page. It did exactly that once.
 - `data-tid` is `g<pattern>t<n>`, unique across the bundle. Template open/closed
   state is stored as `NS + "tmpl." + tid`, so a tid repeated on another page makes
   two unrelated templates share one saved state.

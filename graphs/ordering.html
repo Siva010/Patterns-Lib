@@ -1434,6 +1434,23 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
 
   <main id="main">
     <div class="wrap">
+      <div class="toolbar" role="group" aria-label="Filter problems">
+        <span class="grouplabel">Show</span>
+        <button class="chip" type="button" data-mode="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-mode="core" aria-pressed="false"><span class="g">&#9733;</span> Core</button>
+        <button class="chip" type="button" data-mode="anti" aria-pressed="false"><span class="g">&#9888;&#65038;</span> Anti-patterns</button>
+        <button class="chip" type="button" data-mode="unsolved" aria-pressed="false">Unsolved</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="chip" type="button" data-diff="Easy" aria-pressed="false">Easy</button>
+        <button class="chip" type="button" data-diff="Medium" aria-pressed="false">Medium</button>
+        <button class="chip" type="button" data-diff="Hard" aria-pressed="false">Hard</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button class="iconbtn" type="button" id="expandAll" aria-label="Expand or collapse all code templates"><span class="lbl">Expand all</span></button>
+        <span class="status" id="statusBar">
+          <span id="globalCount"></span>
+          <span id="hiddenNote" class="hidden-note" hidden></span>
+        </span>
+      </div>
 <h2 class="pattern" id="pattern-2-ordering-partitions-spanning-structure" data-spy data-plain="PATTERN 2 — ORDERING, PARTITIONS &amp; SPANNING STRUCTURE">PATTERN 2 — ORDERING, PARTITIONS &amp; SPANNING STRUCTURE<a class="anchor" href="#pattern-2-ordering-partitions-spanning-structure" aria-label="Copy link to this section">#</a></h2>
 <div class="intuition"><span class="ibulb" aria-hidden="true">&#9679;</span><p>The machine: impose a linear order on a DAG, or maintain a partition under merges. Both are about structure over the whole graph rather than a walk through it.</p></div>
 <h3 class="sec" id="s2-1" data-spy data-plain="2.1 Sub-variant map">2.1 Sub-variant map<a class="anchor" href="#s2-1" aria-label="Copy link to this section">#</a></h3>
