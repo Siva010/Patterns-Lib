@@ -51,6 +51,8 @@ SLUG_FIX = {
 # LC number -> (Visuals page, what the visualizer shows). The a.viz CSS already
 # rides along in the shell, so a row only needs the anchor.
 VIZ = {
+    733: ("733-flood-fill.html",
+          "Interactive visualizer — the four-direction loop, and the same-colour guard"),
     200: ("200-number-of-islands.html",
           "Interactive visualizer — sink as you go, and why the mark comes first"),
     1091: ("1091-shortest-path-in-binary-matrix.html",
