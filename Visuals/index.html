@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>134 interactive visualizers</title>
+<title>138 interactive visualizers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -71,7 +71,7 @@ a.card .d { font-family:var(--sans); font-size:12.5px; color:var(--fg-dim); marg
 <body>
 <div class="wrap">
 <h1>Interactive visualizers</h1>
-<p class="lede">134 pages, one house style. Every diagram is driven by a real,
+<p class="lede">138 pages, one house style. Every diagram is driven by a real,
 instrumented implementation of the algorithm it&rsquo;s showing &mdash; step through with the
 controls or the arrow keys, and the code pane highlights the exact line running at each frame.</p>
 
@@ -406,12 +406,20 @@ twelve mutations of it. What changes between sub-variants is never the traversal
 
 <h2 class="part" id="p6">Pattern 6 &mdash; Graphs</h2>
 <p class="partsub">The graph is usually implicit &mdash; neighbours are computed, never stored &mdash; and the
-only design decisions are what a node is and what you carry. Eight pages so far, across all three graph patterns.</p>
+only design decisions are what a node is and what you carry. Twelve pages so far, across all three graph patterns.</p>
 
 <h3><span class="sv">A</span> Traversal 1.A &mdash; flood fill on a grid</h3>
 <div class="grid">
 <a class="card" href="733-flood-fill.html"><span class="num">733</span><span class="t">Flood Fill</span><span class="diff diff-easy">Easy</span><span class="d">the atom &mdash; and the guard that stops it running forever when <code>new == old</code></span></a>
 <a class="card" href="200-number-of-islands.html"><span class="num">200</span><span class="t">Number of Islands</span><span class="diff diff-medium">Medium</span><span class="d">sink as you go, and why the mark comes before the four calls</span></a>
+<a class="card" href="695-max-area-of-island.html"><span class="num">695</span><span class="t">Max Area of Island</span><span class="diff diff-medium">Medium</span><span class="d">the DFS stops returning <code>void</code> &mdash; watch <code>1 + sum</code> flow back up</span></a>
+</div>
+
+<h3><span class="sv">B</span> Traversal 1.B &mdash; boundary seeding, invert the question</h3>
+<div class="grid">
+<a class="card" href="130-surrounded-regions.html"><span class="num">130</span><span class="t">Surrounded Regions</span><span class="diff diff-medium">Medium</span><span class="d">you cannot mark &ldquo;enclosed&rdquo; &mdash; mark what escapes and take the complement</span></a>
+<a class="card" href="1020-number-of-enclaves.html"><span class="num">1020</span><span class="t">Number of Enclaves</span><span class="diff diff-medium">Medium</span><span class="d">130&rsquo;s machine with a different last line: count, do not flip</span></a>
+<a class="card" href="417-pacific-atlantic-water-flow.html"><span class="num">417</span><span class="t">Pacific Atlantic Water Flow</span><span class="diff diff-medium">Medium</span><span class="d">ask which cells the ocean can reach uphill &mdash; two floods, not <code>mn</code></span></a>
 </div>
 
 <h3><span class="sv">C</span> Traversal 1.C &mdash; grid BFS, unweighted shortest path</h3>
