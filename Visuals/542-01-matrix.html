@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>542 &middot; 01 Matrix &mdash; visual guide</title>
+<meta name="description" content="Multi-source BFS: seed every 0 before the first pop and one sweep gives every cell its distance to the nearest 0. Beside it the two-pass DP, and its one-pass cousin failing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+/* ============================================================
+   Three Patterns, No Gaps — playground stylesheet
+   House shell (warm paper, light/dark) + a 5-role semantic
+   palette for pointer state. No gradients, no shadows.
+   ============================================================ */
+
+:root {
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bg: #fbfaf8;
+  --bg-sunk: #f4f2ed;
+  --bg-code: #f6f4ef;
+  --fg: #17171a;
+  --fg-mid: #4a4842;
+  --fg-dim: #6d6b64;
+  --rule: #e3dfd7;
+  --rule-hard: #cbc5b8;
+  --accent: #9c3a1c;
+  --accent-fg: #ffffff;
+  --accent-wash: rgba(156, 58, 28, 0.07);
+  --accent-line: rgba(156, 58, 28, 0.30);
+
+  /* syntax */
+  --t-key: #7c3aad; --t-typ: #1d5b7a; --t-str: #46682a;
+  --t-num: #8a4b12; --t-com: #83807a; --t-ann: #8a4b12;
+
+  /* ---- semantic pointer roles -------------------------------
+     anchor = the fixed pointer (i, or mid)   left = left / lo
+     right  = right / hi                      hit  = found / valid
+     "skipped" is deliberately hue-less: dim + dashed, not alarm-red.
+     All four clear 4.5:1 on both --bg and --bg-sunk.
+     ---------------------------------------------------------- */
+  --r-anchor: #9c3a1c; --r-anchor-wash: rgba(156, 58, 28, 0.10); --r-anchor-line: rgba(156, 58, 28, 0.42);
+  --r-left:   #2f5fa8; --r-left-wash:   rgba(47, 95, 168, 0.10); --r-left-line:   rgba(47, 95, 168, 0.42);
+  --r-right:  #6b3a8f; --r-right-wash:  rgba(107, 58, 143, 0.10); --r-right-line:  rgba(107, 58, 143, 0.42);
+  --r-hit:    #1f6b52; --r-hit-wash:    rgba(31, 107, 82, 0.10); --r-hit-line:    rgba(31, 107, 82, 0.42);
+  --r-anchor2: #a8306b; --r-anchor2-wash: rgba(168,48,107,.10); --r-anchor2-line: rgba(168,48,107,.42);
+  --r-window:  #12666e; --r-window-wash:  rgba(18,102,110,.10); --r-window-line:  rgba(18,102,110,.42);
+
+  /* legacy aliases — a few inline styles in the sim script still
+     reference these by name; keep them pointing at the new roles. */
+  --mint: var(--r-hit); --amber: var(--r-anchor); --blue: var(--r-left);
+  --violet: var(--r-right); --coral: var(--fg-dim); --gold: var(--r-anchor);
+}
+
+html[data-theme="dark"] {
+  --bg: #121213;
+  --bg-sunk: #1a1a1c;
+  --bg-code: #1a1a1c;
+  --fg: #e9e7e2;
+  --fg-mid: #b8b4ac;
+  --fg-dim: #93908a;
+  --rule: #2b2b2e;
+  --rule-hard: #3d3d41;
+  --accent: #e3865f;
+  --accent-fg: #16120f;
+  --accent-wash: rgba(227, 134, 95, 0.10);
+  --accent-line: rgba(227, 134, 95, 0.34);
+
+  --t-key: #c191e8; --t-typ: #7bb8d6; --t-str: #9dc271;
+  --t-num: #e0a86a; --t-com: #7c7a74; --t-ann: #e0a86a;
+
+  --r-anchor: #e3865f; --r-anchor-wash: rgba(227, 134, 95, 0.14); --r-anchor-line: rgba(227, 134, 95, 0.46);
+  --r-left:   #7fb0f0; --r-left-wash:   rgba(127, 176, 240, 0.14); --r-left-line:   rgba(127, 176, 240, 0.46);
+  --r-right:  #bd94e8; --r-right-wash:  rgba(189, 148, 232, 0.14); --r-right-line:  rgba(189, 148, 232, 0.46);
+  --r-hit:    #5fc9a3; --r-hit-wash:    rgba(95, 201, 163, 0.14); --r-hit-line:    rgba(95, 201, 163, 0.46);
+  --r-anchor2: #f091bd; --r-anchor2-wash: rgba(240,145,189,.14); --r-anchor2-line: rgba(240,145,189,.46);
+  --r-window:  #63c6d4; --r-window-wash:  rgba(99,198,212,.14);  --r-window-line:  rgba(99,198,212,.46);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--fg); min-height: 100%; }
+body {
+  font-family: var(--serif); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 72px;
+}
+
+/* ---------- appbar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0 13px; margin-bottom: 30px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 13px;
+}
+.appbar a.back { color: var(--accent); text-decoration: none; }
+.appbar a.back:hover { text-decoration: underline; }
+.appbar .spacer { flex: 1; }
+.themebtn {
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-mid);
+  background: transparent; border: 1px solid var(--rule-hard);
+  border-radius: 7px; padding: 5px 11px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* ---------- masthead ---------- */
+.eyebrow {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 11px; margin-bottom: 11px;
+}
+.eyebrow .tag {
+  font-family: var(--mono); font-weight: 500; letter-spacing: .04em;
+  text-transform: none; color: var(--accent);
+  background: var(--accent-wash); border: 1px solid var(--accent-line);
+  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+}
+h1 {
+  font-family: var(--serif); font-size: clamp(28px, 4vw, 38px); font-weight: 600;
+  line-height: 1.15; letter-spacing: -.012em;
+}
+h1 .thin { color: var(--fg-dim); font-weight: 400; }
+.lede { color: var(--fg-mid); max-width: 68ch; margin-top: 12px; font-size: 17px; }
+.lede code {
+  font-family: var(--mono); font-size: .86em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 6px; border-radius: 4px;
+}
+.lede .i { color: var(--r-anchor); font-weight: 600; }
+.lede .l { color: var(--r-left);   font-weight: 600; }
+.lede .r { color: var(--r-right);  font-weight: 600; }
+
+/* ---------- input row ---------- */
+.controls-top { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.field { flex: 1; min-width: 280px; }
+.field label {
+  display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 8px;
+}
+.input-shell { display: flex; gap: 10px; }
+input[type=text] {
+  flex: 1; background: var(--bg-sunk); border: 1px solid var(--rule-hard);
+  color: var(--fg); font-family: var(--mono); font-size: 15px; letter-spacing: .03em;
+  padding: 12px 14px; border-radius: 9px; outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.btn {
+  font-family: var(--sans); font-weight: 500; font-size: 14px;
+  border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg);
+  border-radius: 9px; padding: 0 18px; height: 46px; cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-fg); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--rule-hard); color: var(--fg); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg-mid);
+  background: var(--bg-sunk); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: .13s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.chip b { color: var(--fg-dim); font-weight: 400; margin-left: 8px; font-family: var(--sans); font-size: 12px; }
+
+/* ---------- layout ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px; margin-top: 26px; align-items: start; }
+@media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--bg); border: 1px solid var(--rule-hard); border-radius: 12px; overflow: hidden; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--bg-sunk);
+}
+.card-head h2 {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.phase-pill {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--rule-hard); color: var(--fg-dim); background: var(--bg);
+}
+.phase-pill.sort  { color: var(--fg-mid);   border-color: var(--rule-hard); }
+.phase-pill.scan  { color: var(--r-anchor); border-color: var(--r-anchor-line); background: var(--r-anchor-wash); }
+.phase-pill.found,
+.phase-pill.done  { color: var(--r-hit);    border-color: var(--r-hit-line);    background: var(--r-hit-wash); }
+
+/* ---------- the tape ---------- */
+.stage {
+  padding: 30px 20px 20px; min-height: 190px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.tape { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 50px; }
+@media (max-width: 560px) { .col { width: 38px; } }
+
+.caret {
+  height: 20px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  display: flex; gap: 3px; align-items: center; justify-content: center; transition: opacity .18s;
+}
+.caret .p { padding: 1px 6px; border-radius: 4px; line-height: 1.35; }
+.caret .pI { color: var(--accent-fg); background: var(--r-anchor); }
+.caret .pL { color: var(--accent-fg); background: var(--r-left); }
+.caret .pR { color: var(--accent-fg); background: var(--r-right); }
+
+.cell {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 500; border-radius: 9px;
+  background: var(--bg-sunk); border: 1.5px solid var(--rule-hard); color: var(--fg);
+  transition: transform .22s ease, background .18s, border-color .18s, color .18s;
+  position: relative;
+}
+@media (max-width: 560px) { .cell { font-size: 15px; } }
+
+.cell.fixed { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor); transform: translateY(-5px); }
+.cell.left  { background: var(--r-left-wash);   border-color: var(--r-left);   color: var(--r-left);   transform: translateY(-3px); }
+.cell.right { background: var(--r-right-wash);  border-color: var(--r-right);  color: var(--r-right);  transform: translateY(-3px); }
+.cell.found { background: var(--r-hit-wash);    border-color: var(--r-hit);    color: var(--r-hit); }
+/* discarded / already-explored: hue-less, just receded */
+.cell.skipped { opacity: .38; border-style: dashed; border-color: var(--rule); }
+.cell.dupskip {
+  background: var(--bg-sunk); border-style: dashed; border-color: var(--fg-dim);
+  color: var(--fg-dim); text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+
+.idx { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); transition: color .18s; }
+.idx.on { color: var(--accent); font-weight: 500; }
+
+.sum-line { font-family: var(--mono); font-size: 14.5px; color: var(--fg-dim); display: flex; gap: 10px; align-items: center; }
+.sum-line b { color: var(--fg); font-weight: 500; }
+
+.message {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6; color: var(--fg-mid);
+  text-align: center; max-width: 640px; min-height: 46px; padding: 0 6px;
+}
+.message b { color: var(--fg); font-weight: 600; }
+.message .i { color: var(--r-anchor); font-weight: 600; }
+.message .l { color: var(--r-left);   font-weight: 600; }
+.message .r { color: var(--r-right);  font-weight: 600; }
+.message .m { color: var(--r-hit);    font-weight: 600; }
+.message .x { color: var(--fg-dim);   font-weight: 600; }
+.message .k, .lede .k {
+  font-family: var(--mono); font-size: .88em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+.triplets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+.trip {
+  font-family: var(--mono); font-size: 12.5px; color: var(--r-hit);
+  background: var(--r-hit-wash); border: 1px solid var(--r-hit-line);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* ---------- transport ---------- */
+.transport {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); flex-wrap: wrap; background: var(--bg-sunk);
+}
+.icon-btn { width: 40px; height: 40px; padding: 0; font-size: 14px; }
+.progress-wrap { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 12px; }
+.progress { flex: 1; height: 5px; background: var(--bg); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; width: 0; background: var(--accent); transition: width .18s; }
+.step-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+.speed {
+  display: flex; align-items: center; gap: 9px; font-family: var(--sans);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+}
+.speed input { accent-color: var(--accent); width: 92px; }
+
+/* ---------- code pane ---------- */
+.code {
+  padding: 14px 4px 14px 0; font-family: var(--mono); font-size: 12.6px;
+  line-height: 1.7; overflow-x: auto; background: var(--bg-code);
+}
+.code .ln { display: flex; padding: 1px 18px 1px 0; white-space: pre; position: relative; transition: background .16s; }
+.code .ln .no { width: 34px; text-align: right; padding-right: 16px; color: var(--fg-dim); opacity: .65; user-select: none; flex-shrink: 0; }
+.code .kw { color: var(--t-key); }
+.code .ty { color: var(--t-typ); }
+.code .fn { color: var(--t-ann); }
+.code .tx { color: var(--fg-mid); }
+.code .ln.exec { background: var(--accent-wash); }
+.code .ln.exec .no { color: var(--accent); opacity: 1; }
+.code .ln.exec::before { content: ""; position: absolute; left: 0; width: 2.5px; top: 1px; bottom: 1px; background: var(--accent); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.dot.i { background: var(--r-anchor-wash); border-color: var(--r-anchor); }
+.dot.l { background: var(--r-left-wash);   border-color: var(--r-left); }
+.dot.r { background: var(--r-right-wash);  border-color: var(--r-right); }
+.dot.m { background: var(--r-hit-wash);    border-color: var(--r-hit); }
+.dot.x { background: var(--bg-sunk); border-color: var(--fg-dim); border-style: dashed; }
+
+.foot {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim);
+  text-align: center; line-height: 1.7;
+}
+.foot code {
+  font-family: var(--mono); font-size: .92em; color: var(--accent);
+  background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .progress .bar, .caret { transition: none !important; }
+  .cell.fixed, .cell.left, .cell.right { transform: none; }
+}
+
+/* ---------- grid board (graph pages) ---------- */
+.gridwrap { display: flex; justify-content: center; margin: 4px 0 12px; }
+.gboard { display: grid; gap: 5px; }
+.gcell {
+  width: 44px; height: 44px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 15px; font-weight: 500;
+  border: 1.5px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
+  position: relative; transition: background .13s ease, border-color .13s ease,
+                                  color .13s ease, transform .13s ease;
+}
+.gcell.water { border-style: dashed; opacity: .5; }
+.gcell.land  { background: var(--bg); color: var(--fg); border-color: var(--fg-dim); }
+.gcell.done  { background: var(--r-hit-wash); border-color: var(--r-hit); color: var(--r-hit); }
+.gcell.flood { background: var(--r-window-wash); border-color: var(--r-window); color: var(--r-window); }
+.gcell.scan  { box-shadow: inset 0 0 0 2px var(--r-left); border-color: var(--r-left); }
+.gcell.cur   { background: var(--r-anchor-wash); border-color: var(--r-anchor);
+               color: var(--r-anchor); transform: scale(1.07); }
+.gcell .tagno { font-size: 11px; font-weight: 600; }
+
+.gstats { font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim); text-align: center; }
+.gstats b { color: var(--fg); font-weight: 600; }
+
+.islands { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+           margin-top: 10px; min-height: 22px; }
+.isle { font-family: var(--sans); font-size: 11.5px; padding: 3px 9px; border-radius: 100px;
+        border: 1px solid var(--r-hit-line); background: var(--r-hit-wash); color: var(--r-hit); }
+
+.gcell.blocked { background: var(--bg-sunk); border-color: var(--rule-hard);
+                 border-style: dashed; opacity: .45; }
+.gcell.blocked::after { content: ""; position: absolute; width: 60%; height: 1.5px;
+                        background: var(--fg-dim); transform: rotate(-45deg); }
+.gcell.goal { box-shadow: inset 0 0 0 2px var(--r-left); }
+
+/* ---------- BFS queue strip ---------- */
+.qstrip { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
+          margin-top: 10px; min-height: 24px; }
+.qitem { font-family: var(--mono); font-size: 11.5px; padding: 3px 8px; border-radius: 5px;
+         border: 1px solid var(--r-window-line); background: var(--r-window-wash);
+         color: var(--r-window); }
+.qitem.empty { border-color: var(--rule-hard); background: transparent; color: var(--fg-dim);
+               font-family: var(--sans); }
+
+/* ---------- node-link graph ---------- */
+.glayout { position: relative; margin: 4px auto 12px; }
+.gedges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.gedges line { stroke: var(--rule-hard); stroke-width: 1.6; }
+.gedges line.on   { stroke: var(--r-anchor); stroke-width: 2.4; }
+.gedges line.used { stroke: var(--r-hit); stroke-width: 2; }
+.gedges .arrow { fill: var(--rule-hard); }
+.gnode {
+  position: absolute; width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 15px; font-weight: 500;
+  border: 1.5px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-mid);
+  transform: translate(-50%, -50%); transition: background .13s ease, border-color .13s ease,
+                                                color .13s ease, box-shadow .13s ease;
+}
+.gnode.cur    { background: var(--r-anchor-wash); border-color: var(--r-anchor); color: var(--r-anchor);
+                box-shadow: 0 0 0 3px var(--r-anchor-wash); }
+.gnode.onpath { background: var(--r-window-wash); border-color: var(--r-window); color: var(--r-window); }
+.gnode.target { box-shadow: inset 0 0 0 2px var(--r-hit); }
+.gnode.blocked{ opacity: .4; border-style: dashed; }
+
+.paths { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; min-height: 22px; }
+.pathchip { font-family: var(--mono); font-size: 11.5px; padding: 3px 9px; border-radius: 100px;
+            border: 1px solid var(--r-hit-line); background: var(--r-hit-wash); color: var(--r-hit); }
+.pathchip.lost { border-color: var(--accent-line); background: var(--accent-wash); color: var(--accent);
+                 text-decoration: line-through; }
+
+/* ---------- verdict card: the wrong answer beside the right one ---------- */
+.verdict { margin-top: 10px; text-align: center; font-family: var(--sans); font-size: 13px;
+           color: var(--fg-mid); border: 1px solid var(--accent-line);
+           background: var(--accent-wash); border-radius: 8px; padding: 8px 14px; }
+.verdict .wrong { color: var(--accent); font-family: var(--mono); }
+.verdict .right { color: var(--r-hit); font-family: var(--mono); }
+
+/* ---------- segmented variant control ---------- */
+.seg { display: flex; gap: 0; flex-wrap: wrap; }
+.seg-btn + .seg-btn { margin-left: -1px; }
+.seg-btn:not(:first-child):not(:last-child) { border-radius: 0; }
+.seg-btn { border-radius: 0; font-size: 12px; white-space: nowrap; }
+.seg-btn:first-child { border-radius: 8px 0 0 8px; }
+.seg-btn:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
+.seg-btn.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+.field.narrow { max-width: 210px; }
+.chip .argbit { font-family: var(--mono); font-size: .92em; color: var(--accent);
+                background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+                margin-left: 4px; }
+
+.dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
+.code .cm { color: var(--fg-dim); font-style: italic; }
+
+@media (max-width: 620px) { .gcell { width: 34px; height: 34px; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .gcell { transition: none !important; transform: none; } }
+</style>
+<script>
+/* set the theme before first paint to avoid a flash.
+   shares tpswbs.v1.theme with the three-patterns bundle, so the
+   setting carries across the doc -> visualizer seam. */
+(function(){try{var p=JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');
+var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light"):p);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="appbar">
+  <a class="back" href="index.html">&larr; Visualizers</a>
+  <span class="spacer"></span>
+  <button class="themebtn" id="themeBtn" type="button">Theme</button>
+</header>
+  <style>
+  /* --- 542-only cell states, built from the house tokens only ------------- */
+  .gcell.src     { background: var(--r-hit-wash); border-color: var(--r-hit);
+                   color: var(--r-hit); font-weight: 600; }
+  .gcell.settled { background: var(--r-left-wash); border-color: var(--r-left); color: var(--r-left); }
+  /* not reached yet — recedes, never alarms */
+  .gcell.inf     { border-style: dashed; border-color: var(--rule); color: var(--fg-dim); opacity: .48; }
+  /* the value a one-sweep machine was left holding — also recedes */
+  .gcell.stale   { border-style: dashed; border-color: var(--fg-dim); color: var(--fg-dim);
+                   opacity: .62; background: var(--bg-sunk); }
+  .gcell.goalz   { box-shadow: inset 0 0 0 2px var(--r-hit); }
+  .qitem.hit     { border-color: var(--r-hit-line); background: var(--r-hit-wash); color: var(--r-hit); }
+  .qitem.dim     { border-color: var(--rule-hard); background: transparent; color: var(--fg-dim);
+                   border-style: dashed; }
+  .seg { flex-wrap: wrap; }
+  .costline { font-family: var(--sans); font-size: 12.5px; color: var(--fg-dim); text-align: center; }
+  .costline b { color: var(--fg); font-weight: 600; }
+  .costline .over { color: var(--accent); font-weight: 600; }
+  </style>
+
+  <div class="eyebrow">Graphs &middot; Multi-source BFS <span class="tag">LeetCode 542</span></div>
+  <h1>01 Matrix <span class="thin">/ visualized</span></h1>
+  <p class="lede">
+    The instinct is to stand on each <span class="x">1</span> and walk until you find a
+    <span class="m">0</span> &mdash; one whole queue per cell, which is O((mn)&sup2;). Turn it round:
+    <span class="l">put every 0 in the queue before the first pop</span> and a single sweep hands
+    every cell its distance to the <em>nearest</em> source. This is not reachability &mdash;
+    every cell is reached; the question is <em>how far</em>. There is a genuinely different
+    correct machine here too, the <span class="r">two-pass DP</span>, and watching its
+    <em>one-pass</em> cousin fail is the shortest argument for why BFS is the safer default.
+  </p>
+
+  <div class="controls-top">
+    <div class="field">
+      <label for="arrInput">Grid (rows of 0/1, separated by <code>/</code>)</label>
+      <div class="input-shell">
+        <input id="arrInput" type="text" value="01111/11111/11110" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Which machine</label>
+      <div class="seg" role="group" aria-label="Machine">
+        <button class="btn seg-btn on" id="segBfs"   type="button">multi-source BFS</button>
+        <button class="btn seg-btn"    id="segNaive" type="button">one BFS per 1</button>
+        <button class="btn seg-btn"    id="segDp2"   type="button">two-pass DP</button>
+        <button class="btn seg-btn"    id="segDp1"   type="button">one sweep only &#10007;</button>
+      </div>
+    </div>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
+      <div class="stage">
+        <div class="gridwrap"><div class="gboard" id="board"></div></div>
+        <div class="gstats" id="gstats"></div>
+        <div class="costline" id="costline"></div>
+        <div class="qstrip" id="qstrip"></div>
+        <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
+        <div class="verdict" id="verdict" hidden></div>
+      </div>
+      <div class="transport">
+        <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
+        <button class="btn icon-btn" id="playBtn" title="Play / Pause">&#9654;</button>
+        <button class="btn icon-btn" id="nextBtn" title="Next">&#9205;</button>
+        <button class="btn icon-btn" id="restartBtn" title="Restart">&#10226;</button>
+        <div class="progress-wrap">
+          <div class="progress"><div class="bar" id="bar"></div></div>
+          <span class="step-count" id="stepCount">0 / 0</span>
+        </div>
+        <div class="speed">Speed<input type="range" id="speed" min="1" max="10" value="5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Java &middot; running line</h2><span class="phase-pill" id="codePill">BFS</span></div>
+      <div class="code" id="code"></div>
+      <div class="legend">
+        <span><i class="dot i"></i>the cell being handled</span>
+        <span><i class="dot w"></i>in the queue / just explored</span>
+        <span><i class="dot m"></i>a 0 &mdash; a source, distance 0</span>
+        <span><i class="dot l"></i>settled distance</span>
+        <span><i class="dot x"></i>not reached &mdash; still &infin;</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    BFS: O(m&middot;n) time, O(m&middot;n) queue &nbsp;&middot;&nbsp; two-pass DP: O(m&middot;n) time, O(1) extra
+    &nbsp;&middot;&nbsp; one BFS per 1: O((m&middot;n)&sup2;)
+    <br>
+    Seeding every 0 at once is the same inversion <a href="130-surrounded-regions.html">LC 130</a> makes
+    with the border: ask the sources the question, not the cells. The two-pass DP is correct and cheaper on
+    memory, but it is correct <em>only</em> because both sweeps run &mdash; and nothing in the code tells you
+    when you have written just one. BFS has no half-correct form, which is why it is the safer default.
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================== the four programs ===================== */
+
+  const CODE_BFS = [
+    [['kw','int'],['tx','[][] '],['fn','updateMatrix'],['tx','('],['kw','int'],['tx','[][] mat) {']],
+    [['tx','    '],['kw','int '],['tx','m = mat.length, n = mat[0].length;']],
+    [['tx','    '],['kw','int'],['tx','[][] dist = '],['kw','new int'],['tx','[m][n];']],
+    [['tx','    '],['ty','Deque<int[]> '],['tx','q = '],['kw','new '],['tx','ArrayDeque<>();']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < m; r++)']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < n; c++)']],
+    [['tx','            '],['kw','if '],['tx','(mat[r][c] == 0) q.add('],['kw','new int'],['tx','[]{r, c});  '],['cm','// EVERY zero, before the first pop']],
+    [['tx','            '],['kw','else '],['tx','               dist[r][c] = -1;         '],['cm','// -1 = not settled yet']],
+    [['tx','    '],['kw','int '],['tx','d = 0;']],
+    [['tx','    '],['kw','while '],['tx','(!q.isEmpty()) {']],
+    [['tx','        d++;                                            '],['cm','// one whole level per turn']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','sz = q.size(); sz > 0; sz--) {']],
+    [['tx','            '],['kw','int'],['tx','[] cur = q.poll();']],
+    [['tx','            '],['kw','for '],['tx','('],['kw','int'],['tx','[] dir : DIRS4) {']],
+    [['tx','                '],['kw','int '],['tx','nr = cur[0]+dir[0], nc = cur[1]+dir[1];']],
+    [['tx','                '],['kw','if '],['tx','(nr<0||nr>=m||nc<0||nc>=n||dist[nr][nc] != -1) '],['kw','continue'],['tx',';']],
+    [['tx','                dist[nr][nc] = d;                       '],['cm','// settled on push — never revisited']],
+    [['tx','                q.add('],['kw','new int'],['tx','[]{nr, nc});']],
+    [['tx','            }']],
+    [['tx','        }']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','dist;']],
+    [['tx','}']]
+  ];
+
+  const CODE_NAIVE = [
+    [['kw','int'],['tx','[][] '],['fn','updateMatrix'],['tx','('],['kw','int'],['tx','[][] mat) {       '],['cm','// correct — and quadratic']],
+    [['tx','    '],['kw','int '],['tx','m = mat.length, n = mat[0].length;']],
+    [['tx','    '],['kw','int'],['tx','[][] dist = '],['kw','new int'],['tx','[m][n];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < m; r++)']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < n; c++)']],
+    [['tx','            '],['kw','if '],['tx','(mat[r][c] == 1)']],
+    [['tx','                dist[r][c] = '],['fn','nearestZero'],['tx','(mat, r, c);   '],['cm','// a whole BFS, for ONE cell']],
+    [['tx','    '],['kw','return '],['tx','dist;']],
+    [['tx','}']],
+    [['tx','']],
+    [['kw','int '],['fn','nearestZero'],['tx','('],['kw','int'],['tx','[][] g, '],['kw','int '],['tx','sr, '],['kw','int '],['tx','sc) {']],
+    [['tx','    '],['kw','boolean'],['tx','[][] seen = '],['kw','new boolean'],['tx','[g.length][g[0].length];  '],['cm','// rebuilt every call']],
+    [['tx','    '],['ty','Deque<int[]> '],['tx','q = '],['kw','new '],['tx','ArrayDeque<>();']],
+    [['tx','    q.add('],['kw','new int'],['tx','[]{sr, sc});  seen[sr][sc] = '],['kw','true'],['tx',';']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','d = 0; !q.isEmpty(); d++)']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','sz = q.size(); sz > 0; sz--) {']],
+    [['tx','            '],['kw','int'],['tx','[] cur = q.poll();']],
+    [['tx','            '],['kw','if '],['tx','(g[cur[0]][cur[1]] == 0) '],['kw','return '],['tx','d;      '],['cm','// stop at the first zero']],
+    [['tx','            pushUnseenNeighbours(q, seen, cur);']],
+    [['tx','        }']],
+    [['tx','    '],['kw','return '],['tx','-1;']],
+    [['tx','}']]
+  ];
+
+  const CODE_DP2 = [
+    [['kw','int'],['tx','[][] '],['fn','updateMatrix'],['tx','('],['kw','int'],['tx','[][] mat) {']],
+    [['tx','    '],['kw','int '],['tx','m = mat.length, n = mat[0].length, INF = m + n;  '],['cm','// above any real distance']],
+    [['tx','    '],['kw','int'],['tx','[][] d = '],['kw','new int'],['tx','[m][n];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < m; r++)                    '],['cm','// PASS 1 — top-left sweep']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < n; c++) {']],
+    [['tx','            '],['kw','if '],['tx','(mat[r][c] == 0) { d[r][c] = 0; '],['kw','continue'],['tx','; }']],
+    [['tx','            d[r][c] = INF;']],
+    [['tx','            '],['kw','if '],['tx','(r > 0) d[r][c] = Math.min(d[r][c], d[r-1][c] + 1);']],
+    [['tx','            '],['kw','if '],['tx','(c > 0) d[r][c] = Math.min(d[r][c], d[r][c-1] + 1);']],
+    [['tx','        }']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = m-1; r >= 0; r--)                  '],['cm','// PASS 2 — bottom-right sweep']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = n-1; c >= 0; c--) {']],
+    [['tx','            '],['kw','if '],['tx','(r+1 < m) d[r][c] = Math.min(d[r][c], d[r+1][c] + 1);']],
+    [['tx','            '],['kw','if '],['tx','(c+1 < n) d[r][c] = Math.min(d[r][c], d[r][c+1] + 1);']],
+    [['tx','        }']],
+    [['tx','    '],['kw','return '],['tx','d;']],
+    [['tx','}']]
+  ];
+
+  const CODE_DP1 = [
+    [['kw','int'],['tx','[][] '],['fn','updateMatrix'],['tx','('],['kw','int'],['tx','[][] mat) {       '],['cm','// WRONG — one sweep']],
+    [['tx','    '],['kw','int '],['tx','m = mat.length, n = mat[0].length, INF = m + n;']],
+    [['tx','    '],['kw','int'],['tx','[][] d = '],['kw','new int'],['tx','[m][n];']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < m; r++)                    '],['cm','// PASS 1 — top-left sweep']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < n; c++) {']],
+    [['tx','            '],['kw','if '],['tx','(mat[r][c] == 0) { d[r][c] = 0; '],['kw','continue'],['tx','; }']],
+    [['tx','            d[r][c] = INF;']],
+    [['tx','            '],['kw','if '],['tx','(r > 0) d[r][c] = Math.min(d[r][c], d[r-1][c] + 1);']],
+    [['tx','            '],['kw','if '],['tx','(c > 0) d[r][c] = Math.min(d[r][c], d[r][c-1] + 1);']],
+    [['tx','        }']],
+    [['tx','    '],['cm','// ...and then nothing. It compiles. It looks finished.']],
+    [['tx','    '],['kw','return '],['tx','d;']],
+    [['tx','}']],
+    [['tx','']],
+    [['cm','// Pass 1 can only look up and left. A cell whose nearest 0 lies']],
+    [['cm','// down or to the right is either left holding INF, or holding a']],
+    [['cm','// perfectly finite number that happens to be too large. Nothing']],
+    [['cm','// in the output announces which.']]
+  ];
+
+  const CODES = { bfs:CODE_BFS, naive:CODE_NAIVE, dp2:CODE_DP2, dp1:CODE_DP1 };
+  const PILL  = { bfs:'multi-source BFS', naive:'BFS per 1', dp2:'two-pass DP', dp1:'one sweep' };
+
+  const MAXR = 6, MAXC = 8;
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+
+  /* ===================== in-page oracle =====================
+     Not a queue and not a sweep. Every cell of a full rectangle is
+     passable — 1s are walked THROUGH, not around — so the bounding box
+     of any two cells lies wholly inside the grid and a staircase path
+     between them has length exactly |dr| + |dc|. The true answer is
+     therefore the minimum Manhattan distance to any zero, closed form.
+     Used only to label the verdict card; it shares no method with any
+     of the four machines above.                                        */
+  function manhattanTruth(rows){
+    const m = rows.length, n = m ? rows[0].length : 0;
+    if(!m || !n) return [];
+    const zs = [];
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++) if(rows[r][c] === '0') zs.push([r,c]);
+    return Array.from({length:m}, (_,r) => Array.from({length:n}, (_,c) => {
+      if(!zs.length) return -1;
+      let best = Infinity;
+      for(const [zr,zc] of zs){ const d = Math.abs(r-zr) + Math.abs(c-zc); if(d < best) best = d; }
+      return best;
+    }));
+  }
+
+  /* ===================== buildFrames =====================
+     buildFrames(rows, variant)
+       rows    : array of row strings over {'0','1'}, all the same length
+       variant : 'bfs' (default) | 'naive' | 'dp2' | 'dp1'
+     The final frame carries `ans` — the FULL m x n distance matrix, which
+     is what LeetCode 542 returns — and `done: true`.                      */
+  function buildFrames(rows, variant){
+    const v = CODES[variant] ? variant : 'bfs';
+    const m = rows.length, n = m ? rows[0].length : 0;
+    const frames = [];
+
+    const base = {
+      m:0, n:0, variant:v, inf:0, g:[], d:[], queue:[], cur:null, goal:null,
+      work:0, worklabel:'steps', qlabel:'queue', settled:0, level:0, pass:0,
+      wrong:[], truth:null, nozero:false
+    };
+
+    if(!m || !n){
+      frames.push(Object.assign({}, base, {
+        phase:'done', code: v==='dp1' ? 11 : (v==='dp2' ? 15 : (v==='naive' ? 7 : 21)),
+        msg:`Empty grid &mdash; there is nothing to measure. Return a matrix of the same (empty) shape.`,
+        ans: Array.from({length:m}, () => []), done:true}));
+      return frames;
+    }
+
+    const INF = m + n;                 // strictly above the largest real distance, m+n-2
+    const g = rows.map(r => [...r].map(Number));
+    const zeros = [];
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++) if(g[r][c] === 0) zeros.push([r,c]);
+    const truth = manhattanTruth(rows);
+
+    if(!zeros.length){
+      frames.push(Object.assign({}, base, {
+        m, n, inf:INF, g: g.map(r=>r.slice()),
+        d: Array.from({length:m}, () => Array(n).fill(-1)),
+        phase:'done', code: v==='dp1' ? 11 : (v==='dp2' ? 15 : (v==='naive' ? 7 : 21)), nozero:true,
+        msg:`<span class="x">No 0 anywhere in the grid.</span> LeetCode guarantees at least one, and the guarantee is load-bearing: with no source the queue never starts, the sweeps never find a floor, and &ldquo;distance to the nearest 0&rdquo; is not a defined quantity. Returning <b>-1</b> for every cell.`,
+        truth, ans: Array.from({length:m}, () => Array(n).fill(-1)), done:true}));
+      return frames;
+    }
+
+    const maxTrue = Math.max(...truth.map(r => Math.max(...r)));
+    const cells = m*n, ones = cells - zeros.length;
+
+    if(v === 'bfs')   return bfsFrames();
+    if(v === 'naive') return naiveFrames();
+    return dpFrames(v === 'dp2');
+
+    /* ---------------- multi-source BFS ---------------- */
+    function bfsFrames(){
+      const d = Array.from({length:m}, () => Array(n).fill(-1));
+      let q = [], pops = 0, level = 0, settled = 0;
+
+      const snap = o => frames.push(Object.assign({}, base, {
+        m, n, variant:'bfs', inf:INF,
+        g: g.map(r=>r.slice()), d: d.map(r=>r.slice()), queue: q.map(x=>x.slice()),
+        work: pops, worklabel:'queue pops', qlabel:'queue', settled, level, truth
+      }, o));
+
+      snap({phase:'scan', code:0,
+        msg:`<b>${m}&times;${n}</b>, <b>${zeros.length}</b> zero${zeros.length===1?'':'s'} and <b>${ones}</b> one${ones===1?'':'s'}. Running one BFS out of each 1 would be <span class="x">${ones} separate queues</span>. Instead the sources answer: <span class="l">seed all ${zeros.length} zero${zeros.length===1?'':'s'} first</span>.`});
+
+      for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+        if(g[r][c] === 0){
+          d[r][c] = 0; settled++; q.push([r,c]);
+          snap({cur:[r,c], phase:'scan', code:6,
+            msg:`<span class="m">(${r}, ${c}) is a 0</span> &mdash; distance to itself is 0, so it enters the queue now. Queue holds <b>${q.length}</b>. Every source must be in <b>before the first pop</b>; that single fact is what turns ${zeros.length} searches into one.`});
+        } else {
+          snap({cur:[r,c], phase:'scan', code:7,
+            msg:`(${r}, ${c}) is a 1 &mdash; mark it <span class="k">-1</span>, meaning <span class="x">not settled</span>. This is not &ldquo;can it be reached&rdquo;; every cell can. The question is how far, and the answer is not known yet.`});
+        }
+      }
+
+      snap({phase:'scan', code:8,
+        msg:`Queue seeded with <b>${q.length}</b> source${q.length===1?'':'s'}, all at distance <span class="m">0</span>. Because they all sit at level 0 together, the frontier that comes off the queue next is exactly the set of cells at distance 1 <em>from the nearest of them</em> &mdash; no per-source bookkeeping anywhere.`});
+
+      while(q.length){
+        level++;
+        const sz = q.length;
+        snap({phase:'scan', code:11,
+          msg:`<b>Level ${level}.</b> Snapshot <span class="k">sz = ${sz}</span>. Those ${sz} cell${sz===1?'':'s'} are all at distance <b>${level-1}</b>; anything they push is at <b>${level}</b>. The snapshot is what keeps the two levels from mixing in one queue.`});
+
+        for(let s=0;s<sz;s++){
+          const [r,c] = q.shift();
+          pops++;
+          const got = [];
+          for(const [dr,dc] of DIRS){
+            const nr=r+dr, nc=c+dc;
+            if(nr<0||nr>=m||nc<0||nc>=n||d[nr][nc] !== -1) continue;
+            d[nr][nc] = level; settled++; q.push([nr,nc]);
+            got.push(`(${nr}, ${nc})`);
+          }
+          snap({cur:[r,c], phase: got.length ? 'found' : 'scan', code: got.length ? 16 : 12,
+            msg: got.length
+              ? `Pop <span class="i">(${r}, ${c})</span>, distance ${d[r][c]}. It settles ${got.join(', ')} at <span class="l">${level}</span> &mdash; written <b>as they are pushed</b>, so a later pop this level cannot claim them again and hand out a larger number. <b>${settled}</b> of ${cells} settled.`
+              : `Pop <span class="i">(${r}, ${c})</span>, distance ${d[r][c]}. All four neighbours are off-grid or already settled &mdash; <span class="x">nothing to do</span>. A cell is settled once and only once, which is why this whole loop is O(m&middot;n).`});
+        }
+      }
+
+      const ans = d.map(r=>r.slice());
+      snap({phase:'done', code:21,
+        msg:`<span class="m">Every one of the ${cells} cells settled</span> in <b>${pops}</b> queue pops &mdash; exactly one per cell. The deepest cell sits at distance <b>${maxTrue}</b>, so the loop ran ${level} level${level===1?'':'s'}. One sweep, ${zeros.length} source${zeros.length===1?'':'s'}, no repetition.`,
+        ans, done:true});
+      return frames;
+    }
+
+    /* ---------------- one BFS per 1 — correct, quadratic ---------------- */
+    function naiveFrames(){
+      const d = Array.from({length:m}, () => Array(n).fill(-1));
+      let pops = 0, settled = 0, explored = [], goal = null;
+
+      const snap = o => frames.push(Object.assign({}, base, {
+        m, n, variant:'naive', inf:INF,
+        g: g.map(r=>r.slice()), d: d.map(r=>r.slice()),
+        queue: explored.map(x=>x.slice()),
+        work: pops, worklabel:'queue pops', qlabel:'this one cell&rsquo;s own BFS',
+        settled, level:0, truth
+      }, o));
+
+      snap({phase:'scan', code:0,
+        msg:`The direction the instinct picks: stand on each <span class="x">1</span> and walk outwards until a <span class="m">0</span> turns up. It is correct. It also builds <b>${ones}</b> queue${ones===1?'':'s'} and <b>${ones}</b> <span class="k">seen[][]</span> array${ones===1?'':'s'}, one per cell, each of which can sweep the whole grid.`});
+
+      for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+        if(g[r][c] === 0){
+          d[r][c] = 0; settled++; explored = []; goal = null;
+          snap({cur:[r,c], phase:'scan', code:5,
+            msg:`(${r}, ${c}) is already a <span class="m">0</span> &mdash; the <span class="k">if</span> on line 6 skips it and it stays 0. No search needed.`});
+          continue;
+        }
+        // one complete BFS out of this single cell
+        const popsBefore = pops;
+        const seen = Array.from({length:m}, () => Array(n).fill(false));
+        let q = [[r,c]], dist = 0, found = -1;
+        seen[r][c] = true;
+        explored = [[r,c]]; goal = null;
+        outer:
+        while(q.length){
+          const sz = q.length, nq = [];
+          for(let s=0;s<sz;s++){
+            const [cr,cc] = q[s];
+            pops++;
+            if(g[cr][cc] === 0){ found = dist; goal = [cr,cc]; break outer; }
+            for(const [dr,dc] of DIRS){
+              const nr=cr+dr, nc=cc+dc;
+              if(nr<0||nr>=m||nc<0||nc>=n||seen[nr][nc]) continue;
+              seen[nr][nc] = true; nq.push([nr,nc]); explored.push([nr,nc]);
+            }
+          }
+          q = nq; dist++;
+        }
+        d[r][c] = found; settled++;
+        const mine = pops - popsBefore;
+        snap({cur:[r,c], goal, phase:'found', code:17,
+          msg:`A queue and a <span class="k">seen[][]</span> built from scratch for <span class="i">(${r}, ${c})</span> alone. It popped <b>${mine}</b> cell${mine===1?'':'s'} before reaching the <span class="m">0 at (${goal[0]}, ${goal[1]})</span> &mdash; distance <span class="l">${found}</span> &mdash; and then both are thrown away. Running total <b>${pops}</b> pops, against <b>${cells}</b> for the entire multi-source sweep.`});
+      }
+
+      const ans = d.map(r=>r.slice());
+      const ratio = (pops / cells);
+      explored = []; goal = null;
+      snap({phase:'done', code:7,
+        msg:`Same matrix as the multi-source BFS &mdash; this machine is <span class="m">correct</span>. It cost <b>${pops}</b> queue pops where seeding all the zeros at once costs <b>${cells}</b>: <span class="x">${ratio.toFixed(1)}&times; the work on a grid this small</span>, and the gap is O(m&middot;n) wide, not constant. Nothing was learned twice by accident &mdash; it was learned ${ones} time${ones===1?'':'s'} on purpose.`,
+        ans, done:true});
+      return frames;
+    }
+
+    /* ---------------- DP sweeps: two-pass (correct) / one-pass (wrong) --- */
+    function dpFrames(twoPass){
+      const d = Array.from({length:m}, () => Array(n).fill(INF));
+      let work = 0, pass = 1;
+
+      const snap = o => frames.push(Object.assign({}, base, {
+        m, n, variant: twoPass ? 'dp2' : 'dp1', inf:INF,
+        g: g.map(r=>r.slice()), d: d.map(r=>r.slice()), queue: [],
+        work, worklabel:'cell updates', qlabel:'no queue at all',
+        settled: countFinite(), level:0, pass, truth
+      }, o));
+
+      function countFinite(){
+        let k=0; for(let r=0;r<m;r++) for(let c=0;c<n;c++) if(d[r][c] < INF) k++;
+        return k;
+      }
+
+      snap({phase:'scan', code:1,
+        msg: twoPass
+          ? `No queue anywhere &mdash; two sweeps over the array and O(1) extra space. <span class="l">Pass 1 runs top-left to bottom-right</span> and can only ever look <em>up</em> and <em>left</em>; <span class="r">pass 2 runs back</span> and looks down and right. Between them the four directions are covered. <span class="k">INF = m + n = ${INF}</span>, one more than the largest distance this grid could hold.`
+          : `Pass 1 only. <span class="l">Top-left to bottom-right</span>, reading <span class="k">d[r-1][c]</span> and <span class="k">d[r][c-1]</span> &mdash; up and left, the only two neighbours already computed when the cursor arrives. Watch what that leaves out.`});
+
+      for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+        work++;
+        if(g[r][c] === 0){
+          d[r][c] = 0;
+          snap({cur:[r,c], phase:'scan', code:5,
+            msg:`<span class="m">(${r}, ${c}) is a 0.</span> Its distance is 0 and the sweep moves on &mdash; the zeros are the floor everything else is measured down to.`});
+          continue;
+        }
+        d[r][c] = INF;
+        const from = [];
+        if(r > 0 && d[r-1][c] + 1 < d[r][c]){ d[r][c] = d[r-1][c] + 1; from.push(`up (${r-1}, ${c}) = ${d[r-1][c]}`); }
+        if(c > 0 && d[r][c-1] + 1 < d[r][c]){ d[r][c] = d[r][c-1] + 1; from.push(`left (${r}, ${c-1}) = ${d[r][c-1]}`); }
+        snap({cur:[r,c], phase: d[r][c] < INF ? 'found' : 'scan', code:8,
+          msg: d[r][c] < INF
+            ? `(${r}, ${c}) takes <span class="l">${d[r][c]}</span> from ${from[from.length-1]}. That is the best route <em>through the cells already swept</em> &mdash; a 0 lying below or to the right has not been seen and cannot contribute.`
+            : `(${r}, ${c}) has <span class="x">nothing usable above or to the left</span>, so it keeps <span class="k">INF</span>. ${twoPass ? 'Pass 2 will come back for it.' : '<b>Nothing is coming back for it.</b>'}`});
+      }
+
+      if(!twoPass){
+        const wrong = [];
+        let worst = 0, stillInf = 0;
+        for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+          if(d[r][c] !== truth[r][c]){
+            wrong.push([r,c]);
+            worst = Math.max(worst, d[r][c] - truth[r][c]);
+            if(d[r][c] >= INF) stillInf++;
+          }
+        }
+        const ans = d.map(r=>r.slice());
+        snap({phase:'done', code:11, wrong,
+          msg: wrong.length
+            ? `The sweep finished and returned. <span class="x">${wrong.length} of ${cells} cells are wrong</span> &mdash; ${stillInf} still holding <span class="k">INF</span>, ${wrong.length-stillInf} holding a finite number that is simply too large, overshooting by up to <b>${worst}</b>. Nothing in the returned matrix distinguishes the two, and nothing in the code hinted a sweep was missing. <span class="r">The two-pass version differs by four lines.</span>`
+            : `The sweep finished and &mdash; on <em>this</em> grid &mdash; every cell happens to be right: every 1's nearest 0 lies above it or to its left, so one direction of travel was enough. <span class="x">That is luck, not correctness.</span> Move a single 0 down or right and the same code silently returns a larger matrix.`,
+          ans, done:true});
+        return frames;
+      }
+
+      pass = 2;
+      snap({phase:'scan', code:10,
+        msg:`Pass 1 is done and it is <span class="x">not the answer</span>: ${countFinite()} of ${cells} cells hold a number, and some of those numbers are too large because the nearest 0 lay below or to the right. <span class="r">Pass 2 sweeps back</span>, taking <span class="k">min</span> against the down and right neighbours &mdash; which by then are final.`});
+
+      for(let r=m-1;r>=0;r--) for(let c=n-1;c>=0;c--){
+        work++;
+        const before = d[r][c];
+        const from = [];
+        if(r+1 < m && d[r+1][c] + 1 < d[r][c]){ d[r][c] = d[r+1][c] + 1; from.push(`down (${r+1}, ${c}) = ${d[r+1][c]}`); }
+        if(c+1 < n && d[r][c+1] + 1 < d[r][c]){ d[r][c] = d[r][c+1] + 1; from.push(`right (${r}, ${c+1}) = ${d[r][c+1]}`); }
+        snap({cur:[r,c], phase: d[r][c] < before ? 'found' : 'scan', code:13,
+          msg: d[r][c] < before
+            ? `<span class="r">(${r}, ${c}) improves ${before >= INF ? 'INF' : before} &rarr; <b>${d[r][c]}</b></span> from ${from[from.length-1]}. Its nearest 0 was downstream all along; pass 1 could not have known. This is exactly the cell the one-sweep version gets wrong.`
+            : `(${r}, ${c}) keeps <b>${d[r][c]}</b> &mdash; neither the cell below nor the cell to the right offers a shorter route, so pass 1 already had it right.`});
+      }
+
+      const ans = d.map(r=>r.slice());
+      snap({phase:'done', code:15,
+        msg:`<span class="m">Identical to the BFS matrix</span>, in <b>${work}</b> cell updates and no queue at all. It is correct because the shortest staircase to the nearest 0 goes up/left, or down/right, or bends once &mdash; and the bend is covered because pass 2 reads values pass 1 already finalised. Deepest cell: <b>${maxTrue}</b>. Cheaper on memory than BFS, and one deleted loop away from silently wrong.`,
+        ans, done:true});
+      return frames;
+    }
+  }
+
+  /* ===================== driver ===================== */
+  const $ = id => document.getElementById(id);
+  const boardEl=$('board'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
+        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'),
+        statsEl=$('gstats'), costEl=$('costline'), qEl=$('qstrip'), vEl=$('verdict'),
+        codePillEl=$('codePill');
+  let frames=[], idx=0, timer=null, variant='bfs';
+
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function renderCode(){
+    codeEl.innerHTML = CODES[variant].map((line,i)=>{
+      const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
+      return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
+    }).join('');
+    codePillEl.textContent = PILL[variant];
+  }
+
+  function parseGrid(str){
+    const rows = String(str).split(/[\/\n]/).map(s=>s.replace(/[^01]/g,'')).filter(s=>s.length);
+    if(!rows.length) return [];
+    const C = Math.min(Math.max(...rows.map(r=>r.length)), MAXC);
+    return rows.slice(0,MAXR).map(r => r.slice(0,C).padEnd(C,'0'));
+  }
+
+  function buildBoard(m,n){
+    boardEl.innerHTML='';
+    boardEl.style.gridTemplateColumns=`repeat(${n}, auto)`;
+    for(let k=0;k<m*n;k++){
+      const el=document.createElement('div');
+      el.className='gcell'; el.setAttribute('data-cell',k);
+      boardEl.appendChild(el);
+    }
+  }
+
+  function glyph(f,r,c){
+    if(f.nozero) return String(f.g[r][c]);
+    const val = f.d[r][c];
+    if(val === -1) return f.variant==='bfs' || f.variant==='naive' ? '1' : '∞';
+    if(val >= f.inf) return '∞';
+    return String(val);
+  }
+
+  function render(){
+    const f=frames[idx]; if(!f) return;
+    const {m,n}=f;
+    const inQ=new Set(f.queue.map(([r,c])=>r*n+c));
+    const bad=new Set((f.wrong||[]).map(([r,c])=>r*n+c));
+    for(let k=0;k<m*n;k++){
+      const el=boardEl.querySelector(`[data-cell="${k}"]`); if(!el) continue;
+      const r=(k/n)|0, c=k%n, val=f.d[r][c];
+      let cls='gcell';
+      if(f.cur && f.cur[0]===r && f.cur[1]===c)          cls+=' cur';
+      else if(bad.has(k))                                cls+=' stale';
+      else if(!f.nozero && val === 0)                    cls+=' src';
+      else if(inQ.has(k))                                cls+=' flood';
+      else if(val === -1 || val >= f.inf)                cls+=' inf';
+      else                                               cls+=' settled';
+      if(f.goal && f.goal[0]===r && f.goal[1]===c)       cls+=' goalz';
+      el.className=cls;
+      el.textContent=glyph(f,r,c);
+    }
+
+    statsEl.innerHTML = f.variant==='dp2' || f.variant==='dp1'
+      ? `pass <b>${f.pass}</b> &nbsp;&middot;&nbsp; cells holding a number <b>${f.settled}</b> / ${f.m*f.n} &nbsp;&middot;&nbsp; ${f.worklabel} <b>${f.work}</b>`
+      : `settled <b>${f.settled}</b> / ${f.m*f.n} &nbsp;&middot;&nbsp; level <b>${f.level}</b> &nbsp;&middot;&nbsp; ${f.worklabel} <b>${f.work}</b>`;
+
+    costEl.innerHTML = f.variant==='naive'
+      ? `one queue per 1 &mdash; <b>${f.work}</b> pops so far vs <b>${f.m*f.n}</b> for the whole multi-source sweep`
+      : f.variant==='bfs'
+        ? `every cell enters the queue exactly once &mdash; <b>${f.work}</b> pops, ceiling <b>${f.m*f.n}</b>`
+        : `no queue, no visited array &mdash; just the cursor and the cells behind it`;
+
+    qEl.innerHTML = (f.variant==='dp2' || f.variant==='dp1')
+      ? `<span class="qitem dim">${f.qlabel}</span>`
+      : (f.queue.length
+          ? f.queue.slice(0,40).map(([r,c])=>`<span class="qitem${f.variant==='naive'?' hit':''}">${r},${c}</span>`).join('')
+          : `<span class="qitem empty">${f.variant==='naive'?'no BFS running':'queue empty'}</span>`);
+
+    msgEl.innerHTML=f.msg;
+
+    if(f.done){
+      vEl.hidden=false;
+      vEl.innerHTML = verdictHTML(f);
+    } else { vEl.hidden=true; vEl.innerHTML=''; }
+
+    const pmap={scan:['scan','● sweeping'],found:['found','✓ settled'],done:['done','■ complete']};
+    const [pc,ptxt]=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pc; pillEl.textContent=ptxt;
+
+    codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
+    const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
+
+    barEl.style.width=(frames.length<=1?100:(idx/(frames.length-1)*100))+'%';
+    countEl.textContent=`${idx+1} / ${frames.length}`;
+    $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
+  }
+
+  function verdictHTML(f){
+    const cells = f.m*f.n;
+    if(!cells) return `empty grid &mdash; <b class="right">[]</b>`;
+    if(f.nozero || !f.truth) return `<b class="wrong">no 0 anywhere</b> &mdash; the problem guarantees one; without it &ldquo;distance to the nearest 0&rdquo; has no value, so every cell is <b class="wrong">-1</b>`;
+    let wrong = 0, worst = 0;
+    for(let r=0;r<f.m;r++) for(let c=0;c<f.n;c++){
+      if(f.ans[r][c] !== f.truth[r][c]){ wrong++; worst = Math.max(worst, f.ans[r][c] - f.truth[r][c]); }
+    }
+    const maxT = Math.max(...f.truth.map(r=>Math.max(...r)));
+    if(wrong === 0){
+      return `<b class="right">all ${cells} cells match</b> the nearest-0 oracle`
+           + ` &nbsp;&middot;&nbsp; deepest distance <b>${maxT}</b>`
+           + ` &nbsp;&middot;&nbsp; ${f.worklabel} <b>${f.work}</b>`
+           + (f.variant==='dp1' ? ` &nbsp;&middot;&nbsp; <span class="wrong">right by accident on this input</span>` : '');
+    }
+    return `<b class="wrong">${wrong} of ${cells} cells wrong</b>`
+         + ` &nbsp;&middot;&nbsp; worst overshoot <b class="wrong">+${worst}</b>`
+         + ` &nbsp;&middot;&nbsp; deepest true distance <b class="right">${maxT}</b>`;
+  }
+
+  function run(){
+    stop();
+    const rows=parseGrid(inputEl.value);
+    buildBoard(rows.length, rows.length?rows[0].length:0);
+    frames=buildFrames(rows, variant);
+    idx=0; renderCode(); render();
+  }
+  function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
+  function prev(){ if(idx>0){idx--;render();} }
+  function speedMs(){ return 1050 - $('speed').value*95; }
+  function play(){ if(idx>=frames.length-1) idx=0; $('playBtn').textContent='⏸'; tick(); }
+  function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
+  function stop(){ clearTimeout(timer); timer=null; $('playBtn').textContent='▶'; }
+
+  /* every note states a number the code must actually produce; the jsdom
+     harness recomputes each one and fails the build if a label drifts. */
+  const EX=[
+    ['01111/11111/11110', 'max 3 — two sources meet in the middle'],
+    ['000/010/111',       'max 2 — the LeetCode example'],
+    ['1111/1111/1111/1110','max 6 — lone 0 bottom-right; one sweep gets 15 of 16 wrong'],
+    ['11111/11011/11111', 'max 3 — a lone 0 dead centre'],
+    ['111110',            'max 5 — a single row is a countdown'],
+    ['00000/00000',       'max 0 — all zeros, every distance 0']
+  ];
+  (function chips(){
+    const box=$('examples');
+    EX.forEach(([w,note])=>{
+      const c=document.createElement('button'); c.className='chip'; c.innerHTML=`${w}<b>${note}</b>`;
+      c.onclick=()=>{ inputEl.value=w; run(); }; box.appendChild(c);
+    });
+  })();
+
+  const SEG = { bfs:'segBfs', naive:'segNaive', dp2:'segDp2', dp1:'segDp1' };
+  function setVariant(v){
+    variant = v;
+    Object.keys(SEG).forEach(k => $(SEG[k]).classList.toggle('on', k===v));
+    run();
+  }
+  Object.keys(SEG).forEach(k => { $(SEG[k]).onclick = () => setVariant(k); });
+
+  $('runBtn').onclick=run;
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
+  $('nextBtn').onclick=()=>{stop();next();};
+  $('prevBtn').onclick=()=>{stop();prev();};
+  $('playBtn').onclick=()=>{ timer?stop():play(); };
+  $('restartBtn').onclick=()=>{stop();idx=0;render();};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===inputEl) return;
+    if(e.key==='ArrowRight'){stop();next();}
+    if(e.key==='ArrowLeft'){stop();prev();}
+    if(e.key===' '){e.preventDefault(); timer?stop():play();}
+  });
+
+  /* verification hooks — buildFrames(rows, variant) */
+  window.buildFrames    = buildFrames;
+  window.__buildFrames  = buildFrames;
+  window.__manhattan    = manhattanTruth;
+  window.__parseGrid    = parseGrid;
+  window.__EX           = EX;
+  window.__CODELEN      = { bfs:CODE_BFS.length, naive:CODE_NAIVE.length,
+                            dp2:CODE_DP2.length, dp1:CODE_DP1.length };
+  run();
+})();
+</script>
+<script>
+/* theme cycle: auto -> light -> dark. shared key with the bundle pages. */
+(function(){
+  var order=["auto","light","dark"], btn=document.getElementById("themeBtn");
+  function cur(){try{return JSON.parse(localStorage.getItem("tpswbs.v1.theme")||'"auto"');}catch(e){return "auto";}}
+  function apply(t){
+    var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme",t==="auto"?(d?"dark":"light"):t);
+    if(btn) btn.textContent="Theme: "+t;
+  }
+  apply(cur());
+  if(btn) btn.addEventListener("click",function(){
+    var t=order[(order.indexOf(cur())+1)%order.length];
+    try{localStorage.setItem("tpswbs.v1.theme",JSON.stringify(t));}catch(e){}
+    apply(t);
+  });
+})();
+</script>
+</body>
+</html>

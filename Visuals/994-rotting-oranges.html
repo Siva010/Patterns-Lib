@@ -372,7 +372,9 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .verdict .right { color: var(--r-hit); font-family: var(--mono); }
 
 /* ---------- segmented variant control ---------- */
-.seg { display: flex; gap: 0; }
+.seg { display: flex; gap: 0; flex-wrap: wrap; }
+.seg-btn + .seg-btn { margin-left: -1px; }
+.seg-btn:not(:first-child):not(:last-child) { border-radius: 0; }
 .seg-btn { border-radius: 0; font-size: 12px; white-space: nowrap; }
 .seg-btn:first-child { border-radius: 8px 0 0 8px; }
 .seg-btn:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }

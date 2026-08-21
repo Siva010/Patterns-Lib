@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>695 &middot; Max Area of Island &mdash; visual guide</title>
-<meta name="description" content="The same flood fill as 200, but the recursion returns an int: one for the cell it just sank plus whatever the four neighbour calls hand back. Watch the subtotals collapse up the stack.">
+<title>1926 &middot; Nearest Exit from Entrance in Maze &mdash; visual guide</title>
+<meta name="description" content="Grid BFS for an unweighted shortest path, where the exit predicate - a border cell that is not the entrance - is the whole difficulty.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -415,33 +415,6 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
 .code .cm { color: var(--fg-dim); font-style: italic; }
 
-/* ---------- the returning value, and the frames still owed one ---------- */
-.retband {
-  font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
-  color: var(--fg-mid); text-align: center; min-height: 22px;
-}
-.retband .tot { color: var(--r-hit); font-weight: 600; }
-.retband .zed { color: var(--fg-dim); }
-.retband .why { font-family: var(--sans); font-size: 11.5px; color: var(--fg-dim); }
-
-.stack { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-         min-height: 26px; margin: 0 auto; }
-.frm {
-  display: inline-flex; gap: 10px; align-items: baseline; white-space: nowrap;
-  font-family: var(--mono); font-size: 12px; padding: 2px 10px; border-radius: 6px;
-  border: 1px solid var(--rule); background: var(--bg-sunk); color: var(--fg-dim);
-}
-.frm.top { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
-.frm .sub { color: var(--fg-mid); }
-.frm.top .sub { color: var(--fg); }
-.frm .hot { color: var(--r-hit); font-weight: 600; }
-.frm .hole { color: var(--fg-dim); opacity: .5; }
-.frm.elide { border-style: dashed; border-color: var(--rule-hard); background: transparent;
-             font-family: var(--sans); font-size: 11.5px; }
-
-/* an island that is not the record recedes — it is not an error, just not the max */
-.isle.small { border-color: var(--rule-hard); background: transparent; color: var(--fg-dim); }
-
 @media (max-width: 620px) { .gcell { width: 34px; height: 34px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .gcell { transition: none !important; transform: none; } }
 </style>
@@ -461,22 +434,69 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Graphs &middot; Flood fill on a grid <span class="tag">LeetCode 695</span></div>
-  <h1>Max Area of Island <span class="thin">/ visualized</span></h1>
+  <style>
+    /* lede accents the prelude does not define */
+    .lede .m { color: var(--r-hit);  font-weight: 600; }
+    .lede .x { color: var(--fg-dim); font-weight: 600; }
+
+    /* three-way segmented control */
+    .seg { flex-wrap: wrap; }
+    .seg-btn + .seg-btn { margin-left: -1px; }
+    .seg-btn:not(:first-child):not(:last-child) { border-radius: 0; }
+
+    /* the entrance, and the cells this variant is willing to call an exit */
+    .gcell.entr  { border-color: var(--r-anchor2); }
+    .gcell.exitc { box-shadow: inset 0 0 0 2px var(--r-hit); }
+    .gcell.hit   { background: var(--r-hit-wash); border-color: var(--r-hit);
+                   color: var(--r-hit); transform: scale(1.07); }
+    .gcell .corner {
+      position: absolute; top: 1px; left: 4px; font-family: var(--sans);
+      font-size: 9px; font-weight: 700; letter-spacing: .05em; line-height: 1;
+      color: var(--r-anchor2);
+    }
+    .gcell.probe { box-shadow: inset 0 0 0 2px var(--r-left); border-color: var(--r-left); }
+
+    /* the exit ledger under the board */
+    .pathchip.mute { border-style: dashed; border-color: var(--rule-hard);
+                     background: transparent; color: var(--fg-dim); }
+    .pathchip.ent  { border-color: var(--r-anchor2-line); background: var(--r-anchor2-wash);
+                     color: var(--r-anchor2); }
+    .ledger-label { font-family: var(--sans); font-size: 11px; font-weight: 600;
+                    letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+                    align-self: center; margin-right: 2px; }
+    .dot.e { background: var(--r-anchor2-wash); border-color: var(--r-anchor2); }
+  </style>
+
+  <div class="eyebrow">Graphs &middot; Grid BFS, unweighted shortest path <span class="tag">LeetCode 1926</span></div>
+  <h1>Nearest Exit from Entrance in Maze <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    Problem 200 <em>counts</em> components; this one <em>measures</em> them. The scan, the
-    four neighbours and the sink-before-you-recurse rule are unchanged &mdash; the single
-    edit is the return type. <span class="i">void</span> becomes <span class="m">int</span>,
-    and every call owes its caller <code>1 + down + up + right + left</code>. The sum is
-    assembled on the way down and collapses on the way back up; watch the returns land.
+    The BFS here is the same machine as <span class="k">1091</span> &mdash; levels are distances,
+    mark on push. What is new is the <span class="l">exit predicate</span>: a border cell is an exit
+    <em>unless it is the entrance</em>. Get that wrong and every maze whose entrance sits on the
+    border answers <span class="x">0</span>. The fix that needs no guard at all is to test the
+    neighbour <span class="m">as you step onto it</span>, after the entrance has already been sealed.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">Grid (rows of 0/1, separated by <code>/</code>)</label>
+      <label for="arrInput">Maze (rows of <code>.</code> = open, <code>+</code> = wall)</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="10010/10011/00011" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="++.++/+...+/..+.+/+...+/++.++" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+    <div class="field narrow">
+      <label for="entInput">Entrance (row, col)</label>
+      <div class="input-shell">
+        <input id="entInput" type="text" value="2,0" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="segStep">Where the border is tested</label>
+      <div class="seg" role="group" aria-label="Variant">
+        <button class="btn seg-btn on" id="segStep" type="button">step onto &mdash; correct</button>
+        <button class="btn seg-btn" id="segPop" type="button">on pop, no guard</button>
+        <button class="btn seg-btn" id="segOff" type="button">m, not m&minus;1</button>
       </div>
     </div>
   </div>
@@ -488,10 +508,10 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="stage">
         <div class="gridwrap"><div class="gboard" id="board"></div></div>
         <div class="gstats" id="gstats"></div>
-        <div class="retband" id="retband"></div>
-        <div class="stack" id="stack"></div>
+        <div class="paths" id="ledger"></div>
+        <div class="qstrip" id="qstrip"></div>
         <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
-        <div class="islands" id="islands"></div>
+        <div class="verdict" id="verdict" hidden></div>
       </div>
       <div class="transport">
         <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
@@ -510,223 +530,324 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot l"></i>scan cursor</span>
-        <span><i class="dot i"></i>call on top of the stack</span>
-        <span><i class="dot w"></i>this island, already returned</span>
-        <span><i class="dot m"></i>island finished</span>
-        <span><i class="dot x"></i>water</span>
-      </div>
-      <div class="legend">
-        <span>A number inside a cell is <b>what that call returned</b> &mdash; the size of the
-        piece of island it was responsible for. The cell that started the island therefore
-        carries the island's whole area.</span>
+        <span><i class="dot i"></i>popped now</span>
+        <span><i class="dot l"></i>border cell under test</span>
+        <span><i class="dot w"></i>in the queue</span>
+        <span><i class="dot m"></i>an exit, by this variant</span>
+        <span><i class="dot e"></i>entrance</span>
+        <span><i class="dot x"></i>wall</span>
       </div>
     </div>
   </div>
 
-  <div class="foot">O(m&middot;n) time &middot; O(m&middot;n) worst-case recursion depth &nbsp;&middot;&nbsp; the <code>1 +</code> is free: the visit that counted the island already existed, it just threw its result away. Sinking <em>before</em> the four calls is what keeps every cell in exactly one summand &mdash; a cell already sunk returns <code>0</code>, so it is added once and never again.</div>
+  <div class="foot">O(m&middot;n) time, O(m&middot;n) space &nbsp;&middot;&nbsp; sealing the entrance before the loop starts turns the exit predicate back into a plain border test &mdash; a cell you can still <em>step onto</em> is by construction not the cell you started from, so there is no special case left to forget.</div>
 
 <script>
 (function(){
   "use strict";
 
-  const CODE = [
-    [['kw','int '],['fn','maxAreaOfIsland'],['tx','('],['kw','int'],['tx','[][] grid) {']],
-    [['tx','    '],['kw','int '],['tx','best = 0;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < grid.length; r++) {']],
-    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < grid[0].length; c++) {']],
-    [['tx','            '],['kw','if '],['tx','(grid[r][c] == 1)']],
-    [['tx','                best = Math.'],['fn','max'],['tx','(best, '],['fn','area'],['tx','(grid, r, c));']],
+  /* ------------------------------------------------------------------ code */
+  const L_STEP = [
+    [['kw','int '],['fn','nearestExit'],['tx','('],['kw','char'],['tx','[][] maze, '],['kw','int'],['tx','[] entrance) {']],
+    [['tx','    '],['kw','int '],['tx','m = maze.length, n = maze[0].length;']],
+    [['tx','    '],['kw','int '],['tx','er = entrance[0], ec = entrance[1];']],
+    [['tx','    '],['ty','Deque<int[]> '],['tx','q = '],['kw','new '],['tx','ArrayDeque<>();']],
+    [['tx','    q.add('],['kw','new int'],['tx','[]{er, ec});']],
+    [['tx','    maze[er][ec] = \'+\';          '],['cm','// seal it — the entrance is not an exit']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','dist = 1; !q.isEmpty(); dist++) {']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','sz = q.size(); sz > 0; sz--) {']],
+    [['tx','            '],['kw','int'],['tx','[] cur = q.poll();']],
+    [['tx','            '],['kw','for '],['tx','('],['kw','int'],['tx','[] d : DIRS) {']],
+    [['tx','                '],['kw','int '],['tx','nr = cur[0]+d[0], nc = cur[1]+d[1];']],
+    [['tx','                '],['kw','if '],['tx','(nr<0 || nr>=m || nc<0 || nc>=n) '],['kw','continue'],['tx',';']],
+    [['tx','                '],['kw','if '],['tx','(maze[nr][nc] == \'+\') '],['kw','continue'],['tx',';']],
+    [['tx','                '],['kw','if '],['tx','(nr==0 || nr==m-1 || nc==0 || nc==n-1) '],['kw','return '],['tx','dist;']],
+    [['tx','                maze[nr][nc] = \'+\';']],
+    [['tx','                q.add('],['kw','new int'],['tx','[]{nr, nc});']],
+    [['tx','            }']],
     [['tx','        }']],
     [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best;']],
-    [['tx','}']],
-    [['tx','']],
-    [['kw','int '],['fn','area'],['tx','('],['kw','int'],['tx','[][] g, '],['kw','int '],['tx','r, '],['kw','int '],['tx','c) {']],
-    [['tx','    '],['kw','if '],['tx','(r < 0 || r >= g.length || c < 0 || c >= g[0].length) '],['kw','return '],['tx','0;']],
-    [['tx','    '],['kw','if '],['tx','(g[r][c] != 1) '],['kw','return '],['tx','0;']],
-    [['tx','    g[r][c] = 0;                    '],['cm','// sink BEFORE recursing']],
-    [['tx','    '],['kw','return '],['tx','1 + '],['fn','area'],['tx','(g, r+1, c)      '],['cm','// down']],
-    [['tx','             + '],['fn','area'],['tx','(g, r-1, c)      '],['cm','// up']],
-    [['tx','             + '],['fn','area'],['tx','(g, r, c+1)      '],['cm','// right']],
-    [['tx','             + '],['fn','area'],['tx','(g, r, c-1);     '],['cm','// left']],
+    [['tx','    '],['kw','return '],['tx','-1;']],
     [['tx','}']]
   ];
 
-  const MAXR = 6, MAXC = 8;
-  const DIRS = [[1,0,'down'],[-1,0,'up'],[0,1,'right'],[0,-1,'left']];
+  const L_OFF = L_STEP.map((ln,i)=> i===13
+    ? [['tx','                '],['kw','if '],['tx','(nr==0 || nr==m || nc==0 || nc==n) '],['kw','return '],['tx','dist;   '],['cm','// off by one']]
+    : ln);
 
-  /* ---- the real implementation, instrumented ------------------------------
-     buildFrames(rows) — rows is an array of strings of '0'/'1', one per row.
-     Returns a flat array of frames; the last carries {ans, done:true}.        */
-  function buildFrames(rows){
-    rows = (rows || []).map(r => Array.isArray(r) ? r.join('') : String(r));
-    const R = rows.length;
-    let C = 0;
-    for(const r of rows) if(r.length > C) C = r.length;
-    rows = rows.map(r => r.padEnd(C, '0'));
+  const L_POP = [
+    [['kw','int '],['fn','nearestExit'],['tx','('],['kw','char'],['tx','[][] maze, '],['kw','int'],['tx','[] entrance) {']],
+    [['tx','    '],['kw','int '],['tx','m = maze.length, n = maze[0].length;']],
+    [['tx','    '],['kw','boolean'],['tx','[][] seen = '],['kw','new boolean'],['tx','[m][n];']],
+    [['tx','    '],['ty','Deque<int[]> '],['tx','q = '],['kw','new '],['tx','ArrayDeque<>();']],
+    [['tx','    q.add(entrance); seen[entrance[0]][entrance[1]] = '],['kw','true'],['tx',';']],
+    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','dist = 0; !q.isEmpty(); dist++) {']],
+    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','sz = q.size(); sz > 0; sz--) {']],
+    [['tx','            '],['kw','int'],['tx','[] cur = q.poll();']],
+    [['tx','            '],['kw','if '],['tx','(cur[0]==0 || cur[0]==m-1 || cur[1]==0 || cur[1]==n-1)']],
+    [['tx','                '],['kw','return '],['tx','dist;              '],['cm','// no “and not the entrance”']],
+    [['tx','            '],['kw','for '],['tx','('],['kw','int'],['tx','[] d : DIRS) {']],
+    [['tx','                '],['kw','int '],['tx','nr = cur[0]+d[0], nc = cur[1]+d[1];']],
+    [['tx','                '],['kw','if '],['tx','(nr<0 || nr>=m || nc<0 || nc>=n) '],['kw','continue'],['tx',';']],
+    [['tx','                '],['kw','if '],['tx','(seen[nr][nc] || maze[nr][nc]==\'+\') '],['kw','continue'],['tx',';']],
+    [['tx','                seen[nr][nc] = '],['kw','true'],['tx',';']],
+    [['tx','                q.add('],['kw','new int'],['tx','[]{nr, nc});']],
+    [['tx','            }']],
+    [['tx','        }']],
+    [['tx','    }']],
+    [['tx','    '],['kw','return '],['tx','-1;']],
+    [['tx','}']]
+  ];
 
+  const CODE_OF = { step: L_STEP, offby: L_OFF, pop: L_POP };
+
+  const MAXR = 7, MAXC = 9;
+  const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+
+  /* An ordinary correct BFS, no frames. Used only to print the true answer
+     beside the wrong one on the verdict card. */
+  function nearest(rows, er, ec){
+    const m = rows.length, n = m ? rows[0].length : 0;
+    if(!m || !n) return -1;
+    if(er<0 || er>=m || ec<0 || ec>=n) return -1;
+    const seen = Array.from({length:m},()=>Array(n).fill(false));
+    seen[er][ec] = true;
+    let q = [[er,ec]];
+    for(let d=1; q.length; d++){
+      const nx = [];
+      for(const [r,c] of q){
+        for(const [dr,dc] of DIRS){
+          const nr=r+dr, nc=c+dc;
+          if(nr<0||nr>=m||nc<0||nc>=n) continue;
+          if(seen[nr][nc] || rows[nr][nc]==='+') continue;
+          if(nr===0||nr===m-1||nc===0||nc===n-1) return d;
+          seen[nr][nc]=true; nx.push([nr,nc]);
+        }
+      }
+      q = nx;
+    }
+    return -1;
+  }
+
+  /* -------------------------------------------------- the real instrumented run
+     buildFrames(rows, er, ec, variant)
+       rows    : array of equal-length strings over '.' and '+'
+       er, ec  : entrance coordinates
+       variant : 'step'  — test the neighbour as you step onto it   (correct)
+                 'pop'   — test the popped cell, no entrance guard  (wrong)
+                 'offby' — step-onto, but the border test says m / n instead of
+                           m-1 / n-1, so the far row and far column are never
+                           recognised as edges                      (wrong)
+     Returns a flat array of frames; the last carries `ans` (-1 when no exit is
+     reachable) and `done: true`.                                             */
+  function buildFrames(rows, er, ec, variant){
+    variant = variant || 'step';
+    const m = rows.length, n = m ? rows[0].length : 0;
     const frames = [];
-    if(!R || !C){
-      frames.push({grid:[], owner:[], val:[], R:0, C:0, best:0, islands:[],
-        stack:[], scan:null, ret:null, hot:null, phase:'done', code:8,
-        msg:`Empty grid &mdash; there is nothing to measure. <b>0</b>.`, ans:0, done:true});
+
+    if(!m || !n || er<0 || er>=m || ec<0 || ec>=n){
+      frames.push({ m, n, grid: rows.slice(), er, ec, variant,
+        dist: [], seen: [], queue: [], cur: null, probe: null, hit: null,
+        enq: 0, exits: [], trueExits: [], phase: 'done', code: 19,
+        msg: (!m||!n) ? `Empty maze &mdash; nothing to walk. Return <b>-1</b>.`
+                      : `The entrance <span class="x">(${er}, ${ec})</span> is outside the maze. Return <b>-1</b>.`,
+        ans: -1, done: true });
       return frames;
     }
 
-    const g     = rows.map(r => r.split(''));
-    const owner = Array.from({length:R}, () => Array(C).fill(-1));   // island id, once finished
-    const val   = Array.from({length:R}, () => Array(C).fill(null)); // what that call returned
-    const islands = [];                                             // area of each finished island
-    let best = 0;
-    let stack = [];                                                 // [{k, parts:[1, d, u, r, l]}]
+    /* the entrance is guaranteed open by the problem statement; make it so */
+    const g = rows.map(r => r.split(''));
+    g[er][ec] = '.';
+    const grid = g.map(r => r.join(''));
+
+    const onBorder  = (r,c) => r===0 || r===m-1 || c===0 || c===n-1;
+    const onBorderV = variant==='offby'
+      ? (r,c) => r===0 || c===0 || r===m || c===n     /* m and n are never hit */
+      : onBorder;
+
+    const trueExits = [];
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++)
+      if(grid[r][c]==='.' && onBorder(r,c) && !(r===er && c===ec)) trueExits.push([r,c]);
+
+    const exits = [];
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+      if(grid[r][c]!=='.') continue;
+      if(variant==='pop'){ if(onBorder(r,c)) exits.push([r,c]); }
+      else if(onBorderV(r,c) && !(r===er && c===ec)) exits.push([r,c]);
+    }
+
+    const dist = Array.from({length:m},()=>Array(n).fill(-1));
+    const seen = Array.from({length:m},()=>Array(n).fill(false));
+    let q = [], enq = 0;
 
     const snap = o => frames.push(Object.assign({
-      grid: g.map(r => r.join('')),
-      owner: owner.map(r => r.slice()),
-      val: val.map(r => r.slice()),
-      islands: islands.slice(),
-      stack: stack.map(f => ({k:f.k, parts:f.parts.slice()})),
-      R, C, best, scan:null, ret:null, hot:null
+      m, n, grid, er, ec, variant, exits, trueExits,
+      dist: dist.map(r=>r.slice()), seen: seen.map(r=>r.slice()),
+      queue: q.map(p=>p.slice()), enq, cur: null, probe: null, hit: null
     }, o));
 
-    const sum = a => a.reduce((x,y)=>x+y, 0);
+    const cell = (r,c,k) => `<span class="${k}">(${r}, ${c})</span>`;
 
-    snap({phase:'scan', code:1,
-      msg:`Grid is <b>${R}&times;${C}</b>, <span class="k">best = 0</span>. Scan every cell. The first
-           un-sunk land cell of an island is where one measuring call starts.`});
+    seen[er][ec] = true; dist[er][ec] = 0;
+    q.push([er,ec]); enq = 1;
 
-    /* parent is the caller's frame object, or null at the top level.
-       Every call pushes its own result into its caller's slot list, so the
-       return is visible in the same frame that reports it.                    */
-    function area(r, c, parent, dirName, dirIdx){
-      const pk = parent ? parent.k : null;
-      const pr = pk === null ? 0 : (pk / C) | 0, pc = pk === null ? 0 : pk % C;
-      const land = (pk === null) ? '' : ` into <span class="i">area(${pr},&thinsp;${pc})</span>'s <em>${dirName}</em> slot`;
-
-      if(r < 0 || r >= R || c < 0 || c >= C){
-        if(parent) parent.parts.push(0);
-        snap({phase:'flood', code:12,
-          ret:{r, c, total:0, parts:null, reason:'off the grid'},
-          hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-          msg:`<span class="k">area(${r}, ${c})</span> is <span class="x">off the grid</span> &mdash;
-               the bounds guard fires and it returns <b>0</b>${land}.`});
-        return 0;
-      }
-      if(g[r][c] !== '1'){
-        const sunk = rows[r][c] === '1';
-        if(parent) parent.parts.push(0);
-        snap({phase:'flood', code:13,
-          ret:{r, c, total:0, parts:null, reason: sunk ? 'already sunk' : 'water'},
-          hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-          msg: sunk
-            ? `<span class="k">area(${r}, ${c})</span> finds the cell <span class="x">already sunk</span>
-               &mdash; some earlier call counted it inside its own <b>1</b>. It returns <b>0</b>${land},
-               which is exactly what stops a cell being added twice.`
-            : `<span class="k">area(${r}, ${c})</span> is <span class="x">water</span> &mdash; returns <b>0</b>${land}.`});
-        return 0;
-      }
-
-      g[r][c] = '0';
-      const me = {k: r*C + c, parts:[1]};
-      stack.push(me);
-      snap({phase:'flood', code:14,
-        msg:`<span class="i">area(${r}, ${c})</span> sinks its own cell first, then starts its sum at
-             <b>1</b> &mdash; one for this cell. Four holes left to fill.`});
-
-      let total = 1;
-      for(let d = 0; d < 4; d++){
-        total += area(r + DIRS[d][0], c + DIRS[d][1], me, DIRS[d][2], d);
-      }
-
-
-      stack.pop();
-      val[r][c] = total;
-      if(parent) parent.parts.push(total);
-      snap({phase:'flood', code: parent ? 15 + dirIdx : 5,
-        ret:{r, c, total, parts: me.parts.slice(), reason:null},
-        hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-        msg: parent
-          ? `<span class="m">area(${r}, ${c}) returns ${total}</span> &mdash;
-             ${me.parts.join(' + ')} = ${total}. It lands${land}` +
-             (parent.parts.length === 5
-               ? `, filling that call's last hole. It is complete at <b>${sum(parent.parts)}</b> and can return now.`
-               : `, which is now at <b>${sum(parent.parts)}</b> and still owes
-                  ${5 - parent.parts.length} return${5-parent.parts.length===1?'':'s'}.`)
-          : `<span class="m">area(${r}, ${c}) returns ${total}</span> &mdash;
-             ${me.parts.join(' + ')} = ${total}. Nothing is waiting above it, so that is the
-             whole island's area.`});
-      return total;
+    if(variant === 'pop'){
+      snap({ phase:'scan', code:4,
+        msg:`Seed the entrance ${cell(er,ec,'i')} and mark it seen. This variant asks the exit ` +
+            `question <b>on the pop</b> &mdash; and the entrance is the very first thing popped.` });
+    } else {
+      snap({ phase:'scan', code:5,
+        msg:`Seed the entrance ${cell(er,ec,'i')} and immediately <span class="m">seal it</span>. ` +
+            `From here the only cells the walk can reach are cells it can <em>step onto</em>, and ` +
+            `${cell(er,ec,'x')} is no longer one of them &mdash; the &ldquo;not the entrance&rdquo; ` +
+            `clause is now free.` });
     }
 
-    for(let r = 0; r < R; r++){
-      for(let c = 0; c < C; c++){
-        const k = r*C + c;
-        if(g[r][c] === '1'){
-          snap({scan:k, phase:'found', code:4,
-            msg:`<span class="l">Scan reaches (${r}, ${c})</span> and it is still land, so no earlier
-                 island reached it. Call <span class="k">area(${r}, ${c})</span> and <b>keep what it returns</b>
-                 &mdash; that is the whole difference from problem 200.`});
+    let answer = -1;
 
-          const got = area(r, c, null, '', -1);
+    outer:
+    for(let d = (variant==='pop' ? 0 : 1); q.length; d++){
+      const sz = q.length;
+      snap({ phase:'scan', code: variant==='pop' ? 6 : 7,
+        msg:`<span class="l">Level ${d}</span>: snapshot <span class="k">sz = ${sz}</span> before popping. ` +
+            `Every cell in the queue right now sits exactly ${variant==='pop' ? d : d-1} step${(variant==='pop'?d:d-1)===1?'':'s'} from the entrance.` });
 
-          const id = islands.length;
-          islands.push(got);
-          for(let a = 0; a < R; a++) for(let b = 0; b < C; b++)
-            if(val[a][b] !== null && owner[a][b] < 0) owner[a][b] = id;
-          const prev = best;
-          best = Math.max(best, got);
-          snap({scan:k, phase:'found', code:5,
-            msg:`<span class="m">Island ${id+1} measures ${got}</span>.
-                 <span class="k">best = max(${prev}, ${got}) = ${best}</span>.` +
-                (got > prev ? ` A new record.` : ` The record stands.`)});
-        } else {
-          const sunk = rows[r][c] === '1';
-          snap({scan:k, phase:'scan', code:4,
-            msg:`(${r}, ${c}) is <span class="x">${sunk ? 'already sunk' : 'water'}</span> &mdash;
-                 ${sunk ? `it was measured inside island ${owner[r][c]+1}; sinking is what makes one pass enough.`
-                        : `nothing to measure.`}`});
+      for(let s=0; s<sz; s++){
+        const [r,c] = q.shift();
+        const isEnt = (r===er && c===ec);
+
+        snap({ cur:[r,c], phase:'scan', code: variant==='pop' ? 7 : 8,
+          msg:`Pop ${cell(r,c,'i')}, ${d===0||( variant!=='pop' && d===1 && isEnt) ? 'the entrance itself' : `at distance <b>${dist[r][c]}</b>`}.` });
+
+        if(variant === 'pop'){
+          if(onBorder(r,c)){
+            answer = d;
+            dist[r][c] = d;
+            const truth = nearest(grid, er, ec);
+            snap({ cur:[r,c], hit:[r,c], phase: isEnt ? 'done' : 'found', code:9,
+              msg: isEnt
+                ? `${cell(r,c,'x')} is on the border, so the test fires &mdash; but this is the ` +
+                  `<span class="x">entrance</span>. The walk has not taken a single step. ` +
+                  `It returns <b>0</b>; the real nearest exit is <span class="m">${truth}</span> ` +
+                  `step${truth===1?'':'s'} away. One missing clause, and the answer is not slow &mdash; it is <em>wrong</em>.`
+                : `${cell(r,c,'m')} is on the border and is not the entrance, so this variant is right ` +
+                  `<em>here</em>: <b>${answer}</b>. It is right only because the entrance sits inside the maze &mdash; ` +
+                  `the bug is invisible on this input.`,
+              ans: answer, truth, done:true });
+            break outer;
+          }
         }
+
+        const pushed = [];
+        for(const [dr,dc] of DIRS){
+          const nr=r+dr, nc=c+dc;
+          if(nr<0||nr>=m||nc<0||nc>=n) continue;
+          if(seen[nr][nc] || grid[nr][nc]==='+') continue;
+
+          if(variant !== 'pop' && onBorder(nr,nc)){
+            /* the one moment the predicate matters */
+            if(onBorderV(nr,nc)){
+              answer = d;
+              seen[nr][nc] = true; dist[nr][nc] = d;
+              snap({ cur:[r,c], hit:[nr,nc], phase:'found', code:13,
+                msg:`Stepping onto ${cell(nr,nc,'m')} &mdash; it is open, it is on the border, and it ` +
+                    `cannot be the entrance because the entrance was sealed before the loop began. ` +
+                    `That is the exit. Return <b>${answer}</b>.`,
+                ans: answer,
+                truth: variant==='step' ? undefined : nearest(grid, er, ec),
+                done: true });
+              break outer;
+            } else {
+              snap({ cur:[r,c], probe:[nr,nc], phase:'scan', code:13,
+                msg:`${cell(nr,nc,'l')} is on ${nr===m-1 ? `the last row, <span class="k">m-1 = ${m-1}</span>` : `the last column, <span class="k">n-1 = ${n-1}</span>`} ` +
+                    `&mdash; a real exit. But this variant tests <span class="k">nr == m</span> and ` +
+                    `<span class="k">nc == n</span>, which no in-bounds index ever equals. ` +
+                    `<span class="x">The far edges are invisible.</span> Walk on.` });
+            }
+          }
+
+          seen[nr][nc] = true;
+          dist[nr][nc] = (variant==='pop') ? d+1 : d;
+          q.push([nr,nc]); enq++;
+          pushed.push(cell(nr,nc,'l'));
+        }
+
+        snap({ cur:[r,c], phase:'scan', code: 15,
+          msg: pushed.length
+            ? `Enqueue ${pushed.length} neighbour${pushed.length===1?'':'s'}: ${pushed.join(', ')}. ` +
+              `Each is marked in the same statement that pushes it.`
+            : `<span class="x">No new neighbour.</span> Every direction from ${cell(r,c,'i')} is off-grid, a wall, or already seen.` });
       }
     }
 
-    snap({phase:'done', code:8,
-      msg: islands.length
-        ? `<span class="m">Largest island: ${best}</span> &mdash; from ${islands.length}
-           island${islands.length===1?'':'s'} of size ${islands.join(', ')}. Every land cell was
-           visited once, sunk once, and contributed its <b>1</b> to exactly one call.`
-        : `<span class="x">No land at all</span> &mdash; the scan never calls <span class="k">area</span>,
-           and <b>best</b> is still 0.`,
-      ans: best, done: true});
+    if(answer === -1){
+      const truth = variant==='step' ? undefined : nearest(grid, er, ec);
+      snap({ phase:'done', code:19,
+        msg: variant==='offby'
+          ? `<span class="x">The queue drained.</span> Every reachable border cell was walked straight ` +
+            `over, because <span class="k">nr == m</span> is a test no index passes. Return <b>-1</b>.`
+          : `<span class="x">The queue drained without finding an exit.</span> ` +
+            (trueExits.length
+               ? `The maze has ${trueExits.length} exit${trueExits.length===1?'':'s'}, but none of them is reachable from the entrance. `
+               : `There is no open border cell other than the entrance. `) +
+            `Return <b>-1</b>.`,
+        ans:-1, truth, done:true });
+    }
     return frames;
   }
 
-  /* ---- driver ------------------------------------------------------------- */
+  /* ---------------------------------------------------------------- driver */
   const $ = id => document.getElementById(id);
   const boardEl=$('board'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
-        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'),
-        isleEl=$('islands'), statsEl=$('gstats'), stkEl=$('stack'), retEl=$('retband');
-  let frames=[], idx=0, playing=false, timer=null;
+        countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'), entEl=$('entInput'),
+        statsEl=$('gstats'), qEl=$('qstrip'), ledgerEl=$('ledger');
+  let frames=[], idx=0, timer=null, variant='step', codeLen=21;
 
-  (function renderCode(){
-    codeEl.innerHTML = CODE.map((line,i)=>{
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function renderCode(){
+    const L = CODE_OF[variant];
+    codeLen = L.length;
+    codeEl.innerHTML = L.map((line,i)=>{
       const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
       return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
     }).join('');
-  })();
-  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-  function parseGrid(str){
-    const rows = String(str).split(/[\/\n,;]/).map(s=>s.replace(/[^01]/g,'')).filter(s=>s.length);
-    if(!rows.length) return [];
-    const C = Math.min(Math.max(...rows.map(r=>r.length)), MAXC);
-    return rows.slice(0,MAXR).map(r => r.slice(0,C).padEnd(C,'0'));
   }
 
-  function buildBoard(R,C){
+  function parseMaze(str){
+    let rows = String(str).split(/[\/\n|,]/)
+      .map(s => s.replace(/[^.+#01oOxX]/g,'')
+                 .replace(/[#1xX]/g,'+')
+                 .replace(/[0oO]/g,'.'))
+      .filter(s => s.length);
+    if(!rows.length) return [];
+    const m = Math.min(rows.length, MAXR);
+    rows = rows.slice(0,m);
+    const n = Math.min(Math.max.apply(null, rows.map(r=>r.length)), MAXC);
+    return rows.map(r => r.slice(0,n).padEnd(n,'+'));
+  }
+
+  function parseEnt(str){
+    const nums = String(str).match(/-?\d+/g) || [];
+    return [parseInt(nums[0],10)||0, parseInt(nums[1],10)||0];
+  }
+
+  /* maze text + entrance text -> exactly what buildFrames is handed */
+  function prep(mazeStr, entStr){
+    const rows = parseMaze(mazeStr);
+    if(!rows.length) return { rows: [], er: 0, ec: 0 };
+    const m = rows.length, n = rows[0].length;
+    let [er,ec] = parseEnt(entStr);
+    er = Math.min(Math.max(er,0), m-1);
+    ec = Math.min(Math.max(ec,0), n-1);
+    rows[er] = rows[er].slice(0,ec) + '.' + rows[er].slice(ec+1);
+    return { rows, er, ec };
+  }
+
+  function buildBoard(m,n){
     boardEl.innerHTML='';
-    boardEl.style.gridTemplateColumns = `repeat(${C}, auto)`;
-    for(let k=0;k<R*C;k++){
+    boardEl.style.gridTemplateColumns = `repeat(${Math.max(n,1)}, auto)`;
+    for(let k=0;k<m*n;k++){
       const d=document.createElement('div');
       d.className='gcell'; d.setAttribute('data-cell',k);
       boardEl.appendChild(d);
@@ -735,67 +856,65 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
 
   function render(){
     const f = frames[idx]; if(!f) return;
-    const {R,C} = f;
-    const onStack = new Map();
-    f.stack.forEach((fr,i)=>onStack.set(fr.k, {sub: fr.parts.reduce((a,b)=>a+b,0), top: i===f.stack.length-1}));
+    const m=f.m, n=f.n, key=(r,c)=>r+','+c;
+    const inQ = new Set(f.queue.map(([r,c])=>key(r,c)));
+    const exitSet = new Set(f.exits.map(([r,c])=>key(r,c)));
 
-    for(let k=0;k<R*C;k++){
-      const el = boardEl.querySelector(`[data-cell="${k}"]`);
-      if(!el) continue;
-      const r = (k/C)|0, c = k%C;
-      const ch = f.grid[r][c], own = f.owner[r][c], v = f.val[r][c];
-      const st = onStack.get(k);
-      let cls='gcell', html;
-      if(st){                       cls += st.top ? ' flood cur' : ' flood';
-                                    html = `<span class="tagno">${st.sub}</span>`; }
-      else if(v !== null){          cls += (own >= 0) ? ' done' : ' flood';
-                                    html = `<span class="tagno">${v}</span>`; }
-      else if(ch === '1'){          cls += ' land'; html = '1'; }
-      else {                        cls += ' water'; html = '0'; }
-      if(k === f.scan) cls += ' scan';
-      el.className = cls; el.innerHTML = html;
+    for(let k=0;k<m*n;k++){
+      const el=boardEl.querySelector(`[data-cell="${k}"]`); if(!el) continue;
+      const r=(k/n)|0, c=k%n, kk=key(r,c);
+      let cls='gcell';
+      if(f.grid[r][c]==='+') cls+=' blocked';
+      else if(f.hit && f.hit[0]===r && f.hit[1]===c) cls+=' hit';
+      else if(f.cur && f.cur[0]===r && f.cur[1]===c) cls+=' cur';
+      else if(f.probe && f.probe[0]===r && f.probe[1]===c) cls+=' probe';
+      else if(inQ.has(kk)) cls+=' flood';
+      else if(f.seen[r] && f.seen[r][c]) cls+=' done';
+      else cls+=' land';
+      if(exitSet.has(kk)) cls+=' exitc';
+      if(r===f.er && c===f.ec) cls+=' entr';
+      el.className=cls;
+      const label = (f.grid[r][c]==='+') ? ''
+        : (f.dist[r] && f.dist[r][c] >= 0 ? `<span class="tagno">${f.dist[r][c]}</span>` : '');
+      el.innerHTML = (r===f.er && c===f.ec ? `<span class="corner">E</span>` : '') + label;
     }
 
-    statsEl.innerHTML = `best so far <b>${f.best}</b> &nbsp;&middot;&nbsp; islands finished
-      <b>${f.islands.length}</b> &nbsp;&middot;&nbsp; stack depth <b>${f.stack.length}</b>`;
+    const settled = f.seen.reduce((s,row)=>s+row.filter(Boolean).length, 0);
+    statsEl.innerHTML =
+      `queue <b>${f.queue.length}</b> &nbsp;&middot;&nbsp; visited <b>${settled}</b>` +
+      ` &nbsp;&middot;&nbsp; enqueued <b>${f.enq}</b>` +
+      ` &nbsp;&middot;&nbsp; cells this variant calls an exit <b>${f.exits.length}</b>`;
 
-    /* the return band — the value that just came back */
-    if(f.ret){
-      const {r,c,total,parts,reason} = f.ret;
-      retEl.innerHTML = parts
-        ? `area(${r},&thinsp;${c}) &nbsp;&rarr;&nbsp; ${parts.join(' + ')} = <span class="tot">${total}</span>`
-        : `area(${r},&thinsp;${c}) &nbsp;&rarr;&nbsp; <span class="zed">0</span>
-           <span class="why">${reason}</span>`;
-    } else retEl.innerHTML = '';
+    /* the exit ledger — the whole thesis, written out */
+    const onB = (r,c) => r===0 || r===m-1 || c===0 || c===n-1;
+    const chips = [];
+    f.trueExits.forEach(([r,c])=>{
+      chips.push(exitSet.has(key(r,c))
+        ? `<span class="pathchip">(${r}, ${c})</span>`
+        : `<span class="pathchip mute">(${r}, ${c}) &middot; never tested</span>`);
+    });
+    if(m && n && onB(f.er, f.ec)){
+      chips.push(exitSet.has(key(f.er,f.ec))
+        ? `<span class="pathchip">entrance (${f.er}, ${f.ec}) &middot; counted as an exit</span>`
+        : `<span class="pathchip ent">entrance (${f.er}, ${f.ec}) &middot; on the border, not an exit</span>`);
+    }
+    if(!chips.length) chips.push(`<span class="pathchip mute">no open border cell besides the entrance</span>`);
+    ledgerEl.innerHTML = `<span class="ledger-label">exits</span>` + chips.join('');
 
-    /* the call stack, deepest last, each with its half-built sum */
-    const S = f.stack;
-    const from = Math.max(0, S.length - 10);
-    let html = from ? `<div class="frm elide">&hellip; ${from} frame${from===1?'':'s'} above</div>` : '';
-    html += S.slice(from).map((fr,i)=>{
-      const r=(fr.k/C)|0, c=fr.k%C, sub=fr.parts.reduce((a,b)=>a+b,0);
-      const bits = ['1'];
-      for(let d=0; d<4; d++){
-        if(d+1 < fr.parts.length){
-          const hot = f.hot && f.hot.k===fr.k && f.hot.idx===d+1;
-          bits.push(hot ? `<span class="hot">${fr.parts[d+1]}</span>` : String(fr.parts[d+1]));
-        } else bits.push('<span class="hole">_</span>');
-      }
-      const done = fr.parts.length === 5;
-      return `<div class="frm${i+from===S.length-1?' top':''}" style="margin-left:${Math.min(i,9)*13}px">`
-        + `<span>area(${r},&thinsp;${c})</span>`
-        + `<span class="sub">${bits.join(' + ')} ${done?'=':'&ge;'} ${sub}</span></div>`;
-    }).join('');
-    stkEl.innerHTML = html || `<div class="frm elide">call stack empty</div>`;
-
+    qEl.innerHTML = f.queue.length
+      ? f.queue.map(([r,c])=>`<span class="qitem">${r},${c}</span>`).join('')
+      : `<span class="qitem empty">queue empty</span>`;
     msgEl.innerHTML = f.msg;
 
-    isleEl.innerHTML = f.islands.map((n,i)=>
-      `<span class="isle${n===f.best?'':' small'}">island ${i+1} &middot; area ${n}</span>`).join('');
+    const vEl=$('verdict');
+    if(f.truth !== undefined && f.truth !== f.ans){
+      vEl.hidden=false;
+      vEl.innerHTML = `returned <b class="wrong">${f.ans}</b> &nbsp;&middot;&nbsp; true nearest exit <b class="right">${f.truth}</b>`;
+    } else { vEl.hidden=true; vEl.innerHTML=''; }
 
-    const pmap={scan:['scan','● scanning'],flood:['sort','≈ measuring'],found:['found','✓ island'],done:['done','■ complete']};
-    const [pc,ptxt]=pmap[f.phase]||['','idle'];
-    pillEl.className='phase-pill '+pc; pillEl.textContent=ptxt;
+    const pmap={scan:['scan','● walking'],found:['found','✓ exit found'],done:['done','■ complete']};
+    const pr=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pr[0]; pillEl.textContent=pr[1];
 
     codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
     const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
@@ -805,54 +924,71 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(str){
+  function run(){
     stop();
-    const rows = parseGrid(str);
-    buildBoard(rows.length, rows.length?rows[0].length:0);
-    frames = buildFrames(rows);
+    const p = prep(inputEl.value, entEl.value);
+    buildBoard(p.rows.length, p.rows.length ? p.rows[0].length : 0);
+    renderCode();
+    frames = buildFrames(p.rows, p.er, p.ec, variant);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
   function prev(){ if(idx>0){idx--;render();} }
   function speedMs(){ return 1050 - $('speed').value*95; }
-  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function play(){ if(idx>=frames.length-1) idx=0; $('playBtn').textContent='⏸'; tick(); }
   function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
-  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
-  function togglePlay(){ playing?stop():play(); }
+  function stop(){ clearTimeout(timer); timer=null; $('playBtn').textContent='▶'; }
 
   const EX=[
-    ['10010/10011/00011','2, then 5 — best grows'],
-    ['010/111/010','a plus: 1 + 4 + 0 + 0 + 0 = 5'],
-    ['1100/1100/0000/0011/0011','two islands tie at 4'],
-    ['1111/1001/1001/1111','a ring — one island of 12'],
-    ['00000/00000','no land at all → 0'],
-    ['1','a single cell → 1'],
+    ['++.++/+...+/..+.+/+...+/++.++','2,0','entrance on the border: 4, or 0 if you forget'],
+    ['++.+/...+/+++.','1,2','LeetCode example 1 — entrance inside, the bug hides'],
+    ['+++++/+...+/..+.+/+...+/++.++','2,0','the only exit is on the last row'],
+    ['.++/+++/+++','0,0','sealed in on the border: -1, not 0'],
+    ['.....','0,2','one row — every cell is the border'],
   ];
   (function chips(){
     const box=$('examples');
-    EX.forEach(([w,note])=>{
-      const c=document.createElement('button'); c.className='chip'; c.innerHTML=`${w}<b>${note}</b>`;
-      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+    EX.forEach(([maze,ent,note])=>{
+      const c=document.createElement('button'); c.className='chip';
+      c.innerHTML=`${maze}<span class="argbit">@ ${ent}</span><b>${note}</b>`;
+      c.onclick=()=>{ inputEl.value=maze; entEl.value=ent; run(); };
+      box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(inputEl.value);
-  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  function setVariant(v){
+    variant=v;
+    $('segStep').classList.toggle('on', v==='step');
+    $('segPop').classList.toggle('on', v==='pop');
+    $('segOff').classList.toggle('on', v==='offby');
+    run();
+  }
+  $('segStep').onclick=()=>setVariant('step');
+  $('segPop').onclick=()=>setVariant('pop');
+  $('segOff').onclick=()=>setVariant('offby');
+
+  $('runBtn').onclick=run;
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
+  entEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
-  $('playBtn').onclick=togglePlay;
+  $('playBtn').onclick=()=>{ timer?stop():play(); };
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
-    if(document.activeElement===inputEl) return;
+    if(document.activeElement===inputEl || document.activeElement===entEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
-    if(e.key===' '){e.preventDefault();togglePlay();}
+    if(e.key===' '){e.preventDefault(); timer?stop():play();}
   });
 
-  window.__buildFrames = buildFrames;   /* verification hook */
-  window.__EXAMPLES = EX;               /* chip labels, for assertion */
-  window.__parseGrid = parseGrid;
-  run(inputEl.value);
+  window.buildFrames   = buildFrames;   /* verification hook */
+  window.__buildFrames = buildFrames;
+  window.__prep = prep;
+  window.__nearest = nearest;
+  window.__EX = EX;
+  window.__CODELEN = () => CODE_OF[variant].length;
+
+  run();
 })();
 </script>
 <script>

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>695 &middot; Max Area of Island &mdash; visual guide</title>
-<meta name="description" content="The same flood fill as 200, but the recursion returns an int: one for the cell it just sank plus whatever the four neighbour calls hand back. Watch the subtotals collapse up the stack.">
+<title>1162 &middot; As Far from Land as Possible &mdash; visual guide</title>
+<meta name="description" content="Multi-source BFS where the answer is the depth of the last level, not any cell's value: the distance field is scaffolding the program never stores, and all-land or all-water both return -1.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -415,33 +415,6 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
 .code .cm { color: var(--fg-dim); font-style: italic; }
 
-/* ---------- the returning value, and the frames still owed one ---------- */
-.retband {
-  font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
-  color: var(--fg-mid); text-align: center; min-height: 22px;
-}
-.retband .tot { color: var(--r-hit); font-weight: 600; }
-.retband .zed { color: var(--fg-dim); }
-.retband .why { font-family: var(--sans); font-size: 11.5px; color: var(--fg-dim); }
-
-.stack { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-         min-height: 26px; margin: 0 auto; }
-.frm {
-  display: inline-flex; gap: 10px; align-items: baseline; white-space: nowrap;
-  font-family: var(--mono); font-size: 12px; padding: 2px 10px; border-radius: 6px;
-  border: 1px solid var(--rule); background: var(--bg-sunk); color: var(--fg-dim);
-}
-.frm.top { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
-.frm .sub { color: var(--fg-mid); }
-.frm.top .sub { color: var(--fg); }
-.frm .hot { color: var(--r-hit); font-weight: 600; }
-.frm .hole { color: var(--fg-dim); opacity: .5; }
-.frm.elide { border-style: dashed; border-color: var(--rule-hard); background: transparent;
-             font-family: var(--sans); font-size: 11.5px; }
-
-/* an island that is not the record recedes — it is not an error, just not the max */
-.isle.small { border-color: var(--rule-hard); background: transparent; color: var(--fg-dim); }
-
 @media (max-width: 620px) { .gcell { width: 34px; height: 34px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .gcell { transition: none !important; transform: none; } }
 </style>
@@ -461,22 +434,60 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Graphs &middot; Flood fill on a grid <span class="tag">LeetCode 695</span></div>
-  <h1>Max Area of Island <span class="thin">/ visualized</span></h1>
+<style>
+/* ---------- 1162: the level rail, and the matrix we throw away ---------- */
+.lvlrail { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+           margin-top: 2px; min-height: 24px; align-items: center; }
+.lvl { font-family: var(--mono); font-size: 11.5px; padding: 3px 10px; border-radius: 6px;
+       border: 1px solid var(--rule-hard); background: var(--bg-sunk); color: var(--fg-dim);
+       white-space: nowrap; }
+.lvl.seed { border-style: dashed; opacity: .62; }
+.lvl.past { border-color: var(--r-window-line); background: var(--r-window-wash); color: var(--r-window); }
+.lvl.now  { border-color: var(--r-anchor); background: var(--r-anchor-wash); color: var(--r-anchor); font-weight: 600; }
+.lvl.ans  { border-color: var(--r-hit); background: var(--r-hit-wash); color: var(--r-hit); font-weight: 600; }
+.lvl.none { border-style: dashed; font-family: var(--sans); }
+
+/* water that has been given a level: the number the program never stores */
+.gcell.lvled { background: var(--r-window-wash); border-color: var(--r-window-line); color: var(--r-window); }
+.gcell.inq   { box-shadow: inset 0 0 0 2px var(--r-window); border-color: var(--r-window); }
+.gcell.deep  { background: var(--r-hit-wash); border-color: var(--r-hit); color: var(--r-hit); font-weight: 600; }
+/* the distance matrix, discarded: it recedes, it is not an error */
+.gcell.faded { opacity: .34; border-style: dashed; }
+/* land the queue never took: still an obstacle, but no longer a source */
+.gcell.notseeded { border-style: dashed; opacity: .58; }
+
+.dot.e { background: var(--r-hit-wash); border-color: var(--r-hit); }
+.gcell .sub { position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--fg-dim); }
+@media (max-width: 620px) { .gcell .sub { display: none; } }
+</style>
+
+  <div class="eyebrow">Graphs &middot; Multi-source BFS <span class="tag">LeetCode 1162</span></div>
+  <h1>As Far from Land as Possible <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    Problem 200 <em>counts</em> components; this one <em>measures</em> them. The scan, the
-    four neighbours and the sink-before-you-recurse rule are unchanged &mdash; the single
-    edit is the return type. <span class="i">void</span> becomes <span class="m">int</span>,
-    and every call owes its caller <code>1 + down + up + right + left</code>. The sum is
-    assembled on the way down and collapses on the way back up; watch the returns land.
+    Seed <em>every</em> land cell before the first pop and the water fills in level by level,
+    each cell reached at exactly its distance to the nearest land. But 1162 never asks for that
+    field. <span class="m">The answer is the depth of the <em>last</em> level</span> &mdash; a
+    single counter &mdash; so the whole matrix is scaffolding that gets thrown away at
+    <span class="k">return</span>. Run the identical machine, keep the array, and you have
+    <a href="542-01-matrix.html">LeetCode 542</a> instead; the difference between the two problems
+    is one line.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">Grid (rows of 0/1, separated by <code>/</code>)</label>
+      <label for="arrInput">Grid &mdash; 1 land, 0 water (rows split by <code>/</code>)</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="10010/10011/00011" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="1000/0000/0000/0001" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="segA">Where the off-by-one lives</label>
+      <div class="seg" role="group" aria-label="Variant">
+        <button class="btn seg-btn on" id="segA" type="button">dist = &minus;1</button>
+        <button class="btn seg-btn" id="segB" type="button">dist = 0</button>
+        <button class="btn seg-btn" id="segC" type="button">no guard</button>
+        <button class="btn seg-btn" id="segD" type="button">one source</button>
       </div>
     </div>
   </div>
@@ -488,10 +499,10 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="stage">
         <div class="gridwrap"><div class="gboard" id="board"></div></div>
         <div class="gstats" id="gstats"></div>
-        <div class="retband" id="retband"></div>
-        <div class="stack" id="stack"></div>
+        <div class="lvlrail" id="rail"></div>
+        <div class="qstrip" id="qstrip"></div>
         <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
-        <div class="islands" id="islands"></div>
+        <div class="verdict" id="verdict" hidden></div>
       </div>
       <div class="transport">
         <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
@@ -510,194 +521,241 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="card-head"><h2>Java &middot; running line</h2></div>
       <div class="code" id="code"></div>
       <div class="legend">
-        <span><i class="dot l"></i>scan cursor</span>
-        <span><i class="dot i"></i>call on top of the stack</span>
-        <span><i class="dot w"></i>this island, already returned</span>
-        <span><i class="dot m"></i>island finished</span>
-        <span><i class="dot x"></i>water</span>
-      </div>
-      <div class="legend">
-        <span>A number inside a cell is <b>what that call returned</b> &mdash; the size of the
-        piece of island it was responsible for. The cell that started the island therefore
-        carries the island's whole area.</span>
+        <span><i class="dot i"></i>popping now</span>
+        <span><i class="dot w"></i>reached &mdash; level drawn for you, never stored</span>
+        <span><i class="dot m"></i>land, seeded at level 0</span>
+        <span><i class="dot e"></i>deepest water &mdash; the answer</span>
+        <span><i class="dot x"></i>water not reached yet</span>
       </div>
     </div>
   </div>
 
-  <div class="foot">O(m&middot;n) time &middot; O(m&middot;n) worst-case recursion depth &nbsp;&middot;&nbsp; the <code>1 +</code> is free: the visit that counted the island already existed, it just threw its result away. Sinking <em>before</em> the four calls is what keeps every cell in exactly one summand &mdash; a cell already sunk returns <code>0</code>, so it is added once and never again.</div>
+  <div class="foot">O(m&middot;n) time and space &nbsp;&middot;&nbsp; the level numbers on the board are drawn for the reader &mdash; the program stores none of them. It keeps one <code>int</code>, and because the seeding round is the land itself, that counter starts at <code>-1</code>, not <code>0</code>. All land or all water and no water cell has any land to be far from: <code>-1</code>, which is the same sentinel for two opposite grids.</div>
 
 <script>
 (function(){
   "use strict";
 
-  const CODE = [
-    [['kw','int '],['fn','maxAreaOfIsland'],['tx','('],['kw','int'],['tx','[][] grid) {']],
-    [['tx','    '],['kw','int '],['tx','best = 0;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < grid.length; r++) {']],
-    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < grid[0].length; c++) {']],
-    [['tx','            '],['kw','if '],['tx','(grid[r][c] == 1)']],
-    [['tx','                best = Math.'],['fn','max'],['tx','(best, '],['fn','area'],['tx','(grid, r, c));']],
-    [['tx','        }']],
-    [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best;']],
-    [['tx','}']],
-    [['tx','']],
-    [['kw','int '],['fn','area'],['tx','('],['kw','int'],['tx','[][] g, '],['kw','int '],['tx','r, '],['kw','int '],['tx','c) {']],
-    [['tx','    '],['kw','if '],['tx','(r < 0 || r >= g.length || c < 0 || c >= g[0].length) '],['kw','return '],['tx','0;']],
-    [['tx','    '],['kw','if '],['tx','(g[r][c] != 1) '],['kw','return '],['tx','0;']],
-    [['tx','    g[r][c] = 0;                    '],['cm','// sink BEFORE recursing']],
-    [['tx','    '],['kw','return '],['tx','1 + '],['fn','area'],['tx','(g, r+1, c)      '],['cm','// down']],
-    [['tx','             + '],['fn','area'],['tx','(g, r-1, c)      '],['cm','// up']],
-    [['tx','             + '],['fn','area'],['tx','(g, r, c+1)      '],['cm','// right']],
-    [['tx','             + '],['fn','area'],['tx','(g, r, c-1);     '],['cm','// left']],
-    [['tx','}']]
-  ];
+  /* the four endings differ by the text of exactly one line each, so the line
+     indices below are stable across variants and `code:` never has to shift. */
+  const LINES = {
+    5:  { correct: [['tx','            '],['kw','if '],['tx','(grid[r][c] == 1) q.add('],['kw','new int'],['tx','[]{r, c});   '],['cm','// EVERY source, before the first pop']],
+          onesource:[['tx','            '],['kw','if '],['tx','(grid[r][c] == 1 && q.isEmpty()) q.add(...);  '],['cm','// BUG: only the first one']] },
+    6:  { correct: [['tx','    '],['kw','if '],['tx','(q.isEmpty() || q.size() == m * n) '],['kw','return '],['tx','-1;   '],['cm','// no land, or no water']],
+          noguard:  [['tx','    '],['cm','// (guard deleted) — nothing can return -1 any more']] },
+    7:  { correct: [['tx','    '],['kw','int '],['tx','dist = -1;                              '],['cm','// the seeding round is not a step']],
+          levels:   [['tx','    '],['kw','int '],['tx','dist = 0;                               '],['cm','// BUG: counts the seeding round as a level']] }
+  };
+
+  function codeFor(v){
+    const C = [
+      [['kw','int '],['fn','maxDistance'],['tx','('],['kw','int'],['tx','[][] grid) {']],
+      [['tx','    '],['kw','int '],['tx','m = grid.length, n = grid[0].length;']],
+      [['tx','    '],['ty','Deque<int[]> '],['tx','q = '],['kw','new '],['tx','ArrayDeque<>();']],
+      [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < m; r++)']],
+      [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < n; c++)']],
+      LINES[5].correct,
+      LINES[6].correct,
+      LINES[7].correct,
+      [['tx','    '],['kw','while '],['tx','(!q.isEmpty()) {']],
+      [['tx','        dist++;                                 '],['cm','// one level = one unit of distance']],
+      [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','sz = q.size(); sz > 0; sz--) {']],
+      [['tx','            '],['kw','int'],['tx','[] cur = q.poll();']],
+      [['tx','            '],['kw','for '],['tx','('],['kw','int'],['tx','[] d : DIRS4) {']],
+      [['tx','                '],['kw','int '],['tx','nr = cur[0]+d[0], nc = cur[1]+d[1];']],
+      [['tx','                '],['kw','if '],['tx','(nr<0||nr>=m||nc<0||nc>=n||grid[nr][nc] != 0) '],['kw','continue'],['tx',';']],
+      [['tx','                grid[nr][nc] = 1;               '],['cm','// mark on push — no second claim']],
+      [['tx','                q.add('],['kw','new int'],['tx','[]{nr, nc});']],
+      [['tx','            }']],
+      [['tx','        }']],
+      [['tx','    }']],
+      [['tx','    '],['kw','return '],['tx','dist;                            '],['cm','// the LAST level — not any cell’s value']],
+      [['tx','}']],
+      [['tx','']],
+      [['cm','// LC 542 is this same machine plus one array:']],
+      [['cm','//     dist[nr][nc] = dist[cur[0]][cur[1]] + 1;']],
+      [['cm','// 542 returns that array. 1162 lets it evaporate and returns the counter.']]
+    ];
+    if(v === 'onesource') C[5] = LINES[5].onesource;
+    if(v === 'noguard')   C[6] = LINES[6].noguard;
+    if(v === 'levels')    C[7] = LINES[7].levels;
+    return C;
+  }
 
   const MAXR = 6, MAXC = 8;
-  const DIRS = [[1,0,'down'],[-1,0,'up'],[0,1,'right'],[0,-1,'left']];
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+
+  /* ---- brute force, deliberately NOT a BFS -------------------------------
+     Every cell of the grid is passable, so the distance from a water cell to
+     the nearest land is just the smallest Manhattan distance to any land cell.
+     No queue, no levels, no visited set — nothing this can share a bug with. */
+  function manhattanTruth(rows){
+    const m = rows.length, n = m ? rows[0].length : 0;
+    if(!m || !n) return -1;
+    const land = [], water = [];
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++)
+      (rows[r][c] === '1' ? land : water).push([r,c]);
+    if(!land.length || !water.length) return -1;
+    let best = -1;
+    for(const [wr,wc] of water){
+      let d = Infinity;
+      for(const [lr,lc] of land){
+        const t = Math.abs(wr-lr) + Math.abs(wc-lc);
+        if(t < d) d = t;
+      }
+      if(d > best) best = d;
+    }
+    return best;
+  }
 
   /* ---- the real implementation, instrumented ------------------------------
-     buildFrames(rows) — rows is an array of strings of '0'/'1', one per row.
-     Returns a flat array of frames; the last carries {ans, done:true}.        */
-  function buildFrames(rows){
-    rows = (rows || []).map(r => Array.isArray(r) ? r.join('') : String(r));
-    const R = rows.length;
-    let C = 0;
-    for(const r of rows) if(r.length > C) C = r.length;
-    rows = rows.map(r => r.padEnd(C, '0'));
+     buildFrames(rows, variant)
+       rows    : array of equal-length strings over {'0','1'}   ('1' = land)
+       variant : 'correct' (default) | 'levels' | 'noguard' | 'onesource'
+     The final frame always carries `ans` in 1162's own contract: the maximum
+     distance, or -1 when the grid is all land or all water.                   */
+  function buildFrames(rows, variant){
+    const V = (variant === 'levels' || variant === 'noguard' || variant === 'onesource')
+      ? variant : 'correct';
+    const seedAll  = V !== 'onesource';
+    const useGuard = V !== 'noguard';
+    const DIST0    = V === 'levels' ? 0 : -1;
 
+    const m = rows.length, n = m ? rows[0].length : 0;
     const frames = [];
-    if(!R || !C){
-      frames.push({grid:[], owner:[], val:[], R:0, C:0, best:0, islands:[],
-        stack:[], scan:null, ret:null, hot:null, phase:'done', code:8,
-        msg:`Empty grid &mdash; there is nothing to measure. <b>0</b>.`, ans:0, done:true});
+    const truth = manhattanTruth(rows);
+
+    if(!m || !n){
+      frames.push({m:0, n:0, V, orig:[], g:[], d:[], queue:[], cur:null, pushed:[], skipped:[],
+        sources:0, water:0, level:DIST0, rounds:[], deep:[], discard:false,
+        phase:'done', code:20,
+        msg:`Empty grid &mdash; no water cell and no land cell, so nothing is far from anything. Return <b>-1</b>.`,
+        ans:-1, truth:-1, done:true});
       return frames;
     }
 
-    const g     = rows.map(r => r.split(''));
-    const owner = Array.from({length:R}, () => Array(C).fill(-1));   // island id, once finished
-    const val   = Array.from({length:R}, () => Array(C).fill(null)); // what that call returned
-    const islands = [];                                             // area of each finished island
-    let best = 0;
-    let stack = [];                                                 // [{k, parts:[1, d, u, r, l]}]
+    /* g is the program's own grid — water 0, land 1, and a reached water cell
+       is overwritten with 1, which is the entire visited set. d is the
+       visualizer's, holding the level each water cell was reached at; the
+       program has no such array, and that is the point of the page. */
+    const g = rows.map(r => [...r].map(Number));
+    const d = Array.from({length:m}, () => Array(n).fill(-1));
+    let q = [], dist = DIST0, sources = 0, water = 0, rounds = [];
 
     const snap = o => frames.push(Object.assign({
-      grid: g.map(r => r.join('')),
-      owner: owner.map(r => r.slice()),
-      val: val.map(r => r.slice()),
-      islands: islands.slice(),
-      stack: stack.map(f => ({k:f.k, parts:f.parts.slice()})),
-      R, C, best, scan:null, ret:null, hot:null
+      m, n, V, orig: rows,
+      g: g.map(r => r.slice()),
+      d: d.map(r => r.slice()),
+      queue: q.map(x => x.slice()),
+      rounds: rounds.slice(),
+      sources, water, level: dist,
+      cur:null, pushed:[], skipped:[], deep:[], discard:false
     }, o));
 
-    const sum = a => a.reduce((x,y)=>x+y, 0);
+    const land0 = g.reduce((s,row) => s + row.filter(v => v === 1).length, 0);
+    snap({phase:'scan', code:0,
+      msg:`A <b>${m}&times;${n}</b> grid with <b>${land0}</b> land cell${land0===1?'':'s'}. Asking each water cell &ldquo;how far is the nearest land?&rdquo; one at a time is ${m*n} searches. <span class="l">Push every source in first</span> and one sweep answers all of them at once &mdash; then throw the answers away and keep the depth.`});
 
-    snap({phase:'scan', code:1,
-      msg:`Grid is <b>${R}&times;${C}</b>, <span class="k">best = 0</span>. Scan every cell. The first
-           un-sunk land cell of an island is where one measuring call starts.`});
-
-    /* parent is the caller's frame object, or null at the top level.
-       Every call pushes its own result into its caller's slot list, so the
-       return is visible in the same frame that reports it.                    */
-    function area(r, c, parent, dirName, dirIdx){
-      const pk = parent ? parent.k : null;
-      const pr = pk === null ? 0 : (pk / C) | 0, pc = pk === null ? 0 : pk % C;
-      const land = (pk === null) ? '' : ` into <span class="i">area(${pr},&thinsp;${pc})</span>'s <em>${dirName}</em> slot`;
-
-      if(r < 0 || r >= R || c < 0 || c >= C){
-        if(parent) parent.parts.push(0);
-        snap({phase:'flood', code:12,
-          ret:{r, c, total:0, parts:null, reason:'off the grid'},
-          hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-          msg:`<span class="k">area(${r}, ${c})</span> is <span class="x">off the grid</span> &mdash;
-               the bounds guard fires and it returns <b>0</b>${land}.`});
-        return 0;
+    /* ---- seed: every land cell enters before the first pop ---- */
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+      if(g[r][c] === 1){
+        const take = seedAll || q.length === 0;
+        if(take){ q.push([r,c]); sources++; d[r][c] = 0; }
+        snap({cur:[r,c], phase:'scan', code:5,
+          msg: take
+            ? `Land at <span class="i">(${r}, ${c})</span> joins the queue at <b>level 0</b>. Every source is level 0 <em>simultaneously</em>; nothing distinguishes them, which is exactly why the first water they touch is at distance 1 from <em>whichever</em> of them was nearest.`
+            : `<span class="x">Land at (${r}, ${c}) is left out of the queue.</span> This ending seeds only the first source, so the walk now has to go <em>around</em> this cell instead of starting from it &mdash; it has become an obstacle rather than a source.`});
+      } else {
+        water++;
+        snap({cur:[r,c], phase:'scan', code:5,
+          msg:`Water at (${r}, ${c}) &mdash; line 6's test fails, so nothing is added. Its level is not known yet and will not be stored when it is. <span class="x">water seen so far: ${water}</span>.`});
       }
-      if(g[r][c] !== '1'){
-        const sunk = rows[r][c] === '1';
-        if(parent) parent.parts.push(0);
-        snap({phase:'flood', code:13,
-          ret:{r, c, total:0, parts:null, reason: sunk ? 'already sunk' : 'water'},
-          hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-          msg: sunk
-            ? `<span class="k">area(${r}, ${c})</span> finds the cell <span class="x">already sunk</span>
-               &mdash; some earlier call counted it inside its own <b>1</b>. It returns <b>0</b>${land},
-               which is exactly what stops a cell being added twice.`
-            : `<span class="k">area(${r}, ${c})</span> is <span class="x">water</span> &mdash; returns <b>0</b>${land}.`});
-        return 0;
-      }
-
-      g[r][c] = '0';
-      const me = {k: r*C + c, parts:[1]};
-      stack.push(me);
-      snap({phase:'flood', code:14,
-        msg:`<span class="i">area(${r}, ${c})</span> sinks its own cell first, then starts its sum at
-             <b>1</b> &mdash; one for this cell. Four holes left to fill.`});
-
-      let total = 1;
-      for(let d = 0; d < 4; d++){
-        total += area(r + DIRS[d][0], c + DIRS[d][1], me, DIRS[d][2], d);
-      }
-
-
-      stack.pop();
-      val[r][c] = total;
-      if(parent) parent.parts.push(total);
-      snap({phase:'flood', code: parent ? 15 + dirIdx : 5,
-        ret:{r, c, total, parts: me.parts.slice(), reason:null},
-        hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-        msg: parent
-          ? `<span class="m">area(${r}, ${c}) returns ${total}</span> &mdash;
-             ${me.parts.join(' + ')} = ${total}. It lands${land}` +
-             (parent.parts.length === 5
-               ? `, filling that call's last hole. It is complete at <b>${sum(parent.parts)}</b> and can return now.`
-               : `, which is now at <b>${sum(parent.parts)}</b> and still owes
-                  ${5 - parent.parts.length} return${5-parent.parts.length===1?'':'s'}.`)
-          : `<span class="m">area(${r}, ${c}) returns ${total}</span> &mdash;
-             ${me.parts.join(' + ')} = ${total}. Nothing is waiting above it, so that is the
-             whole island's area.`});
-      return total;
     }
 
-    for(let r = 0; r < R; r++){
-      for(let c = 0; c < C; c++){
-        const k = r*C + c;
-        if(g[r][c] === '1'){
-          snap({scan:k, phase:'found', code:4,
-            msg:`<span class="l">Scan reaches (${r}, ${c})</span> and it is still land, so no earlier
-                 island reached it. Call <span class="k">area(${r}, ${c})</span> and <b>keep what it returns</b>
-                 &mdash; that is the whole difference from problem 200.`});
+    /* ---- the sentinel ---- */
+    if(useGuard){
+      const noLand  = q.length === 0;
+      const noWater = q.length === m*n;
+      if(noLand || noWater){
+        snap({phase:'done', code:6,
+          msg: noLand
+            ? `<span class="x">The queue is empty &mdash; the grid is all water.</span> There is no land for any cell to be far from, so the maximum is undefined and the contract says <b>-1</b>.`
+            : `<span class="x"><span class="k">q.size() == m*n</span> &mdash; the grid is all land.</span> There is no water cell to measure at all. Opposite grid, <b>same sentinel</b>: <b>-1</b>.`,
+          ans:-1, truth, done:true});
+        return frames;
+      }
+      snap({phase:'scan', code:6,
+        msg:`<b>${sources}</b> source${sources===1?'':'s'} and <b>${water}</b> water cell${water===1?'':'s'} &mdash; both non-zero, so the guard falls through. It exists for the two grids that look nothing alike and answer the same: <span class="k">all water</span> and <span class="k">all land</span> are both <b>-1</b>.`});
+    } else {
+      snap({phase:'scan', code:6,
+        msg:`<span class="x">No guard in this ending.</span> With <b>${sources}</b> source${sources===1?'':'s'} and <b>${water}</b> water cell${water===1?'':'s'}, whatever the loop leaves in <span class="k">dist</span> is what gets returned &mdash; including on a grid where returning a distance makes no sense.`});
+    }
 
-          const got = area(r, c, null, '', -1);
+    snap({phase:'scan', code:7,
+      msg: DIST0 === -1
+        ? `<span class="k">dist = -1</span>. The first round of the loop pops the sources themselves, and land is at distance <b>0</b> from land &mdash; so the counter has to be one <em>behind</em> before the loop starts, or every answer comes out one too big.`
+        : `<span class="k">dist = 0</span>. Watch this: the first round pops the sources, which are at distance <b>0</b> from land, and the counter will already read <b>1</b> while it does. The seeding round is being counted as a step it never took.`});
 
-          const id = islands.length;
-          islands.push(got);
-          for(let a = 0; a < R; a++) for(let b = 0; b < C; b++)
-            if(val[a][b] !== null && owner[a][b] < 0) owner[a][b] = id;
-          const prev = best;
-          best = Math.max(best, got);
-          snap({scan:k, phase:'found', code:5,
-            msg:`<span class="m">Island ${id+1} measures ${got}</span>.
-                 <span class="k">best = max(${prev}, ${got}) = ${best}</span>.` +
-                (got > prev ? ` A new record.` : ` The record stands.`)});
-        } else {
-          const sunk = rows[r][c] === '1';
-          snap({scan:k, phase:'scan', code:4,
-            msg:`(${r}, ${c}) is <span class="x">${sunk ? 'already sunk' : 'water'}</span> &mdash;
-                 ${sunk ? `it was measured inside island ${owner[r][c]+1}; sinking is what makes one pass enough.`
-                        : `nothing to measure.`}`});
+    /* ---- level by level ---- */
+    while(q.length){
+      dist++;
+      rounds.push(dist);
+      const sz = q.length;
+      const isSeedRound = rounds.length === 1;
+      snap({phase:'level', code:9,
+        msg: isSeedRound
+          ? `<b>Round 1</b> &mdash; <span class="k">sz = ${sz}</span>, the ${sz} source${sz===1?'':'s'}. The counter now reads <span class="i">${dist}</span>, and these cells are at distance <b>0</b> from land. ${DIST0===-1 ? 'It lines up, because the counter started one behind.' : '<span class="x">It is already one too many, and every later round inherits the error.</span>'}`
+          : `<b>Round ${rounds.length}</b> &mdash; <span class="k">sz = ${sz}</span>. Snapshotting the size <em>before</em> popping is what keeps the level whole: these ${sz} cell${sz===1?'':'s'} are all at the same distance from their nearest land, and the pushes they make belong to the next round, not this one. Counter: <span class="i">${dist}</span>.`});
+
+      for(let s=0;s<sz;s++){
+        const [r,c] = q.shift();
+        const pushed = [], skipped = [];
+        for(const [dr,dc] of DIRS){
+          const nr = r+dr, nc = c+dc;
+          if(nr<0||nr>=m||nc<0||nc>=n){ skipped.push('off-grid'); continue; }
+          if(g[nr][nc] !== 0){ skipped.push(`(${nr}, ${nc}) taken`); continue; }
+          g[nr][nc] = 1;
+          d[nr][nc] = d[r][c] + 1;
+          q.push([nr,nc]);
+          pushed.push([nr,nc]);
         }
+        snap({cur:[r,c], pushed, skipped, phase: pushed.length ? 'push' : 'level',
+          code: pushed.length ? 15 : 14,
+          msg: pushed.length
+            ? `Pop <span class="i">(${r}, ${c})</span> &mdash; it reaches ${pushed.map(([a,b])=>`<span class="l">(${a}, ${b})</span>`).join(', ')}. Each is set to <span class="k">1</span> <b>as it is pushed</b>, not when it is popped, so no other cell in this round can claim it and no cell is ever queued twice.`
+            : `Pop <span class="i">(${r}, ${c})</span> &mdash; nothing to push: ${skipped.join(', ')}. A cell already carrying a level was reached in an earlier or equal round, so its distance is already the smallest one available.`});
       }
     }
 
-    snap({phase:'done', code:8,
-      msg: islands.length
-        ? `<span class="m">Largest island: ${best}</span> &mdash; from ${islands.length}
-           island${islands.length===1?'':'s'} of size ${islands.join(', ')}. Every land cell was
-           visited once, sunk once, and contributed its <b>1</b> to exactly one call.`
-        : `<span class="x">No land at all</span> &mdash; the scan never calls <span class="k">area</span>,
-           and <b>best</b> is still 0.`,
-      ans: best, done: true});
+    /* ---- the return ---- */
+    let deep = [];
+    if(dist >= 0){
+      let mx = -1;
+      for(let r=0;r<m;r++) for(let c=0;c<n;c++) if(rows[r][c] === '0' && d[r][c] > mx) mx = d[r][c];
+      if(mx >= 0) for(let r=0;r<m;r++) for(let c=0;c<n;c++)
+        if(rows[r][c] === '0' && d[r][c] === mx) deep.push([r,c]);
+    }
+    const ans = dist;
+    const wrong = ans !== truth;
+
+    let tail;
+    if(V === 'levels'){
+      tail = `<span class="x">${rounds.length} round${rounds.length===1?'':'s'} ran and the counter returns <b>${ans}</b>.</span> But the first round only popped the land, which travelled nowhere &mdash; the deepest water really sits at <b>${truth}</b>. Counting rounds and measuring depth differ by exactly the seeding round, every single time.`;
+    } else if(V === 'noguard' && truth === -1){
+      tail = `<span class="x">Returned <b>${ans}</b> for a grid with no water in it.</span> The loop ran once, popped the land, pushed nothing, and handed back a distance nobody travelled. The guard on line 7 was the only thing that knew this grid has no answer.`;
+    } else if(V === 'onesource'){
+      tail = wrong
+        ? `<span class="x">Returned <b>${ans}</b>, and the true answer is <b>${truth}</b>.</span> With one source in the queue, the other land cells were never level 0 &mdash; they became walls the walk had to go round, so this is not the distance-to-nearest-land field at all.`
+        : `Returned <b>${ans}</b>, which happens to match. With only one land cell there is no difference between seeding one source and seeding all of them &mdash; the bug needs a second source to show itself.`;
+    } else {
+      tail = `<span class="m">${rounds.length} round${rounds.length===1?'':'s'} ran; the last one read <b>${ans}</b>.</span> That counter is the whole answer. Every level on the board was correct and every one of them is now discarded &mdash; <span class="k">542</span> is this program with the array kept and returned instead.`;
+    }
+
+    snap({phase:'done', code:20, deep, discard:true,
+      msg: tail + (deep.length
+        ? ` The deepest water ${deep.length===1?'cell is':'cells are'} ${deep.map(([a,b])=>`<span class="m">(${a}, ${b})</span>`).join(', ')}.`
+        : ``),
+      ans, truth, done:true});
     return frames;
   }
 
@@ -705,95 +763,85 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   const $ = id => document.getElementById(id);
   const boardEl=$('board'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
         countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'),
-        isleEl=$('islands'), statsEl=$('gstats'), stkEl=$('stack'), retEl=$('retband');
-  let frames=[], idx=0, playing=false, timer=null;
+        statsEl=$('gstats'), qEl=$('qstrip'), railEl=$('rail'), vEl=$('verdict');
+  let frames=[], idx=0, timer=null, variant='correct';
 
-  (function renderCode(){
-    codeEl.innerHTML = CODE.map((line,i)=>{
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function renderCode(){
+    codeEl.innerHTML = codeFor(variant).map((line,i)=>{
       const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
       return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
     }).join('');
-  })();
-  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  }
 
   function parseGrid(str){
-    const rows = String(str).split(/[\/\n,;]/).map(s=>s.replace(/[^01]/g,'')).filter(s=>s.length);
+    const rows = String(str).split(/[\/\n]/).map(s=>s.replace(/[^01]/g,'')).filter(s=>s.length);
     if(!rows.length) return [];
     const C = Math.min(Math.max(...rows.map(r=>r.length)), MAXC);
     return rows.slice(0,MAXR).map(r => r.slice(0,C).padEnd(C,'0'));
   }
 
-  function buildBoard(R,C){
+  function buildBoard(m,n){
     boardEl.innerHTML='';
-    boardEl.style.gridTemplateColumns = `repeat(${C}, auto)`;
-    for(let k=0;k<R*C;k++){
-      const d=document.createElement('div');
-      d.className='gcell'; d.setAttribute('data-cell',k);
-      boardEl.appendChild(d);
+    boardEl.style.gridTemplateColumns=`repeat(${n}, auto)`;
+    for(let k=0;k<m*n;k++){
+      const el=document.createElement('div');
+      el.className='gcell'; el.setAttribute('data-cell',k);
+      boardEl.appendChild(el);
     }
   }
 
   function render(){
-    const f = frames[idx]; if(!f) return;
-    const {R,C} = f;
-    const onStack = new Map();
-    f.stack.forEach((fr,i)=>onStack.set(fr.k, {sub: fr.parts.reduce((a,b)=>a+b,0), top: i===f.stack.length-1}));
-
-    for(let k=0;k<R*C;k++){
-      const el = boardEl.querySelector(`[data-cell="${k}"]`);
-      if(!el) continue;
-      const r = (k/C)|0, c = k%C;
-      const ch = f.grid[r][c], own = f.owner[r][c], v = f.val[r][c];
-      const st = onStack.get(k);
-      let cls='gcell', html;
-      if(st){                       cls += st.top ? ' flood cur' : ' flood';
-                                    html = `<span class="tagno">${st.sub}</span>`; }
-      else if(v !== null){          cls += (own >= 0) ? ' done' : ' flood';
-                                    html = `<span class="tagno">${v}</span>`; }
-      else if(ch === '1'){          cls += ' land'; html = '1'; }
-      else {                        cls += ' water'; html = '0'; }
-      if(k === f.scan) cls += ' scan';
-      el.className = cls; el.innerHTML = html;
+    const f=frames[idx]; if(!f) return;
+    const {m,n}=f;
+    const inQ=new Set(f.queue.map(([r,c])=>r*n+c));
+    const pushedNow=new Set(f.pushed.map(([r,c])=>r*n+c));
+    const deepSet=new Set(f.deep.map(([r,c])=>r*n+c));
+    for(let k=0;k<m*n;k++){
+      const el=boardEl.querySelector(`[data-cell="${k}"]`); if(!el) continue;
+      const r=(k/n)|0, c=k%n, lvl=f.d[r][c];
+      const isLand = f.orig[r] ? f.orig[r][c]==='1' : false;
+      const glyph = isLand ? '1' : (lvl>0 ? String(lvl) : '');
+      let cls='gcell';
+      if(deepSet.has(k))                             cls+=' deep';
+      else if(f.cur && f.cur[0]===r && f.cur[1]===c) cls+=' cur';
+      else if(isLand)                                cls+= (lvl===0 ? ' land' : ' land notseeded');
+      else if(lvl>0)                                 cls+=' lvled';
+      else                                           cls+=' water';
+      if(pushedNow.has(k) || inQ.has(k)) cls+=' inq';
+      if(f.discard && !deepSet.has(k)) cls+=' faded';
+      el.className=cls;
+      el.innerHTML = glyph + (isLand && lvl===0 && !f.discard ? '<span class="sub">0</span>' : '');
     }
+    statsEl.innerHTML = `sources <b>${f.sources}</b> &nbsp;&middot;&nbsp; water <b>${f.water}</b>`
+      + ` &nbsp;&middot;&nbsp; queue <b>${f.queue.length}</b>`
+      + ` &nbsp;&middot;&nbsp; <span class="k">dist</span> <b>${f.level}</b>`;
 
-    statsEl.innerHTML = `best so far <b>${f.best}</b> &nbsp;&middot;&nbsp; islands finished
-      <b>${f.islands.length}</b> &nbsp;&middot;&nbsp; stack depth <b>${f.stack.length}</b>`;
+    railEl.innerHTML = f.rounds.length
+      ? f.rounds.map((v,i)=>{
+          const last = i===f.rounds.length-1;
+          const cls = i===0 ? 'lvl seed' : (last ? (f.done ? 'lvl ans' : 'lvl now') : 'lvl past');
+          const label = i===0 ? `dist ${v} &middot; the sources` : `dist ${v}`;
+          return `<span class="${cls}">${label}${last && f.done && f.ans>=0 ? ' &middot; returned' : ''}</span>`;
+        }).join('')
+      : `<span class="lvl none">no round has run &mdash; <span class="k">dist</span> = ${f.level}</span>`;
 
-    /* the return band — the value that just came back */
-    if(f.ret){
-      const {r,c,total,parts,reason} = f.ret;
-      retEl.innerHTML = parts
-        ? `area(${r},&thinsp;${c}) &nbsp;&rarr;&nbsp; ${parts.join(' + ')} = <span class="tot">${total}</span>`
-        : `area(${r},&thinsp;${c}) &nbsp;&rarr;&nbsp; <span class="zed">0</span>
-           <span class="why">${reason}</span>`;
-    } else retEl.innerHTML = '';
+    qEl.innerHTML = f.queue.length
+      ? f.queue.map(([r,c])=>`<span class="qitem">${r},${c}</span>`).join('')
+      : `<span class="qitem empty">queue empty</span>`;
+    msgEl.innerHTML=f.msg;
 
-    /* the call stack, deepest last, each with its half-built sum */
-    const S = f.stack;
-    const from = Math.max(0, S.length - 10);
-    let html = from ? `<div class="frm elide">&hellip; ${from} frame${from===1?'':'s'} above</div>` : '';
-    html += S.slice(from).map((fr,i)=>{
-      const r=(fr.k/C)|0, c=fr.k%C, sub=fr.parts.reduce((a,b)=>a+b,0);
-      const bits = ['1'];
-      for(let d=0; d<4; d++){
-        if(d+1 < fr.parts.length){
-          const hot = f.hot && f.hot.k===fr.k && f.hot.idx===d+1;
-          bits.push(hot ? `<span class="hot">${fr.parts[d+1]}</span>` : String(fr.parts[d+1]));
-        } else bits.push('<span class="hole">_</span>');
-      }
-      const done = fr.parts.length === 5;
-      return `<div class="frm${i+from===S.length-1?' top':''}" style="margin-left:${Math.min(i,9)*13}px">`
-        + `<span>area(${r},&thinsp;${c})</span>`
-        + `<span class="sub">${bits.join(' + ')} ${done?'=':'&ge;'} ${sub}</span></div>`;
-    }).join('');
-    stkEl.innerHTML = html || `<div class="frm elide">call stack empty</div>`;
+    if(f.done){
+      vEl.hidden=false;
+      const okCls = f.ans===f.truth ? 'right' : 'wrong';
+      let s = `returned <b class="${okCls}">${f.ans}</b>`;
+      s += f.ans===-1 ? ` &nbsp;&middot;&nbsp; no water cell has any land to be far from`
+                      : ` &nbsp;&middot;&nbsp; the depth of the last level, not any cell's value`;
+      if(f.ans!==f.truth) s += ` &nbsp;&middot;&nbsp; brute-force Manhattan says <b class="right">${f.truth}</b>`;
+      vEl.innerHTML=s;
+    } else { vEl.hidden=true; vEl.innerHTML=''; }
 
-    msgEl.innerHTML = f.msg;
-
-    isleEl.innerHTML = f.islands.map((n,i)=>
-      `<span class="isle${n===f.best?'':' small'}">island ${i+1} &middot; area ${n}</span>`).join('');
-
-    const pmap={scan:['scan','● scanning'],flood:['sort','≈ measuring'],found:['found','✓ island'],done:['done','■ complete']};
+    const pmap={scan:['scan','● seeding'],level:['sort','≈ level'],push:['found','✓ pushed'],done:['done','■ complete']};
     const [pc,ptxt]=pmap[f.phase]||['','idle'];
     pillEl.className='phase-pill '+pc; pillEl.textContent=ptxt;
 
@@ -805,54 +853,72 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(str){
+  function run(){
     stop();
-    const rows = parseGrid(str);
+    const rows=parseGrid(inputEl.value);
     buildBoard(rows.length, rows.length?rows[0].length:0);
-    frames = buildFrames(rows);
+    frames=buildFrames(rows, variant);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
   function prev(){ if(idx>0){idx--;render();} }
   function speedMs(){ return 1050 - $('speed').value*95; }
-  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function play(){ if(idx>=frames.length-1) idx=0; $('playBtn').textContent='⏸'; tick(); }
   function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
-  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
-  function togglePlay(){ playing?stop():play(); }
+  function stop(){ clearTimeout(timer); timer=null; $('playBtn').textContent='▶'; }
 
+  /* every label states a number; the jsdom harness recomputes each one from
+     buildFrames and from the brute force, so a stale label cannot survive. */
   const EX=[
-    ['10010/10011/00011','2, then 5 — best grows'],
-    ['010/111/010','a plus: 1 + 4 + 0 + 0 + 0 = 5'],
-    ['1100/1100/0000/0011/0011','two islands tie at 4'],
-    ['1111/1001/1001/1111','a ring — one island of 12'],
-    ['00000/00000','no land at all → 0'],
-    ['1','a single cell → 1'],
+    ['1000/0000/0000/0001',      'answer 3 — two sources, and their levels meet in the middle'],
+    ['101/000/101',              'answer 2 — LeetCode example 1: four sources, and only the centre is 2 away'],
+    ['100/000/000',              'answer 4 — one corner source, so the opposite corner is deepest'],
+    ['10000000',                 'answer 7 — a single row: the levels are a ruler'],
+    ['1111/1111',                'answer -1 — all land, so there is no water to measure'],
+    ['000/000',                  'answer -1 — all water, so there is no land to be far from'],
+    ['0000000/0000010/0000000',  'answer 6 — two cells tie at the last level'],
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(([w,note])=>{
       const c=document.createElement('button'); c.className='chip'; c.innerHTML=`${w}<b>${note}</b>`;
-      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+      c.onclick=()=>{ inputEl.value=w; run(); }; box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(inputEl.value);
-  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  const SEG={correct:'segA', levels:'segB', noguard:'segC', onesource:'segD'};
+  function setVariant(v){
+    variant=v;
+    for(const k in SEG) $(SEG[k]).classList.toggle('on', k===v);
+    renderCode(); run();
+  }
+  $('segA').onclick=()=>setVariant('correct');
+  $('segB').onclick=()=>setVariant('levels');
+  $('segC').onclick=()=>setVariant('noguard');
+  $('segD').onclick=()=>setVariant('onesource');
+
+  $('runBtn').onclick=run;
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
-  $('playBtn').onclick=togglePlay;
+  $('playBtn').onclick=()=>{ timer?stop():play(); };
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
     if(document.activeElement===inputEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
-    if(e.key===' '){e.preventDefault();togglePlay();}
+    if(e.key===' '){e.preventDefault(); timer?stop():play();}
   });
 
-  window.__buildFrames = buildFrames;   /* verification hook */
-  window.__EXAMPLES = EX;               /* chip labels, for assertion */
-  window.__parseGrid = parseGrid;
-  run(inputEl.value);
+  window.buildFrames    = buildFrames;     /* (rows, variant) — rows: string[] of '0'/'1' */
+  window.__buildFrames  = buildFrames;
+  window.__manhattanTruth = manhattanTruth;
+  window.__parseGrid    = parseGrid;
+  window.__EX           = EX;
+  window.__VARIANTS     = ['correct','levels','noguard','onesource'];
+
+  renderCode();
+  run();
 })();
 </script>
 <script>

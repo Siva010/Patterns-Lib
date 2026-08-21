@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>695 &middot; Max Area of Island &mdash; visual guide</title>
-<meta name="description" content="The same flood fill as 200, but the recursion returns an int: one for the cell it just sank plus whatever the four neighbour calls hand back. Watch the subtotals collapse up the stack.">
+<title>934 &middot; Shortest Bridge &mdash; visual guide</title>
+<meta name="description" content="Two machines composed: a DFS to discover the source set, then multi-source BFS from every cell of it at once.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -415,33 +415,6 @@ input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(
 .dot.w { background: var(--r-window-wash); border-color: var(--r-window); }
 .code .cm { color: var(--fg-dim); font-style: italic; }
 
-/* ---------- the returning value, and the frames still owed one ---------- */
-.retband {
-  font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
-  color: var(--fg-mid); text-align: center; min-height: 22px;
-}
-.retband .tot { color: var(--r-hit); font-weight: 600; }
-.retband .zed { color: var(--fg-dim); }
-.retband .why { font-family: var(--sans); font-size: 11.5px; color: var(--fg-dim); }
-
-.stack { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-         min-height: 26px; margin: 0 auto; }
-.frm {
-  display: inline-flex; gap: 10px; align-items: baseline; white-space: nowrap;
-  font-family: var(--mono); font-size: 12px; padding: 2px 10px; border-radius: 6px;
-  border: 1px solid var(--rule); background: var(--bg-sunk); color: var(--fg-dim);
-}
-.frm.top { border-color: var(--r-anchor-line); background: var(--r-anchor-wash); color: var(--r-anchor); }
-.frm .sub { color: var(--fg-mid); }
-.frm.top .sub { color: var(--fg); }
-.frm .hot { color: var(--r-hit); font-weight: 600; }
-.frm .hole { color: var(--fg-dim); opacity: .5; }
-.frm.elide { border-style: dashed; border-color: var(--rule-hard); background: transparent;
-             font-family: var(--sans); font-size: 11.5px; }
-
-/* an island that is not the record recedes — it is not an error, just not the max */
-.isle.small { border-color: var(--rule-hard); background: transparent; color: var(--fg-dim); }
-
 @media (max-width: 620px) { .gcell { width: 34px; height: 34px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .gcell { transition: none !important; transform: none; } }
 </style>
@@ -461,22 +434,78 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   <span class="spacer"></span>
   <button class="themebtn" id="themeBtn" type="button">Theme</button>
 </header>
-  <div class="eyebrow">Graphs &middot; Flood fill on a grid <span class="tag">LeetCode 695</span></div>
-  <h1>Max Area of Island <span class="thin">/ visualized</span></h1>
+<style>
+/* ---------- 934: the two machines, drawn apart ---------- */
+/* Island A — painted by phase one, and every one of its cells is a source. */
+.gcell.isleA { background: var(--r-hit-wash); border-color: var(--r-hit); color: var(--r-hit); }
+
+/* Water the flood has already flipped: a ring, numbered by its distance. */
+.gcell.ring { background: var(--r-window-wash); border-color: var(--r-window-line);
+              color: var(--r-window); opacity: .78; }
+
+/* The bridge actually walked back from the touching cell. */
+.gcell.bridge { background: var(--r-anchor2-wash); border-color: var(--r-anchor2);
+                color: var(--r-anchor2); opacity: 1; font-weight: 600; }
+
+/* Island A cells that the buggy variant painted but never seeded. Not an error
+   colour — they simply recede, because they contribute nothing. */
+.gcell.dead { background: var(--bg); border-color: var(--fg-dim); border-style: dashed;
+              color: var(--fg-dim); opacity: .5; }
+
+/* Island B, at the moment the flood touches it. */
+.gcell.reached { box-shadow: inset 0 0 0 2px var(--r-hit); }
+
+.gcell .ringno { font-size: 12px; font-weight: 600; }
+
+.dot.b { background: var(--r-anchor2-wash); border-color: var(--r-anchor2); }
+.dot.d { background: var(--bg); border-color: var(--fg-dim); border-style: dashed; }
+
+.qitem.seed { border-color: var(--r-hit-line); background: var(--r-hit-wash); color: var(--r-hit); }
+
+.message .w, .lede .w { color: var(--r-window); font-weight: 600; }
+.message .b, .lede .b2 { color: var(--r-anchor2); font-weight: 600; }
+.lede .m { color: var(--r-hit);  font-weight: 600; }
+.lede .x { color: var(--fg-dim); font-weight: 600; }
+
+.lede a, .foot a { color: var(--accent); text-decoration: none;
+                   border-bottom: 1px solid var(--accent-line); }
+.lede a:hover, .foot a:hover { border-bottom-color: var(--accent); }
+
+/* the seam between the two machines */
+.seam { display: flex; align-items: center; gap: 10px; margin: 12px 0 2px;
+        font-family: var(--sans); font-size: 11.5px; letter-spacing: .06em;
+        text-transform: uppercase; color: var(--fg-dim); }
+.seam::before, .seam::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.seam.live { color: var(--r-window); }
+</style>
+
+  <div class="eyebrow">Graphs &middot; Multi-source BFS &mdash; when the sources are not given <span class="tag">LeetCode 934</span></div>
+  <h1>Shortest Bridge <span class="thin">/ visualized</span></h1>
   <p class="lede">
-    Problem 200 <em>counts</em> components; this one <em>measures</em> them. The scan, the
-    four neighbours and the sink-before-you-recurse rule are unchanged &mdash; the single
-    edit is the return type. <span class="i">void</span> becomes <span class="m">int</span>,
-    and every call owes its caller <code>1 + down + up + right + left</code>. The sum is
-    assembled on the way down and collapses on the way back up; watch the returns land.
+    <a href="994-rotting-oranges.html">994</a> hands you the rotten oranges, 542 hands you the zeros,
+    1162 hands you the land. Here nobody hands you anything: you must run
+    <span class="m">a whole first traversal &mdash; a DFS, exactly the one in
+    <a href="200-number-of-islands.html">LC 200</a> &mdash; just to discover the seed set</span>, and only
+    then does the machine from the other three pages apply. Phase one paints one island;
+    phase two floods outward <span class="w">from every cell of it at once</span>. The bridge is
+    the water flipped, so the answer is <span class="b">levels minus one</span> &mdash; level 1 is the
+    island itself and flips nothing.
   </p>
 
   <div class="controls-top">
     <div class="field">
-      <label for="arrInput">Grid (rows of 0/1, separated by <code>/</code>)</label>
+      <label for="arrInput">Grid &mdash; 0 water, 1 land (rows split by <code>/</code>)</label>
       <div class="input-shell">
-        <input id="arrInput" type="text" value="10010/10011/00011" spellcheck="false" autocomplete="off">
+        <input id="arrInput" type="text" value="1111/0000/0001" spellcheck="false" autocomplete="off">
         <button class="btn primary" id="runBtn">&#9654; Run</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="segAll">How phase one hands over to phase two</label>
+      <div class="seg" role="group" aria-label="Variant">
+        <button class="btn seg-btn on" id="segAll" type="button">seed every cell</button>
+        <button class="btn seg-btn" id="segOne" type="button">seed one cell &#9888;</button>
+        <button class="btn seg-btn" id="segOff" type="button">return level &#9888;</button>
       </div>
     </div>
   </div>
@@ -486,12 +515,12 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     <div class="card">
       <div class="card-head"><h2>Execution</h2><span class="phase-pill" id="phasePill">idle</span></div>
       <div class="stage">
+        <div class="seam" id="seam">phase one &middot; DFS: which cells <em>are</em> island A</div>
         <div class="gridwrap"><div class="gboard" id="board"></div></div>
         <div class="gstats" id="gstats"></div>
-        <div class="retband" id="retband"></div>
-        <div class="stack" id="stack"></div>
+        <div class="qstrip" id="qstrip"></div>
         <div class="message" id="message">Press <span class="k">Run</span> to begin.</div>
-        <div class="islands" id="islands"></div>
+        <div class="verdict" id="verdict" hidden></div>
       </div>
       <div class="transport">
         <button class="btn icon-btn" id="prevBtn" title="Previous">&#9204;</button>
@@ -511,193 +540,250 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
       <div class="code" id="code"></div>
       <div class="legend">
         <span><i class="dot l"></i>scan cursor</span>
-        <span><i class="dot i"></i>call on top of the stack</span>
-        <span><i class="dot w"></i>this island, already returned</span>
-        <span><i class="dot m"></i>island finished</span>
+        <span><i class="dot i"></i>current cell</span>
+        <span><i class="dot m"></i>island A &mdash; every cell a source</span>
+        <span><i class="dot w"></i>flooded water &middot; ring number</span>
+        <span><i class="dot b"></i>the bridge itself</span>
+        <span><i class="dot d"></i>painted but never seeded</span>
         <span><i class="dot x"></i>water</span>
-      </div>
-      <div class="legend">
-        <span>A number inside a cell is <b>what that call returned</b> &mdash; the size of the
-        piece of island it was responsible for. The cell that started the island therefore
-        carries the island's whole area.</span>
       </div>
     </div>
   </div>
 
-  <div class="foot">O(m&middot;n) time &middot; O(m&middot;n) worst-case recursion depth &nbsp;&middot;&nbsp; the <code>1 +</code> is free: the visit that counted the island already existed, it just threw its result away. Sinking <em>before</em> the four calls is what keeps every cell in exactly one summand &mdash; a cell already sunk returns <code>0</code>, so it is added once and never again.</div>
+  <div class="foot">O(m&middot;n) time and space &nbsp;&middot;&nbsp; the flood flips far more water than the bridge contains &mdash; the bridge is one shortest chain through the rings, and its length is <code>level &minus; 1</code>, because level 1 is island A itself and costs nothing. Seeding one cell instead of all of them still <em>often</em> returns the right number, which is precisely why it survives testing.</div>
 
 <script>
 (function(){
   "use strict";
 
-  const CODE = [
-    [['kw','int '],['fn','maxAreaOfIsland'],['tx','('],['kw','int'],['tx','[][] grid) {']],
-    [['tx','    '],['kw','int '],['tx','best = 0;']],
-    [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < grid.length; r++) {']],
-    [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < grid[0].length; c++) {']],
-    [['tx','            '],['kw','if '],['tx','(grid[r][c] == 1)']],
-    [['tx','                best = Math.'],['fn','max'],['tx','(best, '],['fn','area'],['tx','(grid, r, c));']],
-    [['tx','        }']],
-    [['tx','    }']],
-    [['tx','    '],['kw','return '],['tx','best;']],
-    [['tx','}']],
-    [['tx','']],
-    [['kw','int '],['fn','area'],['tx','('],['kw','int'],['tx','[][] g, '],['kw','int '],['tx','r, '],['kw','int '],['tx','c) {']],
-    [['tx','    '],['kw','if '],['tx','(r < 0 || r >= g.length || c < 0 || c >= g[0].length) '],['kw','return '],['tx','0;']],
-    [['tx','    '],['kw','if '],['tx','(g[r][c] != 1) '],['kw','return '],['tx','0;']],
-    [['tx','    g[r][c] = 0;                    '],['cm','// sink BEFORE recursing']],
-    [['tx','    '],['kw','return '],['tx','1 + '],['fn','area'],['tx','(g, r+1, c)      '],['cm','// down']],
-    [['tx','             + '],['fn','area'],['tx','(g, r-1, c)      '],['cm','// up']],
-    [['tx','             + '],['fn','area'],['tx','(g, r, c+1)      '],['cm','// right']],
-    [['tx','             + '],['fn','area'],['tx','(g, r, c-1);     '],['cm','// left']],
-    [['tx','}']]
-  ];
+  /* The code pane shows the code that is actually running, so the two wrong
+     variants edit the one line each of them gets wrong. */
+  function CODE(variant){
+    const seedLine = variant === 'one'
+      ? [['tx','    '],['kw','if '],['tx','(q.isEmpty()) q.add('],['kw','new int'],['tx','[]{r,c});  '],['cm','// BUG: only the first cell']]
+      : [['tx','    q.add('],['kw','new int'],['tx','[]{r,c});             '],['cm','// EVERY cell — not just the seed']];
+    const retLine = variant === 'off'
+      ? [['tx','                '],['kw','if '],['tx','(g[nr][nc] == 1) '],['kw','return '],['tx','level;      '],['cm','// BUG: levels, not water cells']]
+      : [['tx','                '],['kw','if '],['tx','(g[nr][nc] == 1) '],['kw','return '],['tx','level - 1;  '],['cm','// island B — flips = levels - 1']];
+    return [
+      [['kw','int '],['fn','shortestBridge'],['tx','('],['kw','int'],['tx','[][] g) {']],
+      [['tx','    '],['kw','int '],['tx','m = g.length, n = g[0].length;']],
+      [['tx','    '],['ty','Deque<int[]> '],['tx','q = '],['kw','new '],['tx','ArrayDeque<>();']],
+      [['tx','    outer:                                    '],['cm','// PHASE 1 — find ONE island']],
+      [['tx','    '],['kw','for '],['tx','('],['kw','int '],['tx','r = 0; r < m; r++)']],
+      [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','c = 0; c < n; c++)']],
+      [['tx','            '],['kw','if '],['tx','(g[r][c] == 1) { paint(g, r, c, q); '],['kw','break '],['tx','outer; }']],
+      [['tx','    '],['kw','int '],['tx','level = 0;                        '],['cm','// PHASE 2 — flood from all of it']],
+      [['tx','    '],['kw','while '],['tx','(!q.isEmpty()) {']],
+      [['tx','        level++;']],
+      [['tx','        '],['kw','for '],['tx','('],['kw','int '],['tx','sz = q.size(); sz > 0; sz--) {']],
+      [['tx','            '],['kw','int'],['tx','[] cur = q.poll();']],
+      [['tx','            '],['kw','for '],['tx','('],['kw','int'],['tx','[] d : DIRS4) {']],
+      [['tx','                '],['kw','int '],['tx','nr=cur[0]+d[0], nc=cur[1]+d[1];']],
+      [['tx','                '],['kw','if '],['tx','(nr<0||nr>=m||nc<0||nc>=n||g[nr][nc]==2) '],['kw','continue'],['tx',';']],
+      retLine,
+      [['tx','                g[nr][nc] = 2;  q.add('],['kw','new int'],['tx','[]{nr,nc});']],
+      [['tx','            }']],
+      [['tx','        }']],
+      [['tx','    }']],
+      [['tx','    '],['kw','return '],['tx','-1;']],
+      [['tx','}']],
+      [['tx','']],
+      [['kw','void '],['fn','paint'],['tx','('],['kw','int'],['tx','[][] g, '],['kw','int '],['tx','r, '],['kw','int '],['tx','c, '],['ty','Deque<int[]> '],['tx','q) {']],
+      [['tx','    '],['kw','if '],['tx','(r<0||r>=g.length||c<0||c>=g[0].length||g[r][c]!=1) '],['kw','return'],['tx',';']],
+      [['tx','    g[r][c] = 2;                       '],['cm','// mine, and visited, in one mark']],
+      seedLine,
+      [['tx','    paint(g,r+1,c,q);  paint(g,r-1,c,q);']],
+      [['tx','    paint(g,r,c+1,q);  paint(g,r,c-1,q);']],
+      [['tx','}']]
+    ];
+  }
+
+  const L_SCANW = 5, L_FOUND = 6, L_LEVEL = 9, L_POP = 11, L_SKIP = 14,
+        L_HIT = 15, L_PUSH = 16, L_FAIL = 20, L_MARK = 25, L_SEED = 26;
 
   const MAXR = 6, MAXC = 8;
-  const DIRS = [[1,0,'down'],[-1,0,'up'],[0,1,'right'],[0,-1,'left']];
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
 
-  /* ---- the real implementation, instrumented ------------------------------
-     buildFrames(rows) — rows is an array of strings of '0'/'1', one per row.
-     Returns a flat array of frames; the last carries {ans, done:true}.        */
-  function buildFrames(rows){
-    rows = (rows || []).map(r => Array.isArray(r) ? r.join('') : String(r));
-    const R = rows.length;
-    let C = 0;
-    for(const r of rows) if(r.length > C) C = r.length;
-    rows = rows.map(r => r.padEnd(C, '0'));
+  /* ---- independent oracle: union-find + min Manhattan over cross-island pairs.
+     Shares no method with the page: no recursion, no queue, no distance field.
+     |dr|+|dc|-1 counts the interior of a monotone staircase between two land
+     cells; for the minimising pair every interior cell must be water, since a
+     land cell on that staircase would itself form a strictly closer pair. ---- */
+  function bridgeTruth(rows){
+    const m = rows.length, n = m ? rows[0].length : 0;
+    const p = new Array(m*n);
+    for(let i=0;i<m*n;i++) p[i]=i;
+    const find = x => { while(p[x]!==x){ p[x]=p[p[x]]; x=p[x]; } return x; };
+    const uni = (a,b) => { a=find(a); b=find(b); if(a!==b) p[a]=b; };
+    const land = [];
+    for(let r=0;r<m;r++) for(let c=0;c<n;c++){
+      if(rows[r][c] !== '1') continue;
+      land.push([r,c]);
+      if(r+1<m && rows[r+1][c]==='1') uni(r*n+c,(r+1)*n+c);
+      if(c+1<n && rows[r][c+1]==='1') uni(r*n+c,r*n+c+1);
+    }
+    const roots = new Set(land.map(([r,c])=>find(r*n+c)));
+    let best = Infinity;
+    for(let i=0;i<land.length;i++) for(let j=i+1;j<land.length;j++){
+      const a=land[i], b=land[j];
+      if(find(a[0]*n+a[1]) === find(b[0]*n+b[1])) continue;   // same island — not a bridge
+      const d = Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) - 1;
+      if(d < best) best = d;
+    }
+    return { ans: best===Infinity ? -1 : best, islands: roots.size };
+  }
 
+  /* ---- the real implementation, instrumented ------------------------------ */
+  function buildFrames(rows, variant){
+    variant = (variant==='one' || variant==='off') ? variant : 'all';
+    const m = rows.length, n = m ? rows[0].length : 0;
     const frames = [];
-    if(!R || !C){
-      frames.push({grid:[], owner:[], val:[], R:0, C:0, best:0, islands:[],
-        stack:[], scan:null, ret:null, hot:null, phase:'done', code:8,
-        msg:`Empty grid &mdash; there is nothing to measure. <b>0</b>.`, ans:0, done:true});
+    const T = bridgeTruth(rows);
+    const truth = T.islands === 2 ? T.ans : undefined;
+
+    const g = rows.map(r => [...r].map(Number));
+    const mine = Array.from({length:m}, () => Array(n).fill(false));
+    const dist = Array.from({length:m}, () => Array(n).fill(0));
+    const par  = new Map();
+    let q = [], seeds = [], level = 0, flips = 0, painted = 0, stage = 1,
+        touch = null, bridge = [];
+
+    const snap = o => frames.push(Object.assign({
+      m, n, variant, stage, level, flips, painted, islands: T.islands, truth,
+      g: g.map(r => r.slice()),
+      mine: mine.map(r => r.slice()),
+      dist: dist.map(r => r.slice()),
+      queue: q.map(x => x.slice()),
+      seeds: seeds.map(x => x.slice()),
+      bridge: bridge.map(x => x.slice()),
+      cur: null, scan: null, touch: touch && touch.slice()
+    }, o));
+
+    if(!m || !n){
+      stage = 2;
+      snap({phase:'done', code:L_FAIL,
+        msg:`Empty grid &mdash; there is no island to paint, so phase one never starts. Return <b>-1</b>.`,
+        ans:-1, done:true});
       return frames;
     }
 
-    const g     = rows.map(r => r.split(''));
-    const owner = Array.from({length:R}, () => Array(C).fill(-1));   // island id, once finished
-    const val   = Array.from({length:R}, () => Array(C).fill(null)); // what that call returned
-    const islands = [];                                             // area of each finished island
-    let best = 0;
-    let stack = [];                                                 // [{k, parts:[1, d, u, r, l]}]
-
-    const snap = o => frames.push(Object.assign({
-      grid: g.map(r => r.join('')),
-      owner: owner.map(r => r.slice()),
-      val: val.map(r => r.slice()),
-      islands: islands.slice(),
-      stack: stack.map(f => ({k:f.k, parts:f.parts.slice()})),
-      R, C, best, scan:null, ret:null, hot:null
-    }, o));
-
-    const sum = a => a.reduce((x,y)=>x+y, 0);
+    const contract = T.islands === 2
+      ? `Exactly two islands, which is what 934 promises.`
+      : `<span class="x">This grid has ${T.islands} island${T.islands===1?'':'s'}, not two</span> &mdash; outside the problem's contract. The machine still runs: it bridges island A to whichever island is nearest.`;
 
     snap({phase:'scan', code:1,
-      msg:`Grid is <b>${R}&times;${C}</b>, <span class="k">best = 0</span>. Scan every cell. The first
-           un-sunk land cell of an island is where one measuring call starts.`});
+      msg:`Grid is <b>${m}&times;${n}</b>. ${contract} Phase one is a plain DFS whose only job is to answer <em>which cells are island A</em>; the scan below is looking for any land cell to start it from.`});
 
-    /* parent is the caller's frame object, or null at the top level.
-       Every call pushes its own result into its caller's slot list, so the
-       return is visible in the same frame that reports it.                    */
-    function area(r, c, parent, dirName, dirIdx){
-      const pk = parent ? parent.k : null;
-      const pr = pk === null ? 0 : (pk / C) | 0, pc = pk === null ? 0 : pk % C;
-      const land = (pk === null) ? '' : ` into <span class="i">area(${pr},&thinsp;${pc})</span>'s <em>${dirName}</em> slot`;
-
-      if(r < 0 || r >= R || c < 0 || c >= C){
-        if(parent) parent.parts.push(0);
-        snap({phase:'flood', code:12,
-          ret:{r, c, total:0, parts:null, reason:'off the grid'},
-          hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-          msg:`<span class="k">area(${r}, ${c})</span> is <span class="x">off the grid</span> &mdash;
-               the bounds guard fires and it returns <b>0</b>${land}.`});
-        return 0;
-      }
-      if(g[r][c] !== '1'){
-        const sunk = rows[r][c] === '1';
-        if(parent) parent.parts.push(0);
-        snap({phase:'flood', code:13,
-          ret:{r, c, total:0, parts:null, reason: sunk ? 'already sunk' : 'water'},
-          hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-          msg: sunk
-            ? `<span class="k">area(${r}, ${c})</span> finds the cell <span class="x">already sunk</span>
-               &mdash; some earlier call counted it inside its own <b>1</b>. It returns <b>0</b>${land},
-               which is exactly what stops a cell being added twice.`
-            : `<span class="k">area(${r}, ${c})</span> is <span class="x">water</span> &mdash; returns <b>0</b>${land}.`});
-        return 0;
-      }
-
-      g[r][c] = '0';
-      const me = {k: r*C + c, parts:[1]};
-      stack.push(me);
-      snap({phase:'flood', code:14,
-        msg:`<span class="i">area(${r}, ${c})</span> sinks its own cell first, then starts its sum at
-             <b>1</b> &mdash; one for this cell. Four holes left to fill.`});
-
-      let total = 1;
-      for(let d = 0; d < 4; d++){
-        total += area(r + DIRS[d][0], c + DIRS[d][1], me, DIRS[d][2], d);
-      }
-
-
-      stack.pop();
-      val[r][c] = total;
-      if(parent) parent.parts.push(total);
-      snap({phase:'flood', code: parent ? 15 + dirIdx : 5,
-        ret:{r, c, total, parts: me.parts.slice(), reason:null},
-        hot: parent ? {k:parent.k, idx:parent.parts.length-1} : null,
-        msg: parent
-          ? `<span class="m">area(${r}, ${c}) returns ${total}</span> &mdash;
-             ${me.parts.join(' + ')} = ${total}. It lands${land}` +
-             (parent.parts.length === 5
-               ? `, filling that call's last hole. It is complete at <b>${sum(parent.parts)}</b> and can return now.`
-               : `, which is now at <b>${sum(parent.parts)}</b> and still owes
-                  ${5 - parent.parts.length} return${5-parent.parts.length===1?'':'s'}.`)
-          : `<span class="m">area(${r}, ${c}) returns ${total}</span> &mdash;
-             ${me.parts.join(' + ')} = ${total}. Nothing is waiting above it, so that is the
-             whole island's area.`});
-      return total;
-    }
-
-    for(let r = 0; r < R; r++){
-      for(let c = 0; c < C; c++){
-        const k = r*C + c;
-        if(g[r][c] === '1'){
-          snap({scan:k, phase:'found', code:4,
-            msg:`<span class="l">Scan reaches (${r}, ${c})</span> and it is still land, so no earlier
-                 island reached it. Call <span class="k">area(${r}, ${c})</span> and <b>keep what it returns</b>
-                 &mdash; that is the whole difference from problem 200.`});
-
-          const got = area(r, c, null, '', -1);
-
-          const id = islands.length;
-          islands.push(got);
-          for(let a = 0; a < R; a++) for(let b = 0; b < C; b++)
-            if(val[a][b] !== null && owner[a][b] < 0) owner[a][b] = id;
-          const prev = best;
-          best = Math.max(best, got);
-          snap({scan:k, phase:'found', code:5,
-            msg:`<span class="m">Island ${id+1} measures ${got}</span>.
-                 <span class="k">best = max(${prev}, ${got}) = ${best}</span>.` +
-                (got > prev ? ` A new record.` : ` The record stands.`)});
-        } else {
-          const sunk = rows[r][c] === '1';
-          snap({scan:k, phase:'scan', code:4,
-            msg:`(${r}, ${c}) is <span class="x">${sunk ? 'already sunk' : 'water'}</span> &mdash;
-                 ${sunk ? `it was measured inside island ${owner[r][c]+1}; sinking is what makes one pass enough.`
-                        : `nothing to measure.`}`});
+    /* ---- phase one: scan for a start, then paint the whole component ---- */
+    let start = null;
+    for(let r=0; r<m && !start; r++){
+      for(let c=0; c<n; c++){
+        if(g[r][c] === 1){
+          start = [r,c];
+          snap({scan:[r,c], phase:'found', code:L_FOUND,
+            msg:`<span class="l">(${r}, ${c}) is land.</span> Whichever land cell the scan reaches first defines island A &mdash; it does not matter which one, because the whole component is about to become the source set. <span class="k">break outer</span>: the scan stops here, so the <em>other</em> island is never scanned at all.`});
+          break;
         }
+        snap({scan:[r,c], phase:'scan', code:L_SCANW,
+          msg:`(${r}, ${c}) is <span class="x">water</span> &mdash; keep scanning.`});
       }
     }
 
-    snap({phase:'done', code:8,
-      msg: islands.length
-        ? `<span class="m">Largest island: ${best}</span> &mdash; from ${islands.length}
-           island${islands.length===1?'':'s'} of size ${islands.join(', ')}. Every land cell was
-           visited once, sunk once, and contributed its <b>1</b> to exactly one call.`
-        : `<span class="x">No land at all</span> &mdash; the scan never calls <span class="k">area</span>,
-           and <b>best</b> is still 0.`,
-      ans: best, done: true});
+    if(!start){
+      stage = 2;
+      snap({phase:'done', code:L_FAIL,
+        msg:`<span class="x">No land anywhere.</span> Phase one has nothing to paint and phase two has nothing to seed. Return <b>-1</b>.`,
+        ans:-1, done:true});
+      return frames;
+    }
+
+    function paint(r, c){
+      if(r<0 || r>=m || c<0 || c>=n || g[r][c] !== 1) return;
+      g[r][c] = 2;
+      mine[r][c] = true;
+      painted++;
+      const seeded = (variant !== 'one') || seeds.length === 0;
+      if(seeded){ seeds.push([r,c]); q.push([r,c]); }
+      snap({cur:[r,c], phase:'flood', code: seeded ? L_SEED : L_MARK,
+        msg: seeded
+          ? `Paint <span class="i">(${r}, ${c})</span> to <span class="k">2</span> &mdash; one mark that means both <em>mine</em> and <em>visited</em> &mdash; and push it. <b>${q.length}</b> source${q.length===1?'':'s'} queued so far. Every cell of the island goes in, so phase two leaves the whole coastline at the same instant.`
+          : `Paint (${r}, ${c}) to <span class="k">2</span>, but <span class="x">this variant pushes nothing</span>: the queue already holds the seed. The cell is now marked visited, so it is not a source and not passable &mdash; it is a wall.`});
+      for(const [dr,dc] of DIRS) paint(r+dr, c+dc);
+    }
+    paint(start[0], start[1]);
+
+    stage = 2;
+    snap({phase:'sort', code:7,
+      msg: variant === 'one'
+        ? `<b>Handover.</b> Island A is <b>${painted}</b> cell${painted===1?'':'s'}, but only <span class="x">${q.length}</span> of them &mdash; the cell the DFS happened to reach first &mdash; is in the queue. The other ${painted-1} are marked <span class="k">2</span>, so the flood cannot start from them and cannot pass through them either. Everything below is now single-source BFS wearing multi-source clothes.`
+        : `<b>Handover &mdash; this is the seam.</b> Phase one has painted <span class="m">${painted} cell${painted===1?'':'s'}</span> and every one of them is now in the queue, <em>before the first pop</em>. From here the code is the same machine as <a href="994-rotting-oranges.html">994</a>: pop a level, push the next ring, and the level index is a distance.`});
+
+    /* ---- phase two: multi-source BFS ---- */
+    function walkBack(r, c){
+      const out = [];
+      let k = r*n + c;
+      while(true){
+        const rr = (k/n)|0, cc = k%n;
+        if(mine[rr][cc]) break;
+        out.push([rr,cc]);
+        if(!par.has(k)) break;
+        k = par.get(k);
+      }
+      return out.reverse();
+    }
+
+    while(q.length){
+      level++;
+      const sz = q.length;
+      snap({phase:'scan', code:L_LEVEL,
+        msg: level === 1
+          ? `<b>level 1</b> &mdash; snapshot <span class="k">sz = ${sz}</span>. Level 1 <em>is</em> island A. Nothing has been flipped yet, which is exactly why the answer will be <span class="b">level &minus; 1</span> and not <span class="x">level</span>.`
+          : `<b>level ${level}</b> &mdash; snapshot <span class="k">sz = ${sz}</span>. These ${sz} cell${sz===1?'':'s'} are water at distance <span class="w">${level-1}</span> from island A. A bridge that landed here would be ${level-1} cell${level-1===1?'':'s'} long.`});
+
+      for(let s=0; s<sz; s++){
+        const cell = q.shift();
+        const r = cell[0], c = cell[1];
+        const pushed = [];
+        let hit = null;
+        for(const [dr,dc] of DIRS){
+          const nr = r+dr, nc = c+dc;
+          if(nr<0 || nr>=m || nc<0 || nc>=n || g[nr][nc] === 2) continue;
+          if(g[nr][nc] === 1){ hit = [nr,nc]; break; }
+          g[nr][nc] = 2; dist[nr][nc] = level; flips++;
+          par.set(nr*n + nc, r*n + c);
+          q.push([nr,nc]);
+          pushed.push(`(${nr}, ${nc})`);
+        }
+
+        if(hit){
+          touch = hit;
+          bridge = walkBack(r,c);
+          const ans = variant === 'off' ? level : level - 1;
+          const tail = variant === 'off'
+            ? ` <span class="x">This variant returns <b>${level}</b> instead &mdash; it counts levels, and level 1 flipped no water at all.</span>`
+            : (variant === 'one'
+                ? ` The flood started from a <span class="x">single</span> cell of island A, so this is the shortest crossing <em>from that cell</em>, not from the island.`
+                : ``);
+          snap({cur:[r,c], phase:'found', code:L_HIT,
+            msg:`<span class="m">(${hit[0]}, ${hit[1]}) is a 1 that was never painted</span> &mdash; it is island B, and the flood has just touched it from (${r}, ${c}). We are inside level <b>${level}</b>; level 1 was the island itself, so the crossing is <span class="b">${level-1}</span> water cell${level-1===1?'':'s'} &mdash; the ${bridge.length===level-1 ? `${bridge.length} highlighted below` : `chain highlighted below`}. Return immediately: BFS reaches the nearest land first, so no later level can beat this.${tail}`,
+            ans, done:true});
+          return frames;
+        }
+
+        snap({cur:[r,c], phase: pushed.length ? 'flood' : 'sort',
+          code: pushed.length ? L_PUSH : L_SKIP,
+          msg: pushed.length
+            ? `Pop (${r}, ${c}); flood into ${pushed.join(', ')} &mdash; marked <span class="k">2</span> <b>as they are pushed</b>, so no other cell in this level can claim them again. <span class="w">${flips} water cell${flips===1?'':'s'} flipped</span> in total so far, which is not the answer: most of them are nowhere near the bridge.`
+            : `Pop (${r}, ${c}) &mdash; <span class="x">every direction is off-grid or already marked 2</span>. Nothing to push. The cell has done its job just by being in this level.`});
+      }
+    }
+
+    snap({phase:'done', code:L_FAIL,
+      msg: (variant === 'one' && truth !== undefined && truth >= 0)
+        ? `<span class="x">The queue emptied without meeting land.</span> Only the seed was ever pushed, and the rest of island A surrounds it with cells marked <span class="k">2</span> &mdash; a wall of its own making. This grid has a perfectly good bridge of <b>${truth}</b>, and this variant returns <b>-1</b>.`
+        : `<span class="x">The queue emptied without meeting a second island.</span> Everything reachable is water or island A itself, so there is nothing to bridge to. Return <b>-1</b>.`,
+      ans:-1, done:true});
     return frames;
   }
 
@@ -705,28 +791,28 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   const $ = id => document.getElementById(id);
   const boardEl=$('board'), msgEl=$('message'), pillEl=$('phasePill'), barEl=$('bar'),
         countEl=$('stepCount'), codeEl=$('code'), inputEl=$('arrInput'),
-        isleEl=$('islands'), statsEl=$('gstats'), stkEl=$('stack'), retEl=$('retband');
-  let frames=[], idx=0, playing=false, timer=null;
+        statsEl=$('gstats'), qEl=$('qstrip'), vEl=$('verdict'), seamEl=$('seam');
+  let frames=[], idx=0, timer=null, variant='all';
 
-  (function renderCode(){
-    codeEl.innerHTML = CODE.map((line,i)=>{
+  function renderCode(){
+    codeEl.innerHTML = CODE(variant).map((line,i)=>{
       const tx = line.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join('');
       return `<div class="ln" data-line="${i}"><span class="no">${i+1}</span>${tx}</div>`;
     }).join('');
-  })();
+  }
   function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
   function parseGrid(str){
-    const rows = String(str).split(/[\/\n,;]/).map(s=>s.replace(/[^01]/g,'')).filter(s=>s.length);
+    const rows = String(str).split(/[\/\n]/).map(s=>s.replace(/[^01]/g,'')).filter(s=>s.length);
     if(!rows.length) return [];
     const C = Math.min(Math.max(...rows.map(r=>r.length)), MAXC);
     return rows.slice(0,MAXR).map(r => r.slice(0,C).padEnd(C,'0'));
   }
 
-  function buildBoard(R,C){
+  function buildBoard(m,n){
     boardEl.innerHTML='';
-    boardEl.style.gridTemplateColumns = `repeat(${C}, auto)`;
-    for(let k=0;k<R*C;k++){
+    boardEl.style.gridTemplateColumns=`repeat(${n}, auto)`;
+    for(let k=0;k<m*n;k++){
       const d=document.createElement('div');
       d.className='gcell'; d.setAttribute('data-cell',k);
       boardEl.appendChild(d);
@@ -734,68 +820,83 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
   }
 
   function render(){
-    const f = frames[idx]; if(!f) return;
-    const {R,C} = f;
-    const onStack = new Map();
-    f.stack.forEach((fr,i)=>onStack.set(fr.k, {sub: fr.parts.reduce((a,b)=>a+b,0), top: i===f.stack.length-1}));
+    const f=frames[idx]; if(!f) return;
+    const m=f.m, n=f.n;
+    const inQ  = new Set(f.queue.map(([r,c])=>r*n+c));
+    const seed = new Set(f.seeds.map(([r,c])=>r*n+c));
+    const brg  = new Set(f.bridge.map(([r,c])=>r*n+c));
 
-    for(let k=0;k<R*C;k++){
-      const el = boardEl.querySelector(`[data-cell="${k}"]`);
-      if(!el) continue;
-      const r = (k/C)|0, c = k%C;
-      const ch = f.grid[r][c], own = f.owner[r][c], v = f.val[r][c];
-      const st = onStack.get(k);
-      let cls='gcell', html;
-      if(st){                       cls += st.top ? ' flood cur' : ' flood';
-                                    html = `<span class="tagno">${st.sub}</span>`; }
-      else if(v !== null){          cls += (own >= 0) ? ' done' : ' flood';
-                                    html = `<span class="tagno">${v}</span>`; }
-      else if(ch === '1'){          cls += ' land'; html = '1'; }
-      else {                        cls += ' water'; html = '0'; }
-      if(k === f.scan) cls += ' scan';
-      el.className = cls; el.innerHTML = html;
+    for(let k=0;k<m*n;k++){
+      const el=boardEl.querySelector(`[data-cell="${k}"]`); if(!el) continue;
+      const r=(k/n)|0, c=k%n, v=f.g[r][c], d=f.dist[r][c];
+      let cls='gcell', txt='';
+      if(f.cur && f.cur[0]===r && f.cur[1]===c){
+        cls+=' cur';
+        txt = f.mine[r][c] ? '1' : (d ? `<span class="ringno">${d}</span>` : '1');
+      } else if(f.mine[r][c]){
+        cls += (f.stage===2 && f.variant==='one' && !seed.has(k)) ? ' dead' : ' isleA';
+        txt = '1';
+      } else if(brg.has(k)){
+        cls+=' bridge'; txt=`<span class="ringno">${d}</span>`;
+      } else if(inQ.has(k)){
+        cls+=' flood'; txt = d ? `<span class="ringno">${d}</span>` : '';
+      } else if(d){
+        cls+=' ring'; txt=`<span class="ringno">${d}</span>`;
+      } else if(v===1){
+        cls+=' land'; txt='1';
+      } else {
+        cls+=' water';
+      }
+      if(f.scan && f.scan[0]===r && f.scan[1]===c) cls+=' scan';
+      if(f.touch && f.touch[0]===r && f.touch[1]===c) cls+=' reached';
+      el.className=cls;
+      el.innerHTML=txt;
     }
 
-    statsEl.innerHTML = `best so far <b>${f.best}</b> &nbsp;&middot;&nbsp; islands finished
-      <b>${f.islands.length}</b> &nbsp;&middot;&nbsp; stack depth <b>${f.stack.length}</b>`;
+    seamEl.textContent = f.stage===1
+      ? 'phase one · DFS: which cells are island A'
+      : 'phase two · multi-source BFS from all ' + f.painted + ' of them';
+    seamEl.className = 'seam' + (f.stage===2 ? ' live' : '');
 
-    /* the return band — the value that just came back */
-    if(f.ret){
-      const {r,c,total,parts,reason} = f.ret;
-      retEl.innerHTML = parts
-        ? `area(${r},&thinsp;${c}) &nbsp;&rarr;&nbsp; ${parts.join(' + ')} = <span class="tot">${total}</span>`
-        : `area(${r},&thinsp;${c}) &nbsp;&rarr;&nbsp; <span class="zed">0</span>
-           <span class="why">${reason}</span>`;
-    } else retEl.innerHTML = '';
+    statsEl.innerHTML = `island A <b>${f.painted}</b> cell${f.painted===1?'':'s'}`
+      + ` &nbsp;&middot;&nbsp; seeded <b>${f.seeds.length}</b>`
+      + ` &nbsp;&middot;&nbsp; level <b>${f.level}</b>`
+      + ` &nbsp;&middot;&nbsp; water flipped <b>${f.flips}</b>`
+      + ` &nbsp;&middot;&nbsp; queue <b>${f.queue.length}</b>`;
 
-    /* the call stack, deepest last, each with its half-built sum */
-    const S = f.stack;
-    const from = Math.max(0, S.length - 10);
-    let html = from ? `<div class="frm elide">&hellip; ${from} frame${from===1?'':'s'} above</div>` : '';
-    html += S.slice(from).map((fr,i)=>{
-      const r=(fr.k/C)|0, c=fr.k%C, sub=fr.parts.reduce((a,b)=>a+b,0);
-      const bits = ['1'];
-      for(let d=0; d<4; d++){
-        if(d+1 < fr.parts.length){
-          const hot = f.hot && f.hot.k===fr.k && f.hot.idx===d+1;
-          bits.push(hot ? `<span class="hot">${fr.parts[d+1]}</span>` : String(fr.parts[d+1]));
-        } else bits.push('<span class="hole">_</span>');
-      }
-      const done = fr.parts.length === 5;
-      return `<div class="frm${i+from===S.length-1?' top':''}" style="margin-left:${Math.min(i,9)*13}px">`
-        + `<span>area(${r},&thinsp;${c})</span>`
-        + `<span class="sub">${bits.join(' + ')} ${done?'=':'&ge;'} ${sub}</span></div>`;
-    }).join('');
-    stkEl.innerHTML = html || `<div class="frm elide">call stack empty</div>`;
+    qEl.innerHTML = f.queue.length
+      ? f.queue.map(([r,c])=>{
+          const s = f.stage===1 || f.mine[r][c];
+          return `<span class="qitem${s?' seed':''}">${r},${c}</span>`;
+        }).join('')
+      : `<span class="qitem empty">queue empty</span>`;
 
-    msgEl.innerHTML = f.msg;
+    msgEl.innerHTML=f.msg;
 
-    isleEl.innerHTML = f.islands.map((n,i)=>
-      `<span class="isle${n===f.best?'':' small'}">island ${i+1} &middot; area ${n}</span>`).join('');
+    if(f.done){
+      vEl.hidden=false;
+      const wrong = (f.truth !== undefined && f.truth !== f.ans);
+      const cls = wrong ? 'wrong' : 'right';
+      const head = f.ans === -1
+        ? `<b class="wrong">-1</b> &nbsp;&middot;&nbsp; no second island reached`
+        : (f.variant==='off'
+            ? `returned <b class="${cls}">${f.ans}</b> &mdash; the level count, not the water flipped`
+            : `bridge <b class="${cls}">${f.ans}</b> water cell${f.ans===1?'':'s'}`);
+      const mid = (f.ans !== -1 && f.bridge.length)
+        ? ` &nbsp;&middot;&nbsp; touched island B on level ${f.level}`
+        : ``;
+      const tail = f.truth === undefined
+        ? ` &nbsp;&middot;&nbsp; <span class="wrong">${f.islands} island${f.islands===1?'':'s'} &mdash; oracle not applicable</span>`
+        : (wrong ? ` &nbsp;&middot;&nbsp; <span class="wrong">union-find oracle says ${f.truth}</span>`
+                 : ` &nbsp;&middot;&nbsp; union-find oracle agrees`);
+      vEl.innerHTML = head + mid + tail;
+    } else { vEl.hidden=true; vEl.innerHTML=''; }
 
-    const pmap={scan:['scan','● scanning'],flood:['sort','≈ measuring'],found:['found','✓ island'],done:['done','■ complete']};
-    const [pc,ptxt]=pmap[f.phase]||['','idle'];
-    pillEl.className='phase-pill '+pc; pillEl.textContent=ptxt;
+    const pmap={scan:['scan','● scanning'],flood:['sort','≈ flooding'],
+                sort:['sort','≈ seam'],found:['found','✓ touched B'],
+                done:['done','■ complete']};
+    const pv=pmap[f.phase]||['','idle'];
+    pillEl.className='phase-pill '+pv[0]; pillEl.textContent=pv[1];
 
     codeEl.querySelectorAll('.ln').forEach(l=>l.classList.remove('exec'));
     const line=codeEl.querySelector(`[data-line="${f.code}"]`); if(line) line.classList.add('exec');
@@ -805,54 +906,72 @@ document.documentElement.setAttribute("data-theme",p==="auto"?(d?"dark":"light")
     $('prevBtn').disabled=idx===0; $('nextBtn').disabled=idx===frames.length-1;
   }
 
-  function run(str){
+  function run(){
     stop();
-    const rows = parseGrid(str);
+    const rows=parseGrid(inputEl.value);
     buildBoard(rows.length, rows.length?rows[0].length:0);
-    frames = buildFrames(rows);
+    frames=buildFrames(rows, variant);
     idx=0; render();
   }
   function next(){ if(idx<frames.length-1){idx++;render();} else stop(); }
   function prev(){ if(idx>0){idx--;render();} }
   function speedMs(){ return 1050 - $('speed').value*95; }
-  function play(){ if(idx>=frames.length-1) idx=0; playing=true; $('playBtn').textContent='⏸'; tick(); }
+  function play(){ if(idx>=frames.length-1) idx=0; $('playBtn').textContent='⏸'; tick(); }
   function tick(){ render(); if(idx>=frames.length-1){stop();return;} timer=setTimeout(()=>{idx++;tick();}, speedMs()); }
-  function stop(){ playing=false; clearTimeout(timer); $('playBtn').textContent='▶'; }
-  function togglePlay(){ playing?stop():play(); }
+  function stop(){ clearTimeout(timer); timer=null; $('playBtn').textContent='▶'; }
 
+  /* Every note states a number. The jsdom harness parses these back out and
+     asserts them against buildFrames, so a stale label cannot survive. */
   const EX=[
-    ['10010/10011/00011','2, then 5 — best grows'],
-    ['010/111/010','a plus: 1 + 4 + 0 + 0 + 0 = 5'],
-    ['1100/1100/0000/0011/0011','two islands tie at 4'],
-    ['1111/1001/1001/1111','a ring — one island of 12'],
-    ['00000/00000','no land at all → 0'],
-    ['1','a single cell → 1'],
+    ['1111/0000/0001', 'answer 1 — seeding one cell says 4'],
+    ['01/10',          'answer 1 — the LeetCode example, smallest legal grid'],
+    ['010/000/001',    'answer 2 — two singles, opposite corners'],
+    ['11111/10001/10101/10001/11111', 'answer 1 — a ring and the cell it imprisons'],
+    ['11110/10000/10000/00000/00001', 'answer 4 — an L whose seed walls itself in: -1'],
+    ['1001',           'answer 2 — separated along a single row'],
+    ['1/0/0/1',        'answer 2 — separated along a single column'],
   ];
   (function chips(){
     const box=$('examples');
     EX.forEach(([w,note])=>{
       const c=document.createElement('button'); c.className='chip'; c.innerHTML=`${w}<b>${note}</b>`;
-      c.onclick=()=>{ inputEl.value=w; run(w); }; box.appendChild(c);
+      c.onclick=()=>{ inputEl.value=w; run(); }; box.appendChild(c);
     });
   })();
 
-  $('runBtn').onclick=()=>run(inputEl.value);
-  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(inputEl.value); });
+  function setVariant(v){
+    variant=v;
+    $('segAll').classList.toggle('on', v==='all');
+    $('segOne').classList.toggle('on', v==='one');
+    $('segOff').classList.toggle('on', v==='off');
+    renderCode();
+    run();
+  }
+  $('segAll').onclick=()=>setVariant('all');
+  $('segOne').onclick=()=>setVariant('one');
+  $('segOff').onclick=()=>setVariant('off');
+
+  $('runBtn').onclick=run;
+  inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
   $('nextBtn').onclick=()=>{stop();next();};
   $('prevBtn').onclick=()=>{stop();prev();};
-  $('playBtn').onclick=togglePlay;
+  $('playBtn').onclick=()=>{ timer?stop():play(); };
   $('restartBtn').onclick=()=>{stop();idx=0;render();};
   document.addEventListener('keydown',e=>{
     if(document.activeElement===inputEl) return;
     if(e.key==='ArrowRight'){stop();next();}
     if(e.key==='ArrowLeft'){stop();prev();}
-    if(e.key===' '){e.preventDefault();togglePlay();}
+    if(e.key===' '){e.preventDefault(); timer?stop():play();}
   });
 
-  window.__buildFrames = buildFrames;   /* verification hook */
-  window.__EXAMPLES = EX;               /* chip labels, for assertion */
-  window.__parseGrid = parseGrid;
-  run(inputEl.value);
+  window.buildFrames   = buildFrames;    /* (rows, variant) — rows: string[] of '0'/'1'; variant: 'all'|'one'|'off' */
+  window.__buildFrames = buildFrames;
+  window.__bridgeTruth = bridgeTruth;
+  window.__parseGrid   = parseGrid;
+  window.__EX          = EX;
+
+  renderCode();
+  run();
 })();
 </script>
 <script>
